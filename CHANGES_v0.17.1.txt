@@ -1,0 +1,22 @@
+Hazz Karaoke Hoster v0.17.1 — One-Click TV / Display 2
+=======================================================
+
+1. Karaoke Deck TV button
+- Added a dedicated TV button directly on the Karaoke Deck transport row.
+- One click sends the singer/audience screen straight to Display 2 in fullscreen mode.
+- The shortcut bypasses the DISPLAY menu completely for normal live-show use.
+- The existing DISPLAY menu remains available for manual display selection, windowed mode and settings.
+
+2. Live-show safety
+- TV always targets Hazz Display 2 (the same Display 2 used by the existing display-target list).
+- If a second display is not detected, Hazz does NOT fall back to Display 1.
+- Instead it shows a clear message asking the host to connect/enable the TV and press TV again.
+- This prevents the singer screen from unexpectedly covering the host controls.
+
+3. Fullscreen behavior
+- Uses the existing AudienceWindow fullscreen path, including native monitor-coordinate placement.
+- Retains borderless, topmost fullscreen output and mixed-DPI handling already used by the DISPLAY menu.
+
+Build note
+----------
+Source was statically checked in the generation environment. Windows .NET 10/WPF is not installed here, so Visual Studio 2026 Release/x64 remains the authoritative compile/runtime test.

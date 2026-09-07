@@ -1,0 +1,28 @@
+HAZZ KARAOKE HOSTER v0.2.2
+RUNNABLE EXE / RELEASE PUBLISH UPDATE
+
+What changed
+------------
+1. A Visual Studio 2026 RELEASE build of HazzKaraokeHoster.App now automatically
+   publishes a Windows x64 self-contained single-file executable.
+
+2. Output folder:
+   RELEASE\HazzKaraokeHoster\
+
+3. Main executable:
+   Hazz Karaoke Hoster.exe
+
+4. Added BUILD-EXE.cmd.
+   Double-click this from the source root to build the distributable EXE without
+   having to use the Visual Studio Publish UI.
+
+5. Added RUN-HAZZ.cmd to start the latest published executable.
+
+6. Added Visual Studio publish profile:
+   Win-x64-SelfContained.pubxml
+
+Debug builds do NOT perform the extra publish operation.
+Use Release/x64 when you want the standalone distributable EXE.
+
+The executable is self-contained for the .NET runtime. Windows-installed media
+codecs/providers used by the application are still Windows system dependencies.

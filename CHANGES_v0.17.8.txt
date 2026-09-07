@@ -1,0 +1,24 @@
+Hazz Karaoke Hoster v0.17.8
+
+Smart Import WPF thread correction
+- Fixed the error: "The calling thread cannot access this object because a different
+  thread owns it" after confirming a MediaMonkey Smart Import.
+- The Verify Paths checkbox and selected media mode are now read from the preview
+  window on the WPF UI thread before background work begins.
+- The background import receives plain captured values and never accesses the preview
+  window or its controls.
+- Progress text and tooltips are explicitly sent through the main WPF Dispatcher.
+- Database inspection and import remain off the UI thread, so large MediaMonkey
+  libraries continue to import without freezing the host console.
+
+Retained corrections
+- MediaMonkey's private `mm` tokenizer table remains excluded; the ordinary Songs
+  table is imported read-only.
+- Visual Studio Release | x64 Build Solution creates RELEASE\HazzKaraokeHoster.
+
+Validation
+- Visual Studio 2026 Release | x64 rebuild completes without errors or warnings.
+- The generated RELEASE folder contains the self-contained 0.17.8 application.
+- MediaMonkey tokenizer/schema regression and source archive integrity checks pass.
+
+All earlier Hazz Karaoke Hoster features remain available.

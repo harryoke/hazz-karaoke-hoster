@@ -1,0 +1,39 @@
+HAZZ KARAOKE HOSTER v0.8
+=========================
+
+MUSIC PLAYLISTS
+- Deck 1 and Deck 2 playlists no longer display raw full file paths.
+- Playlist rows show #, Artist, Title and Duration.
+- Indexed library tracks keep their database Artist/Title metadata.
+- Manually added files use a safe filename fallback (Artist - Title where possible).
+- The track that starts is rotated to row #1 and marked as NOW PLAYING.
+- When a crossfade completes or a music track naturally finishes, the completed track moves to the bottom and the next queued track becomes #1.
+- Queued music rows can be drag/dropped within the same deck to change play order.
+- The active NOW PLAYING row is protected from accidental drag while it is playing.
+
+MUSIC FADES
+- Added FADE NOW next to the automatic crossfade controls.
+- FADE NOW immediately uses the configured crossfade time and starts the same Deck 1 <-> Deck 2 crossfade engine used by automatic fading.
+
+KARAOKE SKIP SILENCE
+- Added SKIP SILENT INTRO toggle (enabled by default).
+- On Karaoke PLAY, Hazz performs a background audio scan and skips leading silence only.
+- Added SKIP SILENCE NOW for manually jumping across the current silent section.
+- Automatic silence skipping never removes quiet/instrumental sections in the middle of a song.
+- Adjustable 0.00-2.00 second pre-roll (0.25 second steps) protects the first beat/word.
+- The seek is applied to the host media clock, live pitch audio, CD+G renderer and audience video so sync remains aligned.
+- The detector is read-only and uses Media Foundation/NAudio; unsupported codecs simply leave playback unchanged and report that silence detection is unavailable.
+
+MUSIC PLAY HISTORY
+- Every music track started by Deck 1 or Deck 2 is written to permanent music_history.
+- History records date/time, deck, queue position, Artist, Title, file reference and duration when available.
+- MUSIC HISTORY / LISTS displays newest plays first.
+- Added a REFRESH button to the Music Playlists & History window.
+- The history and imported BPM Studio lists remain read-only from the source application; Hazz stores its own records in its SQLite database.
+- Existing databases are automatically migrated with a nullable duration_seconds column.
+
+RETAINED
+- v0.7 player elapsed/remaining/total time displays.
+- Immediate singer handoff on Karaoke PLAY, STOP restore semantics, permanent singer history.
+- Resizable/remembered host layout and 2M+ paged Library Browser.
+- Multi-folder import, Karma/BPM migration, audience Display 2 controls, live key change, CD+G +/-0.25s sync, Find Alternative, automatic Deck crossfade and karaoke music interruption/resume.

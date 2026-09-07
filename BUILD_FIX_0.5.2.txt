@@ -1,0 +1,16 @@
+HAZZ KARAOKE HOSTER v0.5.2 BUILD FIX
+======================================
+
+Fixed Visual Studio errors in AudienceWindow.xaml.cs:
+
+CS0103: The name 'Canvas' does not exist in the current context
+
+Cause:
+AudienceWindow.xaml.cs uses Canvas.SetLeft / Canvas.SetTop / Canvas.GetLeft,
+but was missing the System.Windows.Controls namespace.
+
+Fix added:
+using System.Windows.Controls;
+
+This supplies System.Windows.Controls.Canvas.
+No playback, database, singer, crossfade, or audience behaviour was changed.

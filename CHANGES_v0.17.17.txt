@@ -1,0 +1,19 @@
+Hazz Karaoke Hoster v0.17.17
+Long-show stability and performance
+
+- The karaoke renderer, music automation, queue persistence and audience ticker now run
+  behind fault barriers. A failed update is recorded in diagnostics and later ticks continue.
+- Live singer rotation and both unplayed music queues are checkpointed every two minutes,
+  in addition to the existing immediate change saves.
+- Database connections wait up to 15 seconds for brief write contention. WAL automatically
+  checkpoints at 1,000 pages so long sessions do not accumulate an unchecked WAL file.
+- Automatic library watching retains a maximum of 10,000 pending paths. If a huge file copy
+  exceeds that limit, Hazz protects playback and asks the host to run the normal rescan later.
+- Audience slideshow enumeration is capped at 10,000 files and GIF loading has a 128 MB safety
+  limit. Bad background media is logged and skipped without interrupting the show.
+- Music, karaoke, audience-video and slideshow media handles are explicitly closed at shutdown.
+- Diagnostic writes are synchronized, each daily log rolls at 8 MB, and files older than 21 days
+  are removed at startup.
+- All v0.17.16 features remain, including the steel interface, illuminated controls, scrolling
+  deck LED displays, singer-history picker, background slideshow/GIF/video support, Smart Import,
+  broken-file marking, Space-bar quick play, shutdown confirmation and Display 2 fullscreen.

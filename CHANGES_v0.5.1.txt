@@ -1,0 +1,21 @@
+HAZZ KARAOKE HOSTER v0.5.1
+===========================
+
+- Audience Next Singer overlay hidden during active/paused karaoke.
+- Removed audience "Waiting for singer" placeholder when queue is empty.
+- CD+G audience surface layered explicitly above inactive video surface.
+- Added KARAOKE / MUSIC search modes; video karaoke is part of KARAOKE.
+- Added large-folder IMPORT KARAOKE and IMPORT MUSIC with background scanning,
+  batched SQLite transactions, progress, cancellation and rescan/upsert behavior.
+- Main rotation changed to one singer row with an ordered Songs collection.
+- Drag KARAOKE search results onto singer rows.
+- Search results moved to left overlay so singer rows remain available as drop targets.
+- Double-click singer opens Singer Songs & History window.
+- Reorder singer songs by drag/drop or Up/Down buttons.
+- Per-queued-song key and CD+G sync controls.
+- Saved singer names repopulate the editable singer selector.
+- Completed assigned karaoke performances are written to persistent singer history.
+- Added LOAD NEXT SINGER.
+- Completed singers rotate to the bottom if more songs remain; otherwise they leave
+  the current show rotation but stay in the permanent singer database/history.
+- Existing v0.4 auto-crossfade and karaoke/music-resume behavior retained.

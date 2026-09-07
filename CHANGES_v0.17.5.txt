@@ -1,0 +1,34 @@
+Hazz Karaoke Hoster v0.17.5
+
+Smart Import
+- IMPORT > SMART IMPORT can inspect a single file or scan an application data folder.
+- Folder detection examines supported candidates without opening thousands of files at once,
+  ranks known library names/signatures and shows the selected file and confidence evidence.
+- The preview identifies the source, sample songs, media type and detected table/column mapping
+  before the user starts an import.
+- Import runs away from the WPF UI thread, streams large exports and reports progress/cancellation.
+- Source databases and exports are opened read-only. Hazz writes imported records only to its own
+  database and preserves the original files.
+- Supported shared formats: SQLite DB, Access/MDB/ACCDB/KDB, XML, JSON, CSV/TSV/text,
+  M3U/M3U8, PLS, LST, WPL, XSPF and ASX.
+- Recognised signatures: MediaMonkey, CompuHost, Lyrx, KaraFun, Siglos/PowerKaraoke,
+  VirtualDJ, OpenKJ, Karma, BPM Studio, PCDJ DEX, MTU Hoster, SongBookDB, kJams,
+  JustKaraoke, Sax & Dottys, TriceraSoft, Serato, Mixxx, djay Pro, Winamp, rekordbox
+  and Apple Music/iTunes.
+- Generic exports from other applications also import when they contain a recognised media-path
+  field. Proprietary, encrypted or undocumented binary formats still require that application's
+  CSV/XML/playlist export; Smart Import reports when it cannot find a usable media-path table.
+- Smart Import transfers media library records and playlist entries. Vendor-specific live rotation,
+  singer history and settings remain available only through an existing dedicated importer where one
+  is provided (for example Karma and BPM Studio).
+
+Validation
+- Automated checks cover MediaMonkey SQLite folder discovery, CompuHost CSV, Lyrx folder data,
+  KaraFun JSON, VirtualDJ XML, Apple/iTunes plist, Mixxx XSPF and a generic M3U8 playlist.
+- Tests verify read-only source handling, field mapping, confidence evidence, karaoke classification
+  and committed records in the Hazz database.
+- Release compilation, XAML/C# reference validation and source archive CRC checks passed.
+
+Build: open HazzKaraokeHoster.sln in Visual Studio 2026 and build Release.
+All v0.17.4 features remain, including singer search, image/video/GIF backgrounds, adjustable GIF
+speed, automatic console scaling, broken-file tags, Space quick-play, shutdown confirmation and TV.

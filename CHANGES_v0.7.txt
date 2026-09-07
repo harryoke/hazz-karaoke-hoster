@@ -1,0 +1,45 @@
+HAZZ KARAOKE HOSTER v0.7
+========================
+
+NEW: PLAYER TIME / PROGRESS DISPLAYS
+- Deck 1, Karaoke Deck and Deck 2 now show elapsed time, total time and remaining time.
+- Each player has a live progress bar.
+- The displays update while playing, paused, crossfading and during karaoke playback.
+
+NEW: PLAY-TIME SINGER ROTATION HANDOFF
+- Pressing Karaoke PLAY is now the rotation handoff point.
+- The song that starts playing is immediately removed from that singer's active request list.
+- The singer who is singing is immediately moved to the bottom of the rotation.
+- The next waiting singer therefore becomes the #1 / next singer as soon as playback starts.
+- Natural completion writes permanent singer history; the request was already removed at PLAY.
+- Manual STOP / playback failure restores the unfinished song to the front of that singer's active requests.
+- The singer remains at the bottom after a manual stop so the waiting rotation is not unexpectedly reordered again.
+
+NEW: RESIZABLE HOST LAYOUT
+- Vertical splitters resize Deck 1 player/playlist and Deck 2 player/playlist.
+- Centre splitters resize Karaoke Deck / singer list / karaoke preview.
+- Horizontal splitters resize Deck 1 / centre / Deck 2 widths.
+- Layout sizes are remembered in Local AppData and restored at the next launch.
+
+NEW: FULL LIBRARY BROWSER
+- New BROWSE LIBRARY window with KARAOKE and MUSIC modes.
+- Designed for multi-million-row libraries: only 500 database rows are materialised per page.
+- Browse the entire collection without loading the whole library into RAM.
+- Artist, Title, Manufacturer and Date Added sorting.
+- FTS5-backed filter box for artist/title/manufacturer/disc searches.
+- First / Previous / Next / Last / Go-to-page navigation.
+- Drag Karaoke tracks onto singer rows in the main window.
+- Add selected Karaoke track to the currently selected singer.
+- Add Music tracks to Deck 1 or Deck 2, including drag/drop onto the music playlists.
+- Compound SQLite indexes added for large-library browsing order.
+
+RETAINED FROM v0.6.x
+- Multiple-folder Karaoke/Music import.
+- Read-only Karma singer/history migration.
+- Read-only BPM Studio playlist/history import.
+- Display 2 audience output, movable/resizable/windowed/full-screen modes.
+- Next Singer/scroller suppressed during active/paused karaoke.
+- Live karaoke key changer and CD+G +/-0.25 second sync.
+- Find Alternative.
+- Deck 1 <-> Deck 2 automatic crossfade and karaoke music interruption/resume.
+- Standalone self-contained Windows x64 Release EXE publishing.

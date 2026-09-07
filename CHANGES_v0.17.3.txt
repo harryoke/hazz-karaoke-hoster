@@ -1,0 +1,30 @@
+Hazz Karaoke Hoster v0.17.3 - singer picker and audience backgrounds
+
+Previous singers: open the arrow, then type in the editable name field to search the
+full database. At most 100 matches, most recently used first then name. Empty text
+shows recent singers. Queries run off the UI thread, with 180ms debounce,
+cancellation and stale-result protection. Results use WPF recycling virtualization.
+No singer/history data is deleted. Existing ADD SINGER and history behavior remains.
+The existing unique NOCASE name index is retained; a recent-use/name index is added.
+Substring matching may scan the index, but runs in the background with capped results.
+
+DISPLAY / Overlay settings / Singer-view background:
+- IMAGE / VIDEO chooses a single image or continuously looping silent video.
+- CHOOSE FOLDER cycles supported images/videos in filename order, one minute each.
+- Videos are always muted, loop within their minute, then give way to the next item.
+- Folder contents refresh each interval; subfolders are not included.
+- PNG/JPEG/BMP/GIF/TIFF/WebP and MP4/M4V/WMV/AVI/MOV/MKV/WebM/MPG/MPEG are considered.
+  Actual decoding depends on installed Windows codecs. GIF uses its decoded frame.
+- Unreadable images are skipped. Failed videos leave a blank slot until the next minute.
+- Folder selection is saved. Clear or choose a single file to leave slideshow mode.
+- Backgrounds retain the existing between-song behavior: hidden during karaoke.
+- Lyrics, videos, next singers, scroller and logo keep their existing layer behavior.
+
+Validation: .NET 10 Release build passed (existing warnings in import code).
+20,000 synthetic singers: cap/order, full-database search, cancellation, preserved
+notes/history and repeat schema initialization passed. Recent query measured 6ms.
+XAML compiled with its C# event references. Source ZIP CRC and XML checks passed.
+Space quick-play, safe shutdown, and TV Display 2 handlers remain unchanged.
+Live interactive UI timing and real video/TV playback have not been exercised here.
+
+Open HazzKaraokeHoster.sln in Visual Studio 2026. Existing build scripts are retained.

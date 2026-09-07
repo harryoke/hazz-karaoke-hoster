@@ -1,0 +1,11 @@
+.vs/
+**/bin/
+**/obj/
+RELEASE/
+*.user
+*.suo
+*.pdb
+*.tmp
+*.log
+tests/LayoutChecks/layout-preview.png
+tests/LayoutChecks/layout-results-*.txt

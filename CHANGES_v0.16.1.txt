@@ -1,0 +1,11 @@
+Hazz Karaoke Hoster v0.16.1
+
+BPM STUDIO DAILY HISTORY
+- Detects BPM Studio dated played-song list files as history, including when stored in the normal Lists area.
+- Collapses multiple physical snapshots/copies for the same calendar day, choosing the most complete copy.
+- Imports each day into music_history and also creates a loadable BPM Daily History — YYYY-MM-DD playlist.
+- Preserves BPM play order and genuine repeated plays of the same track within a day.
+- Daily-history lists sort newest-first at the top of the Music Playlists & History window.
+- BPM Studio source files remain read-only.
+
+This revision is based on v0.16.0 and retains its laptop scaling, singer history search/drag fix, playback and library features.

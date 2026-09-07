@@ -1,0 +1,10 @@
+Hazz Karaoke Hoster v0.17.19
+Readable steel dropdown controls
+
+- Replaced the operating-system white ComboBox template throughout the host window.
+- Closed dropdowns now show bright text on a dark steel background.
+- Open option lists use dark rows with high-contrast text and clear blue hover/selection.
+- Disabled dropdowns remain readable while being visibly subdued.
+- Editable singer lookup keeps white typed text and a white caret on a dark background.
+- All v0.17.18 audience sizing, scroller positioning, search drop-target and long-show
+  stability improvements remain intact.

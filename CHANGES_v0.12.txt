@@ -1,0 +1,28 @@
+Hazz Karaoke Hoster v0.12
+==========================
+
+MUSIC DECK SHUFFLE
+- Added SHUFFLE to Deck 1 and Deck 2.
+- Randomises only the remaining queued tracks.
+- If a track is currently playing, its yellow NOW PLAYING row remains fixed at #1.
+- The shuffled queue is immediately renumbered and the automation scheduler follows the new order.
+
+KAMIKAZE KARAOKE
+- Added KAMIKAZE button to the Karaoke Deck.
+- Targets the current #1 / next singer in the live rotation.
+- Chooses a playable random track from the indexed Karaoke library.
+- The random track is inserted at the front of that singer's active songs; their genuine requests are preserved behind it.
+- Press KAMIKAZE again before playback to remove the previous random choice and select another one.
+- On a very large library, random selection uses small random database windows rather than ORDER BY RANDOM(), avoiding a full-library random sort.
+- If karaoke is already playing, Kamikaze prepares the next singer without interrupting the current singer.
+- If no karaoke is playing, the selected random track is prepared in the Karaoke Deck automatically.
+
+KAMIKAZE AUDIENCE ANNOUNCEMENT
+- While a Kamikaze song is waiting, the audience singer/rotation information is replaced by a large Kamikaze announcement.
+- The announcement is hidden immediately when the next karaoke track actually starts.
+- The persistent venue logo remains available above the audience layers.
+- The selected karaoke graphics/video are kept hidden before PLAY so a CD+G title card cannot reveal the random song to the audience.
+- Audience Display Settings now include user-selectable Kamikaze text, font, size and colour.
+- Kamikaze message appearance is remembered across launches.
+
+Existing v0.11.1 music-playlist consumption, history, audience rotation, live key/CD+G sync, crossfade, large-library and migration features remain intact.

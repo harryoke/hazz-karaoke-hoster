@@ -1,0 +1,15 @@
+# Hazz Karaoke Hoster v0.15.4
+
+## Karma singer-history repair
+- Current Karma KDB relational singer histories now resolve Singer ID -> singer name and Song/Track/Media ID -> karaoke track metadata instead of importing only singer names.
+- History detection accepts additional ID naming patterns used by different Karma generations.
+- Karma per-singer **Times Sung / play count** fields are detected and preserved (for example a song sung 14 times imports as Times Sung = 14).
+- Re-importing the same Karma source updates counts rather than duplicating history rows.
+- Singer History now displays one row per song with **Last Sung** and **Times Sung**. Hazz still retains its underlying performance events.
+- Previously sung songs can be dragged from Singer History into Active Songs, or double-clicked to re-queue them. Previous key and CD+G sync are retained when available.
+
+## BPM Studio duplicate-list repair
+- Repeated physical/archive copies of the same BPM Studio dated playlist/history are collapsed into one logical list.
+- Re-import cleans list/history rows associated with the source files being refreshed rather than adding another stack of duplicates.
+
+All source databases remain read-only.

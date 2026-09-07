@@ -1,0 +1,28 @@
+Hazz Karaoke Hoster v0.17.10
+
+Fast MediaMonkey import
+- Song upserts and source-attribution writes now use prepared SQLite commands that
+  are created once and reused throughout the import.
+- Legacy malformed MediaMonkey paths are loaded with one indexed query into an
+  in-memory lookup. The former per-song repair query has been removed.
+- Exact legacy path-tail matching preserves the correct record when artist/title
+  duplicates exist.
+- Progress is reported every 1,000 rows, reducing WPF dispatcher work while retaining
+  visible progress and cancellation.
+- Verify files exist remains optional and is unchecked by default. Its label now makes
+  the slower behaviour explicit for very large libraries.
+
+Measured validation
+- Source: the user's real 649 MB MediaMonkey 5 MM5.DB, opened read-only.
+- Result: 167,920 of 167,920 records imported into a disposable Hazz database.
+- Time: 25.1 seconds, averaging 6,686 rows/second, with zero import errors.
+- Real preview validation still resolves all 20 sampled MediaMonkey paths to existing
+  absolute files using Songs.IDMedia and Medias.DriveLetter.
+- The synthetic test also verifies legacy-path repair, private tokenizer handling,
+  source-byte preservation and committed Hazz records.
+
+Build output
+- Visual Studio 2026 Release | x64 Rebuild Solution continues to create exactly one
+  self-contained EXE in RELEASE\HazzKaraokeHoster.
+
+All v0.17.9 and earlier features remain available.

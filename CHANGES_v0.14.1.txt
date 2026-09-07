@@ -1,0 +1,13 @@
+HAZZ KARAOKE HOSTER v0.14.1
+
+KAMIKAZE RESPONSIVENESS HOTFIX
+
+- Removed random library selection via large OFFSET + ORDER BY Artist.
+- Added indexed random-ID candidate lookup for multi-million row libraries.
+- Added songs(media_kind, id) index.
+- Runs Kamikaze random lookup off the WPF UI thread.
+- Runs file existence probes off the WPF UI thread with a short timeout.
+- Prevents parallel Kamikaze selections and shows CHOOSING... while busy.
+- Logs unexpected Kamikaze failures through AppDiagnostics.
+
+No singer-rotation or audience-display rules changed.

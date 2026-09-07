@@ -1,0 +1,46 @@
+HAZZ KARAOKE HOSTER v0.6
+========================
+
+AUDIENCE DISPLAY
+- Connected-display selector.
+- Send / Full Screen / Windowed controls.
+- Display 2 preferred when present.
+- Window can be moved/resized in Windowed mode.
+- Karaoke PLAY/PAUSE suppresses Next Singer and venue scroller.
+- STOP clears CD+G/video and returns audience output to idle overlays.
+
+KARAOKE TRANSPORT
+- PAUSE toggles pause/resume from exact current position.
+- Manual STOP does not remove request or write singer history.
+- Natural end records permanent singer history and removes only the completed active request.
+- Singer remains in the show rotation.
+
+LIVE KEY
+- Karaoke-only live key range -6..+6.
+- NAudio pitch path added for on-the-fly pitch shift without intentional tempo change.
+- Falls back to Windows/WPF playback when NAudio/Media Foundation cannot decode a specific file.
+
+FIND ALTERNATIVE
+- Finds next indexed KARAOKE version with same normalized Artist + Title.
+- Starts alternative immediately from beginning.
+- Repeated presses advance/cycle alternatives.
+- Retains singer/key and applies alternative's saved CD+G sync.
+
+LIBRARY IMPORT
+- Multiple folders/drives per import job.
+- Parent/child roots collapsed to avoid duplicate scans without a multi-million-path RAM set.
+- Streaming enumeration + batched SQLite transactions.
+- Clear import counters for companion CDG audio, unsupported files and real errors.
+- Expanded audio/video extension recognition.
+
+BPM STUDIO
+- Read-only BPM Studio playlist/history migration.
+- Best-effort native .LST/.GRP/.PLG plus M3U/M3U8/PLS.
+- Music playlists/history stored permanently in Hazz.
+- Missing references preserved.
+- New Music Playlists & History browser can load tracks to either music deck.
+
+BUILD
+- Assembly version 0.6.0.
+- Added NAudio 2.2.1 package.
+- Release/x64 still auto-publishes the standalone self-contained EXE.

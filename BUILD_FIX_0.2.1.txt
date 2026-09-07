@@ -1,0 +1,16 @@
+Hazz Karaoke Hoster v0.2.1 build fix
+=====================================
+
+Fixed Visual Studio 2026 compile errors in MainWindow.xaml.cs:
+- CS0103: Path does not exist in current context
+- CS0103: File does not exist in current context
+- CS0246: InvalidDataException could not be found
+
+Cause:
+MainWindow.xaml.cs used System.IO types but did not import the System.IO namespace.
+
+Fix:
+Added:
+    using System.IO;
+
+No application behaviour was changed by this patch.

@@ -1,0 +1,11 @@
+Hazz Karaoke Hoster v0.9.1
+
+UI readability hotfix
+---------------------
+- Fixed white-on-white text in the LIBRARY / IMPORT / DISPLAY / SHOW drop-down menus.
+- Added explicit dark MenuItem backgrounds and white foregrounds.
+- Added readable highlighted/open/disabled states.
+- Added a darker separator appearance.
+- Updated the header build label to v0.9.1.
+
+No functional playback/database changes in this hotfix.

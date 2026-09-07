@@ -1,0 +1,17 @@
+HAZZ KARAOKE HOSTER v0.9
+==========================
+
+UI / readability
+- Reworked the wide top toolbar into compact LIBRARY / IMPORT / DISPLAY / SHOW drop-down menus.
+- Larger, clearer button/text defaults and improved dark-panel contrast.
+- Host karaoke preview has a SHOW/HIDE toggle and the centre layout expands when preview is hidden.
+- Existing resizable/saved splitters remain.
+
+Audience artwork
+- User-selectable singer-view background image shown between karaoke performances.
+- Optional persistent audience logo with six position presets and adjustable width.
+- Logo is deliberately rendered above CD+G and video output whenever enabled.
+- Next Singer/scroller remains above artwork between songs, while Next Singer/scroller are hidden during karaoke playback.
+- Background/logo choices, enabled states, logo position/size and preview visibility are remembered.
+
+All v0.8.1 playback, queue, history, import, library-browser and crossfade behaviour is retained.

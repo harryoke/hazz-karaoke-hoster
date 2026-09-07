@@ -1,0 +1,62 @@
+<Window x:Class="HazzKaraokeHoster.App.ImportProgressWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Import Progress" Width="680" Height="300" MinWidth="560" MinHeight="270"
+        ResizeMode="CanResizeWithGrip" WindowStartupLocation="CenterOwner"
+        Background="#0B0F14" Foreground="White" ShowInTaskbar="False">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock x:Name="TitleText" FontSize="22" FontWeight="SemiBold" Text="Importing BPM Studio"/>
+        <TextBlock x:Name="PhaseText" Grid.Row="1" Margin="0,8,0,6" FontSize="15" Foreground="#D8E2EF" Text="Preparing import…"/>
+
+        <ProgressBar x:Name="ImportProgressBar" Grid.Row="2" Height="24" Minimum="0" Maximum="100"
+                     IsIndeterminate="True" Value="0" Foreground="#35D07F" Background="#202733"/>
+
+        <Grid Grid.Row="3" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="FileText" Text="Scanning BPM Studio data…" Foreground="#AEBAC8"
+                       TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+            <TextBlock x:Name="PercentText" Grid.Column="1" Margin="14,0,0,0" FontWeight="Bold" Text="…"/>
+        </Grid>
+
+        <Border Grid.Row="4" Margin="0,12,0,0" Padding="12" Background="#151C25" BorderBrush="#303B49" BorderThickness="1" CornerRadius="5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Foreground="#8FA0B3" Text="FILES"/>
+                    <TextBlock x:Name="FilesText" FontSize="18" FontWeight="SemiBold" Text="0 / ?"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1">
+                    <TextBlock Foreground="#8FA0B3" Text="TRACK ITEMS"/>
+                    <TextBlock x:Name="ItemsText" FontSize="18" FontWeight="SemiBold" Text="0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Foreground="#8FA0B3" Text="MUSIC LINKED"/>
+                    <TextBlock x:Name="LinkedText" FontSize="18" FontWeight="SemiBold" Text="0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="5" Margin="0,14,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusText" VerticalAlignment="Center" Foreground="#8FA0B3"
+                       Text="The Hazz main window remains usable while this import runs."/>
+            <Button x:Name="CancelButton" Grid.Column="1" MinWidth="110" Padding="14,8" Content="CANCEL" Click="Cancel_Click"/>
+        </Grid>
+    </Grid>
+</Window>

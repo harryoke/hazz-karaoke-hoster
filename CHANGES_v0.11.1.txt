@@ -1,0 +1,12 @@
+Hazz Karaoke Hoster v0.11.1
+
+MUSIC PLAYLIST CONSUMPTION HOTFIX
+- Played music tracks are removed from the live playlist instead of being moved to the bottom.
+- NOW PLAYING remains visible in yellow while playback is active.
+- Natural end removes the played item and renumbers the remaining queue from #1.
+- AUTO CROSSFADE / FADE NOW remove the outgoing item when the fade completes.
+- Manual STOP removes the started item from its deck playlist.
+- Karaoke music fade-out consumes the music track(s) that had already started.
+- If karaoke interrupts an active crossfade, Hazz remembers the next still-unplayed incoming-deck item for music return.
+- Music Play History and per-show played-track tracking are preserved.
+- Duplicate copies of a played file elsewhere in the queues can still be coloured red for the current show.

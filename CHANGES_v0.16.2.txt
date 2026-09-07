@@ -1,0 +1,15 @@
+Hazz Karaoke Hoster v0.16.3
+
+MUSIC QUEUE PERSISTENCE
+- Deck 1 / Deck 2 remaining unplayed tracks are automatically saved and restored.
+- Queue order and display metadata are preserved.
+- Tracks that have already started are excluded from the saved unplayed queue.
+- Persistence is debounced after playlist changes and written again on normal shutdown.
+
+AUDIENCE / SINGER DISPLAY SETTINGS
+- Settings popup now stays open while changing controls.
+- Nested font/position ComboBoxes, colour chooser and image/logo selectors no longer dismiss the settings panel.
+- Explicit CLOSE button added.
+- Clicking elsewhere in the Hazz main window closes the settings panel.
+
+All v0.16.1 features retained.

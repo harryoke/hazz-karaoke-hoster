@@ -1,0 +1,21 @@
+Hazz Karaoke Hoster v0.6.2 - Visual Studio 2026 compile fix
+
+ROOT CAUSE
+v0.6 introduced Windows Forms support for System.Windows.Forms.Screen monitor enumeration.
+With ImplicitUsings enabled, the App project also implicitly imported WinForms and
+System.Drawing namespaces. That made WPF names such as MessageBox, OpenFileDialog,
+Point, Color, FontFamily, Size, ListBox, DataObject, DragDropEffects and event args
+ambiguous.
+
+FIX
+- Disable implicit usings in HazzKaraokeHoster.App only.
+- Add a safe GlobalUsings.cs containing System/LINQ/IO/threading namespaces only.
+- Keep <UseWindowsForms>true> so System.Windows.Forms.Screen remains available.
+- Monitor enumeration stays fully qualified as System.Windows.Forms.Screen.AllScreens.
+- Explicitly qualify AudienceWindow WPF FontFamily, HorizontalAlignment,
+  VerticalAlignment and Size.
+- System.IO is now globally available to LibrarySourcesWindow and MusicArchiveWindow.
+- Rewrite the MusicArchiveWindow single-history fallback to remove the cascading
+  definite-assignment error for local variable 'one'.
+
+No v0.6 feature was removed.

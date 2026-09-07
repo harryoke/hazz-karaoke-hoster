@@ -1,0 +1,26 @@
+Hazz Karaoke Hoster v0.17.2 — Music Search SPACE Quick-Play + Safe Exit
+===================================================================
+
+MUSIC SEARCH SPACE-BAR QUICK PLAY
+---------------------------------
+- Highlight a MUSIC search result and press SPACE.
+- If regular deck music is currently playing, Hazz fades it down while the highlighted track fades in.
+- The highlighted search result is played directly; it is NOT added to Deck 1 or Deck 2.
+- Press SPACE a second time to stop music completely.
+- After the second SPACE Hazz remains idle and waits for either NEXT KARAOKE SONG or PLAY MUSIC.
+- PLAY MUSIC exits quick-play cleanly and starts the next queued music track.
+- Starting karaoke exits quick-play so quick music can never continue over a singer.
+- Quick-play tracks are marked played-this-session and written to music play history as “Search Quick Play”.
+
+SAFE EXIT / ACCIDENTAL SHUTDOWN PROTECTION
+------------------------------------------
+- Every normal attempt to close the main Hazz window now asks:
+  “Close Hazz Karaoke Hoster? Any karaoke or music playback will stop.”
+- Default response is No.
+- Choosing No cancels shutdown and preserves the live show.
+- Choosing Yes performs the existing clean-shutdown save and cleanup path.
+
+BASELINE
+--------
+- Built directly from v0.17.1.
+- The v0.17.1 one-click TV / Display 2 button remains unchanged.

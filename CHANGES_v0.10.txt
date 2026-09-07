@@ -1,0 +1,25 @@
+Hazz Karaoke Hoster v0.10
+========================
+
+Music playlist visibility / session status
+- Music playlist rows remain # / Artist / Title / Time; raw paths are no longer shown in the playlist row/tooltip.
+- NOW PLAYING is highlighted YELLOW.
+- Any music file that has already been started during the current show/session is highlighted RED once it is no longer the current track.
+- Duplicate instances of the same file in either deck are marked played together.
+- New Show clears the red session-played state; permanent Music Play History is not erased.
+
+Playlist/history loading
+- Deck 1 and Deck 2 each have a LOAD PLAYLIST / HISTORY button at the bottom of the playlist.
+- The Music Playlists & History window can load an entire selected saved/imported playlist to either deck.
+- Added LOAD FULL HISTORY -> DECK 1 / DECK 2, loading all currently available Music History entries (newest first, up to repository safety limit).
+- Playlist/history tracks loaded after they were already played in the current session are immediately coloured red.
+
+Audience Display Settings readability
+- Stronger opaque dark settings surface, brighter labels/help text, brighter borders.
+- Explicit high-contrast ComboBoxItem colours for opened font/size/position lists.
+- Checkbox text is explicitly light on dark.
+
+Singer-view background scaling
+- Background artwork now uses FIT/Uniform scaling instead of crop/UniformToFill.
+- The complete image is always visible and aspect ratio is preserved.
+- Any unused area is black, so 4:3 artwork can be shown intact on 16:9 displays without cropping or stretching.

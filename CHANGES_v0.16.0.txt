@@ -1,0 +1,21 @@
+# Hazz Karaoke Hoster v0.16.0
+
+## Laptop / responsive host UI
+- Main window now restores against the host monitor WORK AREA rather than the complete multi-monitor virtual desktop.
+- Prevents a saved 1600x920 host window being restored cropped on a smaller laptop while Display 2 is connected.
+- Reduced safe minimum host size to 900x600.
+- More compact header/logo/search spacing while retaining readable text.
+- Deck 1, Karaoke Deck and Deck 2 control areas now have internal vertical scrolling when the window is short; transport/key/sync controls remain reachable instead of being clipped.
+- Fixed-height deck/preview rows automatically shrink when the host window is reduced.
+- Main music columns can shrink further while the centre singer workspace remains usable.
+- Search results now stretch to the available host area instead of using a fixed 610px height.
+- Audience settings popup reduced to fit typical laptop work areas and retains its own scrollbar.
+
+## Singer history
+- Added instant Artist/Title search box to Singer History (e.g. type Elvis).
+- History query is database-backed and returns aggregated Times Sung / Last Sung rows.
+- CLEAR button restores the complete history.
+- Fixed History drag-and-drop: history uses COPY while active-song reordering uses MOVE, matching WPF drag/drop semantics.
+- Double-click requeue remains available.
+
+All v0.15.5 playback, Karma/BPM import, audience display, Kamikaze, database and standalone EXE functionality is retained.

@@ -1,0 +1,45 @@
+Hazz Karaoke Hoster v0.17.4
+
+Animated GIF backgrounds
+- Choose IMAGE / GIF / VIDEO under DISPLAY > Overlay / Next Singer Settings.
+- GIFs animate and loop, alone or alongside images/videos in a folder slideshow.
+- GIF speed slider: 0.25x to 4x; 1x is normal. Applies immediately and is saved.
+- Speed changes restart the current GIF. Folder slots remain one minute.
+- GIF timing is adjusted only in memory; original files are untouched.
+- Timing has GIF's 10ms granularity. Files without explicit frame delays retain
+  decoder defaults for those frames. Very large GIFs may require more resources.
+- GIF decoder: XamlAnimatedGif 2.3.2 (Apache-2.0), restored through NuGet.
+  https://github.com/XamlAnimatedGif/XamlAnimatedGif
+
+Automatic console fit
+- Starts maximized on the host display and fits the complete console to its client area.
+- Recalculates when resized or Windows DPI changes its available logical dimensions.
+- Player rows measure their full controls instead of hiding buttons behind scrollbars.
+- Old saved splitter geometry is replaced by balanced columns at startup.
+- Preview/mode/artwork preferences remain saved. Lists still scroll normally.
+- Display settings scale to fit. Small screens necessarily use smaller text/buttons.
+
+Broken media tags
+- Music decks, Space quick-play and karaoke media failures mark their source paths.
+- Karaoke load failures and missing files found during selection are tagged too.
+- Library/search, music playlist and singer-song rows show red with a BROKEN tooltip
+  containing the failure reason. A singer row reflects its next queued song.
+- Tags persist in LocalAppData/Hazz Karaoke Hoster/broken-media.json.
+- Tags describe playback failure (including unavailable files/codecs), not a forensic
+  diagnosis of file corruption. Original media files are not renamed or edited.
+- Tags remain across restarts; attempting playback is still allowed.
+
+Validation
+- Release compilation and source archive CRC/XML checks passed.
+- Animated GIF runtime: 4 frame changes at 1x, 8 at 2x, 2 at 0.5x over equal intervals.
+  Verified source file unchanged, folder playback, 60-second slots, clear/disable cleanup.
+- WPF layout: all 41 main console buttons inside the viewport without control scrolling
+  at 1920x1080, 1366x768, 1024x768, 800x600 and 853x480 window sizes.
+- Broken-tag runtime: persistence/restoration, red row/tooltip, healthy-row recycling.
+- Prior 20,000-singer database performance checks remain included.
+- Existing import-code warnings remain. Live performance on external TV hardware and
+  every possible codec/display configuration has not been exercised.
+
+Build: open HazzKaraokeHoster.sln in Visual Studio 2026 and build Release.
+All v0.17.3 source features are retained, including muted video slideshows,
+singer search, Space quick-play, shutdown confirmation and the TV shortcut.

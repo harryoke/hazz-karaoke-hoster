@@ -1,0 +1,34 @@
+HAZZ KARAOKE HOSTER v0.14
+==========================
+
+UI / SCALING
+- Supplied Hazz Karaoke artwork is now packaged as a WPF Resource and displayed in the main GUI header.
+- Logo uses aspect-ratio-preserving FIT scaling; the artwork is not cropped or stretched.
+- Main window size and maximised state are remembered alongside the existing splitter/panel sizes and Preview visibility.
+- Header footprint reduced to preserve working space on smaller laptop displays.
+- Existing transport/control WrapPanels, minimum panel sizes, ClearType/layout rounding and high-contrast menu styles retained.
+
+STABILITY / DATABASE
+- Added application-level diagnostics logging for UI/background/fatal exceptions under:
+  %LOCALAPPDATA%\Hazz Karaoke Hoster\Logs
+- Non-memory UI exceptions are logged and contained where WPF can safely keep the show running.
+- Added LIBRARY > Database > Open Database Folder.
+- Added LIBRARY > Database > Backup Database. Backup uses SQLite's live backup API so WAL state is included correctly.
+- Existing SQLite WAL/busy-timeout/indexing, background import and auto-watch architecture retained.
+
+IMPORT OTHER HOSTING SOFTWARE
+- New modular read-only external library importer.
+- Dedicated VirtualDJ database.xml entry point.
+- Generic import/inspection support for:
+  XML; M3U/M3U8; PLS/LST; CSV/TSV/TXT; SQLite DB; Access MDB/ACCDB/KDB.
+- Sources are previewed before import and are never modified.
+- Import can be forced to Karaoke, forced to Music, or left on Auto classification.
+- Optional file-path verification can be enabled; fast mode trusts the existing hoster's stored paths.
+- Imported records preserve source provenance in Hazz's song_sources table.
+- Imported playlists are replaced cleanly on re-import instead of duplicating playlist rows.
+- Inferred library roots are registered with Hazz's watched folders so newly added HDD files can be indexed later.
+
+BUILD
+- Visual Studio 2026 / .NET 10 / x64 source.
+- Release build continues to publish the self-contained standalone EXE to:
+  RELEASE\HazzKaraokeHoster\Hazz Karaoke Hoster.exe

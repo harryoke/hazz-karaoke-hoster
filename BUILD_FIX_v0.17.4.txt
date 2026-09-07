@@ -1,0 +1,22 @@
+Hazz Karaoke Hoster v0.17.4 - Visual Studio build fix
+
+Cause:
+The application project ran "dotnet publish" from an AfterTargets="Build" target.
+When Visual Studio built the solution in parallel, that nested publish started another
+build of the same projects and intermediate files. This could terminate MSBuild worker
+nodes and report MSB3073 followed by MSB4166.
+
+Fix:
+- Normal Debug and Release builds no longer launch a nested publish process.
+- BUILD-EXE.cmd remains the one-click standalone EXE builder and runs publish as a
+  separate, single-worker operation after stopping reusable build servers.
+- Visual Studio users can also select the HazzStandalone publish profile on the App
+  project and choose Publish.
+
+Usage:
+1. Extract the complete corrected ZIP to a new folder.
+2. Open HazzKaraokeHoster.sln and Build > Rebuild Solution.
+3. To create the portable standalone EXE, close any running Hazz instance and run
+   BUILD-EXE.cmd. Output is RELEASE\HazzKaraokeHoster\Hazz Karaoke Hoster.exe.
+
+The application source and feature set remain v0.17.4.

@@ -1,0 +1,5 @@
+Hazz Karaoke Hoster v0.10.1
+
+Compile hotfix for Visual Studio 2026 error MC3072 at MainWindow.xaml line 632.
+Changed the Audience Display Settings Border from invalid Foreground=... to TextElement.Foreground=....
+No runtime behaviour changed.

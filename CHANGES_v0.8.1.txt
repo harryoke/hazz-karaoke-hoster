@@ -1,0 +1,7 @@
+HAZZ KARAOKE HOSTER v0.8.1
+
+- FIX: STOP no longer restores a karaoke request to the singer active list after PLAY has consumed it.
+- FIX: PLAY MUSIC / karaoke interruption no longer restores a started request either.
+- CHANGE: a started-but-stopped song is not written to singer history, but remains removed from the active request list.
+- NEW: live visual Deck 1 <-> Deck 2 crossfader indicator beneath the automatic crossfade controls.
+- The visual crossfader follows Auto Crossfade and FADE NOW in real time and reports the D1/D2 percentage.

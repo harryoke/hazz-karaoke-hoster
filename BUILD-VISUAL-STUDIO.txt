@@ -1,0 +1,28 @@
+Hazz Karaoke Hoster v0.17.20 - Visual Studio 2026
+
+Normal Visual Studio build
+1. Extract the complete ZIP before opening it.
+2. Open HazzKaraokeHoster.sln.
+3. Select Release and x64 on the Visual Studio toolbar.
+4. Choose Build > Rebuild Solution.
+5. Build the complete solution; keep HazzKaraokeHoster.Release loaded/enabled.
+6. Visual Studio will print `HAZZ SINGLE EXE READY` in the Build Output window.
+7. Run the application from:
+   RELEASE\HazzKaraokeHoster\Hazz Karaoke Hoster.exe
+
+The RELEASE folder contains one self-contained EXE that can be copied to another
+x64 Windows computer.
+
+Manual single EXE publish from Visual Studio
+1. Right-click HazzKaraokeHoster.App in Solution Explorer.
+2. Choose Publish.
+3. Select or import the HazzStandalone profile.
+4. Click Publish.
+5. The self-contained EXE is created under:
+   RELEASE\HazzKaraokeHoster\Hazz Karaoke Hoster.exe
+
+BUILD-EXE.cmd performs the same standalone publish outside Visual Studio.
+
+Required installation
+- Visual Studio 2026 with the .NET desktop development workload.
+- .NET 10 SDK. Visual Studio can restore the required NuGet packages automatically.

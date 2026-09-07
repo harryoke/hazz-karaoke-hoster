@@ -1,0 +1,7 @@
+Hazz Karaoke Hoster v0.15.1
+
+- Singer history is now written as soon as a singer performance starts (PLAY), rather than waiting for natural song completion.
+- Pressing STOP after a song has started no longer prevents that performance from appearing in history.
+- Natural completion no longer creates a duplicate singer-history row.
+- Final per-track key/CD+G sync preferences are still saved at natural completion.
+- Any open Singer Songs & History window refreshes immediately after the play-history row is written.

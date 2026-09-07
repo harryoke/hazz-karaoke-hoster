@@ -1,0 +1,10 @@
+Hazz Karaoke Hoster v0.16.4
+
+Audience display persistence hotfix
+----------------------------------
+- Saves and restores the venue/scroller message.
+- Saves and restores Next Singer font family and size.
+- Saves and restores Next Singer position and Show Next Singer/Show Songs switches.
+- Saves and restores scroller enabled state, font family, size and speed.
+- Existing audience colours, logo/background and Kamikaze settings remain unchanged.
+- Existing ui-layout.json files are compatible; new fields use safe defaults when absent.

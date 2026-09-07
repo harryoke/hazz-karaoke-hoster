@@ -1,0 +1,19 @@
+Hazz Karaoke Hoster v0.17.20
+Function colours and singer-history migration
+
+- PLAY controls are green, STOP/REMOVE/CLEAR controls are red, PAUSE and timing
+  controls are amber, LOAD/navigation controls are blue, SAVE/add controls are teal,
+  and special/random/crossfade controls are purple.
+- Hover, pressed and active states brighten the original function colour and add a glow,
+  so an active green PLAY button stays recognisably green.
+- Added IMPORT > SMART IMPORT > Import Singer History.
+- Supports singer-history exports in CSV, TSV, text, JSON, XML, SQLite, MDB, ACCDB and
+  KDB formats using flexible column detection for major karaoke-hosting applications.
+- Shows the detected application, column mapping and sample performances before import.
+- Preserves singer, artist, title, path, date/time, key change, CD+G sync and times-sung
+  values when the source supplies them.
+- Matches performances to the existing Hazz song library by path or artist/title. Unmatched
+  performances remain available in the singer's history rather than being discarded.
+- Source files are opened read-only. Reimporting the same source replaces that source's
+  earlier imported rows to prevent duplicate history.
+- All v0.17.19 dropdown contrast, audience-display and long-show stability work remains.

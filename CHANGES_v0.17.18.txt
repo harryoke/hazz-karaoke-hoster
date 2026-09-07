@@ -1,0 +1,16 @@
+Hazz Karaoke Hoster v0.17.18
+Audience screen fitting, scroller position and search drop targets
+
+- Added singer-display background choices:
+  - Fit: shows the complete image with letterboxing when needed.
+  - Fill (crop): fills the entire audience screen while preserving aspect ratio.
+  - Stretch: fills the entire audience screen without cropping.
+  - Center: shows the media at its original size in the centre.
+- The selected mode applies to still images, animated GIFs and muted background videos,
+  including every item in a background slideshow.
+- Added a Top/Bottom selector for the full singer-rotation scroller.
+- The Next Singers panel automatically reserves space at the selected scroller edge.
+- Music search results are shown over the centre workspace, keeping both music deck
+  playlists visible and available as drag-and-drop targets. Karaoke search continues to
+  leave the singer rotation visible as its drop target.
+- All v0.17.17 long-show stability protections and earlier features remain intact.

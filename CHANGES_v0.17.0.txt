@@ -1,0 +1,45 @@
+Hazz Karaoke Hoster v0.17.0 — Live Show Safety / Singer Controls
+=================================================================
+
+1. Singer HOLD / no-show handling
+- Right-click a singer and choose HOLD SINGER / RELEASE HOLD.
+- Held singers stay visible in the host rotation with a HOLD status.
+- Held singers are skipped by Load Next Singer.
+- Held singers are removed from the audience upcoming rotation/scroller until released.
+- SET AS NEXT automatically releases a held singer.
+- SKIP ONCE moves a singer to the bottom without deleting them or their songs.
+
+2. Expanded singer right-click menu
+- Add Song / Search
+- Open Songs & History
+- Hold / Release Hold
+- Skip Once
+- Set as Next
+- Move Up / Move Down / Move to Top
+- Kamikaze for this singer
+- Clear queued songs
+- Edit singer name / permanent notes
+- Remove from Show (history remains)
+
+3. Duplicate karaoke request warning
+- When adding a karaoke library result to a singer, Hazz checks performances since the current show began.
+- Warns if the same artist/title or Song ID has already been sung during this show.
+- Identifies who sang it and approximately how long ago.
+- Same-singer repeats get a specific warning.
+- Host may choose YES to queue it anyway.
+- Applies to normal search assignment, drag/drop, Library Browser assignment and re-queue from Singer History.
+- Added date/song-date indexes so the warning remains fast with large imported history databases.
+
+4. Emergency live-show recovery
+- Singer rotation and every singer's remaining songs are autosaved to:
+  %LOCALAPPDATA%\Hazz Karaoke Hoster\live-show-state.json
+- Preserves rotation order, selected singer, HOLD state, queued Song ID/path/title/artist, key and CD+G sync.
+- Autosave is debounced and updated as the live rotation changes.
+- A normal shutdown marks the snapshot clean; an abrupt termination leaves the last autosave marked interrupted.
+- On next launch Hazz offers RESTORE LAST SHOW when a saved singer rotation exists.
+- Existing Deck 1/Deck 2 unplayed-queue persistence and audience-setting persistence continue to restore those parts of the show independently.
+- NEW SHOW clears the recovery snapshot and starts a fresh duplicate-warning time window.
+
+Build note
+----------
+Source was statically checked in the generation environment (XAML XML, event handler references, source/ZIP structure). Windows .NET 10/WPF is not installed here, so Visual Studio 2026 Release/x64 remains the authoritative compile/runtime test.

@@ -1,0 +1,8 @@
+Hazz Karaoke Hoster v0.14.2 - Compile Hotfix
+
+Restores three karaoke playback helpers accidentally omitted from v0.14.1 while applying the Kamikaze performance patch:
+- KaraokeCompletedAsync
+- KaraokeVisualTimer_Tick
+- RenderCdgAtCurrentPosition
+
+The v0.14.1 non-blocking Kamikaze database changes are retained.

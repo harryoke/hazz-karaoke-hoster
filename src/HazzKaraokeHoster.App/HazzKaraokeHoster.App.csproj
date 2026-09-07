@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>HazzKaraokeHoster.App</RootNamespace>
+    <AssemblyName>Hazz Karaoke Hoster</AssemblyName>
+    <Platforms>AnyCPU;x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <!-- Prevent WinForms/System.Drawing implicit namespaces colliding with WPF types. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="XamlAnimatedGif" Version="2.3.2" />
+    <Resource Include="Assets\HazzKaraokeLogo.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HazzKaraokeHoster.Core\HazzKaraokeHoster.Core.csproj" />
+    <ProjectReference Include="..\HazzKaraokeHoster.Data\HazzKaraokeHoster.Data.csproj" />
+    <ProjectReference Include="..\HazzKaraokeHoster.Playback\HazzKaraokeHoster.Playback.csproj" />
+  </ItemGroup>
+</Project>

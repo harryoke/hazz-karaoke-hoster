@@ -1,0 +1,11 @@
+Hazz Karaoke Hoster v0.15.3
+
+BPM Studio import stability/progress
+- Run the BPM Studio import worker off the WPF UI thread.
+- Add visible Import Progress window with determinate percentage after file discovery.
+- Show current file, processed/total files, track item count, linked/indexed music count, and unsupported list count.
+- Add Cancel with linked cancellation token and transaction rollback semantics.
+- Throttle progress reports inside large lists to reduce Dispatcher churn.
+- Remove a duplicate path-add statement in native BPM list parsing.
+
+No karaoke/music playback workflow changes in this revision.

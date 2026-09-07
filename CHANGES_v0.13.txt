@@ -1,0 +1,13 @@
+Hazz Karaoke Hoster v0.13
+============================
+
+- Added read-only Karma Complete Karaoke Library importer.
+- Added automatic Karma database schema inspection and media-column preview.
+- Fast path imports Karma Artist/Title/Disc/Manufacturer/file locations without a full HDD crawl.
+- Optional verify-path mode counts missing stored Karma paths.
+- Karma import infers and stores non-overlapping karaoke watch roots.
+- Normal Karaoke/Music folder imports now persist their roots permanently.
+- Added live FileSystemWatcher-based auto-indexing for new/renamed/updated files while Hazz is running.
+- Added LIBRARY > Rescan Watched Folders to catch files added while Hazz was closed or after a Windows watcher overflow.
+- Original Karma files/databases remain read-only.
+- Existing v0.12.1 STOP -> music resume behaviour and all prior hosting/playback features retained.

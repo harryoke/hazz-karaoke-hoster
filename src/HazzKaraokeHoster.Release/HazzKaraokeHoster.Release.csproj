@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <IsPackable>false</IsPackable>
+    <HazzReleaseDirectory>$(MSBuildProjectDirectory)\..\..\RELEASE\HazzKaraokeHoster\</HazzReleaseDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HazzKaraokeHoster.App\HazzKaraokeHoster.App.csproj"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <Target Name="CreateSingleFileRelease"
+          AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Release' and '$(DesignTimeBuild)' != 'true'">
+    <RemoveDir Directories="$(HazzReleaseDirectory)" />
+    <MakeDir Directories="$(HazzReleaseDirectory)" />
+    <MSBuild Projects="..\HazzKaraokeHoster.App\HazzKaraokeHoster.App.csproj"
+             Targets="Publish"
+             BuildInParallel="false"
+             Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=win-x64;SelfContained=true;PublishSingleFile=true;IncludeNativeLibrariesForSelfExtract=true;EnableCompressionInSingleFile=true;PublishReadyToRun=false;DebugType=None;DebugSymbols=false;NoBuild=true;NoRestore=true;PublishDir=$(HazzReleaseDirectory)" />
+    <ItemGroup>
+      <_HazzPublishedSymbols Include="$(HazzReleaseDirectory)**\*.pdb" />
+    </ItemGroup>
+    <Delete Files="@(_HazzPublishedSymbols)" />
+    <Error Condition="!Exists('$(HazzReleaseDirectory)Hazz Karaoke Hoster.exe')"
+           Text="The Hazz single-file release EXE was not created." />
+    <Message Importance="high"
+             Text="HAZZ SINGLE EXE READY: $(HazzReleaseDirectory)Hazz Karaoke Hoster.exe" />
+  </Target>
+</Project>

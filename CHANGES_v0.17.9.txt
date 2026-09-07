@@ -1,0 +1,34 @@
+Hazz Karaoke Hoster v0.17.9
+
+MediaMonkey playable paths
+- MediaMonkey stores local paths as values such as `:\music\1980'S\...mp3` and stores
+  the actual drive separately in Songs.IDMedia -> Medias.IDMedia/DriveLetter.
+- Smart Import now joins Songs to Medias and decodes MediaMonkey's zero-based drive
+  number. For example DriveLetter 4 plus `:\music\...` becomes `E:\music\...`.
+- Network/media Location is used when a drive letter is unavailable.
+- Encoded paths without a usable Medias mapping are skipped instead of being joined
+  incorrectly to the MediaMonkey AppData folder.
+- Re-import repairs matching paths created by v0.17.5-v0.17.8 while preserving the
+  existing Hazz song record ID whenever no corrected-path record already exists.
+- A read-only IUNICODE-compatible collation allows MediaMonkey SELECT statements to
+  prepare. The source is never reindexed or modified, and the private `mm` tokenizer
+  search table remains excluded.
+
+One-EXE Visual Studio build
+- HazzKaraokeHoster.Release is included in the solution and runs after the application
+  has compiled.
+- Release | x64 > Rebuild Solution removes the old generated release contents and
+  performs a no-build/no-restore single-file publish from the completed application.
+- RELEASE\HazzKaraokeHoster contains exactly one file: Hazz Karaoke Hoster.exe.
+- The packaging project uses the in-process MSBuild task and cannot recursively rebuild
+  the solution, avoiding the earlier MSB3073/MSB4166 problem.
+
+Validation
+- The user's real 649 MB MM5.DB was opened read-only. All 20 preview sample paths were
+  decoded as absolute paths and all 20 corresponding media files currently existed.
+- The synthetic regression covers IDMedia/DriveLetter decoding, the private `mm`
+  tokenizer table, source-byte preservation and committed Hazz records.
+- Visual Studio 2026 Release | x64 Rebuild Solution completed successfully and generated
+  exactly one 0.17.9 EXE in RELEASE\HazzKaraokeHoster.
+
+All v0.17.8 and earlier features remain available.

@@ -1,0 +1,12 @@
+Hazz Karaoke Hoster v0.16.6
+
+Music deck playlist editing
+- Added REMOVE SELECTED to Deck 1 and Deck 2.
+- Ctrl/Shift multi-select is supported; Delete key removes selected queued tracks too.
+- Removing from a deck only edits that live queue. It does not delete the source media, library database row, saved playlist or permanent music history.
+- NOW PLAYING is protected from manual removal while active; any other selected rows are removed normally.
+- Queue order is immediately renumbered and automatic unplayed-queue persistence is updated.
+- If an item scheduled to resume after karaoke is removed, the next valid queue item becomes the resume target.
+- Bottom playlist actions wrap on narrow deck widths for laptop usability.
+
+Retains v0.16.5 SAVE PLAYLIST and all v0.16.4/v0.16.1 persistence/import fixes.

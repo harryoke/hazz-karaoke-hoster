@@ -1,0 +1,33 @@
+Hazz Karaoke Hoster v0.11
+==========================
+
+AUDIENCE NEXT-SINGER DISPLAY
+- Audience idle view now shows the next four singers in the current live rotation.
+- Each row shows the singer's current rotation number, singer name and (optionally) next song/artist.
+- Singers with no assigned song show "Waiting for song" when song display is enabled.
+- The list updates immediately after drag/drop rotation changes, PLAY handoff, removal, Set Next and singer-song edits.
+- As before, next-singer information is completely hidden while karaoke is playing/paused.
+
+FULL ROTATION SCROLLER
+- The audience scroller now always builds its singer section from the complete current rotation.
+- Every singer is shown with their live list position: 1. Sarah • 2. Dave • 3. Christine ...
+- The optional venue message is appended after the full rotation rather than replacing it.
+- Rotation text is rebuilt whenever the queue changes.
+- Scroller remains hidden during karaoke to protect CD+G/video readability.
+
+AUDIENCE FONT COLOURS
+- Added Windows colour-picker buttons for:
+  * NEXT SINGERS heading
+  * rotation position numbers
+  * singer names
+  * song / artist text
+  * full-rotation scroller text
+  * optional venue-message scroller text
+- Colour buttons preview the selected colour and automatically use black/white button text for readability.
+- Selected colours are remembered in the Hazz UI settings across restarts.
+
+RETAINED DISPLAY LAYER RULES
+- Singer-view background remains FIT/Uniform: whole image visible, no crop/stretch.
+- Persistent logo remains above all CD+G/video when enabled.
+- During karaoke: CD+G/video + persistent logo only.
+- Between songs: background + logo + Next 4 + full rotation scroller.

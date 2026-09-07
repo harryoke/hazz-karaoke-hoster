@@ -1,0 +1,36 @@
+<Window x:Class="HazzKaraokeHoster.App.AudienceWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Hazz Audience Display" Background="Black" Foreground="White" Width="1280" Height="720" WindowStyle="SingleBorderWindow" ResizeMode="CanResize" Topmost="False">
+ <Grid x:Name="Root" Background="Black" ClipToBounds="True">
+  <!-- Singer-view artwork: only visible between karaoke performances. -->
+  <Image x:Name="SingerBackgroundImage" Panel.ZIndex="0" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" IsHitTestVisible="False"/>
+
+  <MediaElement x:Name="SingerBackgroundVideo" Panel.ZIndex="1" LoadedBehavior="Manual" UnloadedBehavior="Close" Stretch="Uniform" IsMuted="True" Volume="0" Visibility="Collapsed" IsHitTestVisible="False" MediaEnded="BackgroundVideo_Ended" MediaFailed="BackgroundVideo_Failed"/>
+
+  <Image x:Name="SingerBackgroundGif" Panel.ZIndex="2" Stretch="Uniform" Visibility="Collapsed" IsHitTestVisible="False"/>
+
+  <!-- Karaoke content layer. -->
+  <MediaElement x:Name="AudienceMedia" Panel.ZIndex="10" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" IsMuted="True" Visibility="Collapsed" IsHitTestVisible="False"/>
+  <Image x:Name="AudienceCdgImage" Panel.ZIndex="11" Stretch="Uniform" Visibility="Collapsed" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
+
+  <!-- Persistent logo: deliberately above CD+G and video. -->
+  <Image x:Name="AudienceLogoImage" Panel.ZIndex="100" Stretch="Uniform" Visibility="Collapsed" IsHitTestVisible="False" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="24"/>
+
+  <!-- Kamikaze announcement replaces the normal singer information until the next karaoke track starts. -->
+  <Border x:Name="KamikazePanel" Panel.ZIndex="115" Background="#C8000000" Padding="34,24" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40" Visibility="Collapsed" MaxWidth="1120">
+   <TextBlock x:Name="KamikazeTextBlock" Text="KAMIKAZE KARAOKE!" TextAlignment="Center" TextWrapping="Wrap" FontSize="84" FontWeight="Black" Foreground="#FFD34D"/>
+  </Border>
+
+  <!-- Between songs the next four singers stay above the artwork/logo. -->
+  <Border x:Name="NextSingerPanel" Panel.ZIndex="110" Background="#B0000000" Padding="22,14" CornerRadius="8" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="30,30,30,74" Visibility="Collapsed" MaxWidth="1040">
+   <StackPanel>
+    <TextBlock x:Name="NextSingerHeadingText" Text="NEXT SINGERS" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold" Foreground="#FFD34D" Margin="0,0,0,8"/>
+    <StackPanel x:Name="NextSingersStack"/>
+   </StackPanel>
+  </Border>
+  <Border x:Name="ScrollerPanel" Panel.ZIndex="111" Background="#D0000000" VerticalAlignment="Bottom" Height="52" ClipToBounds="True">
+   <Canvas x:Name="ScrollerCanvas"><TextBlock x:Name="ScrollerText" Text="" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center"/></Canvas>
+  </Border>
+ </Grid>
+</Window>

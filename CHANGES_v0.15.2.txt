@@ -1,0 +1,13 @@
+Hazz Karaoke Hoster v0.15.2
+
+DISPLAY HOTFIX
+- Full-screen audience targeting now uses Win32 SetWindowPos against the selected monitor's exact bounds.
+- Avoids WPF/WinForms DPI-coordinate mismatches when laptop and TV use different Windows scaling.
+- Audience window is forced visible before positioning and is topmost/borderless in full-screen mode.
+- Windowed mode restores normal resize chrome/taskbar behaviour.
+
+BPM STUDIO IMPORT NOTE
+- On modern Windows, first try: %APPDATA%\Alcatech\BPM Studio Profi
+- Older installations commonly use: C:\Program Files (x86)\Alcatech\BPM-Studio Profi\DATA
+- The importer scans the selected folder recursively for .lst/.grp/.plg/.m3u/.m3u8/.pls sources.
+- If unsure, use BPM Studio Options > File storage and choose its Default Search Directory.

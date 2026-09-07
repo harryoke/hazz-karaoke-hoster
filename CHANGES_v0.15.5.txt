@@ -1,0 +1,13 @@
+# Hazz Karaoke Hoster v0.15.5
+
+FAST BPM Studio import performance revision.
+
+- Removed per-track HDD/network existence checks from BPM playlist/history import.
+- Removed per-track FileInfo metadata reads.
+- Reused prepared SQLite commands for list/history insertion.
+- De-duplicated referenced paths in a TEMP table.
+- Bulk-indexed each unique referenced music path once.
+- Replaced per-source cleanup loop with one root-scoped cleanup.
+- Fast import skips .GRP/.PLG archive group containers; normal Hazz Music Library scanning remains available for full archive indexing.
+- Progress remains visible and cancellable.
+- Retains v0.15.4 Karma singer history, Times Sung and history-to-active requeue fixes.

@@ -1,0 +1,27 @@
+HAZZ KARAOKE HOSTER v0.4
+========================
+
+ADDED
+- Automatic alternating Deck 1 / Deck 2 crossfade.
+- Adjustable 0.5–12.0 second crossfade duration.
+- Music scheduler remembers each deck's next playlist item.
+- Karaoke start fades active music and preserves the next scheduled music track.
+- Natural karaoke end automatically resumes scheduled music.
+- PLAY MUSIC button stops karaoke when necessary and resumes the remembered scheduled track.
+- Music return fades in rather than appearing abruptly.
+- Singer-list drag/drop reorder with before/after row placement.
+- Audience Next Singer refresh after drag/drop.
+- Music automation status readout.
+
+RETAINED
+- Manual Move Up / Move Down / Set As Next singer controls.
+- Independent Deck 1 / Deck 2 volume controls.
+- CD+G ±0.25 second graphics timing.
+- CD+G / ZIP / MP3+G playback foundation.
+- Audience display and scroller.
+- Karma import foundation.
+- Standalone Release EXE publishing.
+
+NOTES
+- v0.4 uses the same selected timing for Deck crossfades, karaoke music fade-out, and music fade-in.
+- Real-time pitch/key processing remains a later playback-engine milestone.

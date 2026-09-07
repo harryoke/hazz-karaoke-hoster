@@ -1,0 +1,10 @@
+Hazz Karaoke Hoster v0.12.1
+===========================
+
+HOTFIX
+- Pressing STOP on the Karaoke Deck now immediately returns control to the music scheduler.
+- Karaoke visuals are cleared and the Audience Display returns to the singer/idle view.
+- Hazz resumes from the next scheduled background-music track remembered when karaoke started.
+- If STOP is pressed before the music fade-out has completed, any already-started music track is consumed/removed from its live playlist before the next scheduled track starts.
+- The stopped karaoke request remains removed from the singer's active list and is NOT added to singer history.
+- PLAY MUSIC uses the same safe handoff path.

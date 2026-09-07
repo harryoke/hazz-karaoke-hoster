@@ -1,0 +1,90 @@
+<Window x:Class="HazzKaraokeHoster.App.SingerSongsWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Singer Songs" Width="920" Height="680" MinWidth="680" MinHeight="480"
+ Background="#0B0F14" Foreground="White" WindowStartupLocation="CenterOwner">
+ <Window.Resources>
+  <Style TargetType="Button">
+   <Setter Property="Foreground" Value="White"/><Setter Property="Background" Value="#26313D"/>
+   <Setter Property="BorderBrush" Value="#4A5968"/><Setter Property="Padding" Value="10,6"/>
+   <Setter Property="Margin" Value="3"/><Setter Property="MinHeight" Value="34"/>
+  </Style>
+  <Style TargetType="DataGrid">
+   <Setter Property="Background" Value="#0E141B"/><Setter Property="Foreground" Value="White"/>
+   <Setter Property="RowBackground" Value="#111820"/><Setter Property="AlternatingRowBackground" Value="#17202A"/>
+   <Setter Property="BorderBrush" Value="#34404D"/><Setter Property="CanUserAddRows" Value="False"/>
+   <Setter Property="SelectionMode" Value="Single"/><Setter Property="SelectionUnit" Value="FullRow"/>
+  </Style>
+  <Style TargetType="DataGridColumnHeader">
+   <Setter Property="Background" Value="#222D38"/><Setter Property="Foreground" Value="White"/>
+   <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Padding" Value="7,5"/>
+  </Style>
+ </Window.Resources>
+ <Grid Margin="10">
+  <Grid.RowDefinitions>
+   <RowDefinition Height="Auto"/>
+   <RowDefinition Height="3*"/>
+   <RowDefinition Height="Auto"/>
+   <RowDefinition Height="10"/>
+   <RowDefinition Height="Auto"/>
+   <RowDefinition Height="2*"/>
+   <RowDefinition Height="Auto"/>
+  </Grid.RowDefinitions>
+
+  <StackPanel Grid.Row="0" Margin="2,0,2,8">
+   <TextBlock x:Name="SingerTitle" Text="Singer" FontSize="26" FontWeight="Bold"/>
+   <TextBlock Text="Queued songs — drag rows to change order. Drag a song UP from SINGER HISTORY (or double-click it) to sing it again. Key and CD+G sync are retained." Foreground="#9EABB9" TextWrapping="Wrap"/>
+  </StackPanel>
+
+  <DataGrid x:Name="SongGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" AllowDrop="True"
+            PreviewMouseLeftButtonDown="SongGrid_PreviewMouseLeftButtonDown"
+            PreviewMouseMove="SongGrid_PreviewMouseMove" DragOver="SongGrid_DragOver" Drop="SongGrid_Drop">
+   <DataGrid.Columns>
+    <DataGridTextColumn Header="#" Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=AlternationIndex}" Width="42"/>
+    <DataGridTextColumn Header="Title" Binding="{Binding SongTitle}" Width="2*"/>
+    <DataGridTextColumn Header="Artist" Binding="{Binding Artist}" Width="1.5*"/>
+    <DataGridTextColumn Header="Key" Binding="{Binding KeyChange}" Width="65"/>
+    <DataGridTextColumn Header="CD+G Sync" Binding="{Binding CdgSyncSeconds, StringFormat={}{0:+0.00;-0.00;0.00}s}" Width="100"/>
+    <DataGridTextColumn Header="File" Binding="{Binding FilePath}" Width="1.4*"/>
+   </DataGrid.Columns>
+  </DataGrid>
+
+  <WrapPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,7,0,0">
+   <Button Content="▲ SONG UP" Click="SongUp_Click"/>
+   <Button Content="▼ SONG DOWN" Click="SongDown_Click"/>
+   <Button Content="KEY −" Click="KeyDown_Click"/>
+   <Button Content="KEY +" Click="KeyUp_Click"/>
+   <Button Content="KEY RESET" Click="KeyReset_Click"/>
+   <Button Content="SYNC −0.25" Click="SyncEarlier_Click"/>
+   <Button Content="SYNC +0.25" Click="SyncLater_Click"/>
+   <Button Content="SYNC RESET" Click="SyncReset_Click"/>
+   <Button Content="REMOVE SONG" Click="RemoveSong_Click"/>
+  </WrapPanel>
+
+  <Grid Grid.Row="4" Margin="2,0,2,6">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <TextBlock Text="SINGER HISTORY" FontSize="17" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+   <TextBox x:Name="HistorySearchBox" Grid.Column="1" MinWidth="160" Height="32" VerticalContentAlignment="Center"
+            ToolTip="Type artist or song title, for example Elvis" TextChanged="HistorySearchBox_TextChanged"/>
+   <Button Grid.Column="2" Content="CLEAR" Click="HistorySearchClear_Click" MinWidth="72"/>
+  </Grid>
+  <DataGrid x:Name="HistoryGrid" Grid.Row="5" AutoGenerateColumns="False" IsReadOnly="True"
+            PreviewMouseLeftButtonDown="HistoryGrid_PreviewMouseLeftButtonDown"
+            PreviewMouseMove="HistoryGrid_PreviewMouseMove"
+            MouseDoubleClick="HistoryGrid_MouseDoubleClick">
+   <DataGrid.Columns>
+    <DataGridTextColumn Header="Last Sung" Binding="{Binding SungAt, StringFormat={}{0:dd MMM yyyy HH:mm}}" Width="145"/>
+    <DataGridTextColumn Header="Times Sung" Binding="{Binding TimesSung}" Width="85"/>
+    <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="2*"/>
+    <DataGridTextColumn Header="Artist" Binding="{Binding Artist}" Width="1.5*"/>
+    <DataGridTextColumn Header="Key" Binding="{Binding KeyChange}" Width="60"/>
+    <DataGridTextColumn Header="Sync" Binding="{Binding CdgSyncSeconds, StringFormat={}{0:+0.00;-0.00;0.00}s}" Width="85"/>
+   </DataGrid.Columns>
+  </DataGrid>
+
+  <DockPanel Grid.Row="6" Margin="2,8,2,0">
+   <TextBlock x:Name="StatusText" Text="Changes apply immediately to the current show." Foreground="#9EABB9" VerticalAlignment="Center"/>
+   <Button Content="CLOSE" DockPanel.Dock="Right" Click="Close_Click" MinWidth="100"/>
+  </DockPanel>
+ </Grid>
+</Window>

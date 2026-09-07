@@ -1,0 +1,23 @@
+# Importing libraries from other hosting / DJ software
+
+Hazz v0.14 uses a read-only adapter layer so third-party databases can be migrated without allowing Hazz to write into the original application's files.
+
+## VirtualDJ
+Use **IMPORT > Import Other Software > VirtualDJ database.xml...** and select VirtualDJ's `database.xml`. Hazz streams Song records, reads file path and tag metadata where present, previews a sample, then copies selected records into Hazz's SQLite library.
+
+## Generic imports
+Use **Other hoster database / playlist...** for XML, M3U/M3U8, PLS/LST, CSV/TSV/TXT, SQLite DB, MDB/ACCDB/KDB.
+
+For unknown database schemas, Hazz searches read-only for a table containing a plausible media/file-path column and maps common Artist/Title/Manufacturer/Disc field names. If a usable mapping cannot be found, import stops rather than inventing a mapping.
+
+## Karaoke vs Music
+The preview window allows:
+- **AUTO**: CDG/ZIP and karaoke-hinted paths are Karaoke; ordinary audio is Music; videos use path/type hints.
+- **KARAOKE**: force every supported media record into the Karaoke library.
+- **MUSIC**: force every supported media record into the Music library.
+
+## File verification
+Fast import trusts existing stored paths. **Verify files exist** checks each path and is slower on very large collections.
+
+## After migration
+Hazz infers sensible library roots from imported paths and adds them to its watched roots. New files copied to those drives/folders can then be indexed by Hazz without rebuilding the imported library. Use **LIBRARY > Rescan Watched Folders...** for files added while Hazz was closed.

@@ -1,0 +1,13 @@
+Hazz Karaoke Hoster v0.6.1
+
+Compile fix for WPF / Windows Forms namespace collisions introduced by display-monitor support.
+
+Fixed ambiguous references:
+- System.Windows.Point vs System.Drawing.Point
+- System.Windows.Input.MouseEventArgs vs System.Windows.Forms.MouseEventArgs
+- System.Windows.DragEventArgs vs System.Windows.Forms.DragEventArgs
+- System.Windows.Controls.ListBox vs System.Windows.Forms.ListBox
+- System.Windows.Application vs System.Windows.Forms.Application
+
+Monitor detection still uses System.Windows.Forms.Screen explicitly.
+No playback, library, singer, display, BPM Studio, or Karma feature logic was removed.

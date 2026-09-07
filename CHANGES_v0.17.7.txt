@@ -1,0 +1,25 @@
+Hazz Karaoke Hoster v0.17.7
+
+Visual Studio Build Solution output
+- Select Release and x64, then choose Build > Rebuild Solution.
+- A successful build now creates RELEASE\HazzKaraokeHoster automatically.
+- The folder contains Hazz Karaoke Hoster.exe, the .NET runtime and all required
+  application/native dependencies. Keep the files together when copying it.
+- Visual Studio's Build Output prints `HAZZ RELEASE READY` followed by the EXE path.
+- The operation uses MSBuild's built-in Copy task. It does not launch dotnet.exe,
+  start a nested build, or run a post-build publish, avoiding MSB3073/MSB4166.
+- BUILD-EXE.cmd and the HazzStandalone publish profile remain available when a
+  compressed single-file EXE is specifically required.
+
+MediaMonkey
+- Retains the v0.17.6 fix that skips MediaMonkey's private `mm` tokenizer search
+  table and imports the ordinary Songs table read-only.
+
+Validation
+- Tested by removing the generated RELEASE folder and rebuilding the solution with
+  the installed Visual Studio 2026 MSBuild, Release | x64.
+- Verified that RELEASE\HazzKaraokeHoster\Hazz Karaoke Hoster.exe is recreated,
+  reports version 0.17.7 and has its self-contained runtime dependencies.
+- Smart Import MediaMonkey regression and source archive integrity checks passed.
+
+All earlier Hazz Karaoke Hoster features remain available.

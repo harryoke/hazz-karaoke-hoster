@@ -1,0 +1,32 @@
+HAZZ KARAOKE HOSTER v0.3
+========================
+
+MAIN HOST LAYOUT
+- Rebuilt MainWindow to match the approved three-column layout.
+- Deck 1 top-left; Deck 1 Playlist beneath.
+- Karaoke Deck top-centre.
+- Karaoke Singers List occupies the main centre working area.
+- Karaoke Preview moved beneath the singers list.
+- Deck 2 top-right; Deck 2 Playlist beneath.
+
+SEARCH
+- Karaoke search moved to a full-width top bar.
+- Search results now appear as a temporary overlay over the centre of the host screen.
+- Added CLOSE control to dismiss results without changing the main layout.
+
+SINGER ROTATION
+- Queue is now a DataGrid with Singer, Song, Artist, Key and Sync columns.
+- Existing Move Up, Move Down, Set As Next and Remove controls retained.
+
+AUDIENCE DISPLAY
+- Existing Next Singer and venue scroller settings moved into Display Settings popup.
+- Open Audience Display button remains permanently available in the header.
+
+PLAYBACK
+- Existing v0.2.2 CD+G/MP3+G/ZIP/video foundations retained.
+- Existing exact +/-0.25s CD+G graphics timing control retained.
+- Existing Deck 1/2 playback controls retained.
+
+BUILD
+- Version changed to 0.3.0.
+- Existing Release auto-publish / standalone EXE pipeline retained.

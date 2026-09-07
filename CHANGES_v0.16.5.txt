@@ -1,0 +1,12 @@
+Hazz Karaoke Hoster v0.16.5
+
+SAVE PLAYLIST buttons
+- Added SAVE PLAYLIST to Deck 1 and Deck 2 beside LOAD PLAYLIST / HISTORY.
+- Saves the deck's remaining unplayed queue as a named Hazz playlist in the main SQLite database.
+- Preserves queue order, Song ID (where available), file path, artist and title.
+- If the same Hazz saved-playlist name is used again, its contents are updated/replaced instead of creating duplicates.
+- The currently playing/started track is excluded so a saved 'remaining playlist' does not replay an already-consumed track.
+- Saved lists appear in Music Playlists & History with source 'Hazz Saved' and can be loaded into either deck.
+- If Music Playlists & History is already open, it refreshes immediately after a save.
+
+Retains v0.16.4 audience/scroller persistence, deck queue persistence, BPM Daily History, singer-history search/drag, and existing playback/import features.

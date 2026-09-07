@@ -1,0 +1,93 @@
+<Window x:Class="HazzKaraokeHoster.App.LibraryBrowserWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Hazz Library Browser" Width="1180" Height="760" MinWidth="850" MinHeight="520"
+ Background="#0B0F14" Foreground="#F4F7FA" WindowStartupLocation="CenterOwner">
+ <Window.Resources>
+  <Style TargetType="Button">
+   <Setter Property="Foreground" Value="White"/><Setter Property="Background" Value="#26313D"/>
+   <Setter Property="BorderBrush" Value="#4A5968"/><Setter Property="Padding" Value="10,6"/>
+   <Setter Property="Margin" Value="3"/><Setter Property="MinHeight" Value="34"/><Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+  <Style TargetType="TextBox">
+   <Setter Property="Foreground" Value="White"/><Setter Property="Background" Value="#0D131A"/>
+   <Setter Property="BorderBrush" Value="#44515F"/><Setter Property="Padding" Value="8,5"/><Setter Property="Margin" Value="3"/>
+   <Setter Property="CaretBrush" Value="White"/>
+  </Style>
+  <Style TargetType="ComboBox">
+   <Setter Property="Foreground" Value="White"/><Setter Property="Background" Value="#202A35"/>
+   <Setter Property="BorderBrush" Value="#44515F"/><Setter Property="Padding" Value="5,3"/><Setter Property="Margin" Value="3"/>
+  </Style>
+  <Style TargetType="DataGrid">
+   <Setter Property="Background" Value="#0E141B"/><Setter Property="Foreground" Value="White"/>
+   <Setter Property="RowBackground" Value="#111820"/><Setter Property="AlternatingRowBackground" Value="#17202A"/>
+   <Setter Property="BorderBrush" Value="#34404D"/><Setter Property="GridLinesVisibility" Value="Horizontal"/>
+   <Setter Property="HorizontalGridLinesBrush" Value="#293440"/><Setter Property="HeadersVisibility" Value="Column"/>
+   <Setter Property="CanUserAddRows" Value="False"/><Setter Property="SelectionMode" Value="Single"/><Setter Property="SelectionUnit" Value="FullRow"/>
+  </Style>
+  <Style TargetType="DataGridColumnHeader">
+   <Setter Property="Background" Value="#222D38"/><Setter Property="Foreground" Value="White"/>
+   <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Padding" Value="7,5"/><Setter Property="BorderBrush" Value="#34404D"/>
+  </Style>
+ </Window.Resources>
+ <Grid Margin="10">
+  <Grid.RowDefinitions>
+   <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+  </Grid.RowDefinitions>
+
+  <Grid>
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <Button x:Name="KaraokeModeButton" Grid.Column="0" Content="KARAOKE" Click="KaraokeMode_Click" Background="#3979A8"/>
+   <Button x:Name="MusicModeButton" Grid.Column="1" Content="MUSIC" Click="MusicMode_Click"/>
+   <TextBox x:Name="FilterBox" Grid.Column="2" FontSize="16" TextChanged="FilterBox_TextChanged" ToolTip="Filter artist, title, manufacturer or disc ID. Leave blank to browse the entire indexed library."/>
+   <ComboBox x:Name="SortCombo" Grid.Column="3" Width="145" SelectionChanged="SortChanged">
+    <ComboBoxItem Content="Artist" IsSelected="True"/><ComboBoxItem Content="Title"/><ComboBoxItem Content="Manufacturer"/><ComboBoxItem Content="Date Added"/>
+   </ComboBox>
+   <CheckBox x:Name="DescendingCheck" Grid.Column="4" Content="Descending" Margin="8,0" VerticalAlignment="Center" Checked="SortChanged" Unchecked="SortChanged"/>
+  </Grid>
+
+  <TextBlock x:Name="BrowserHint" Grid.Row="1" Margin="5,4,5,7" Foreground="#8FA0B2"
+             Text="Karaoke: drag a track onto a singer in the main window, or select a singer there and use ADD TO SELECTED SINGER."/>
+
+  <DataGrid x:Name="LibraryGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" FontSize="13"
+            EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True"
+            VirtualizingPanel.VirtualizationMode="Recycling"
+            PreviewMouseLeftButtonDown="LibraryGrid_PreviewMouseLeftButtonDown" PreviewMouseMove="LibraryGrid_PreviewMouseMove"
+            PreviewMouseWheel="LibraryGrid_PreviewMouseWheel" MouseDoubleClick="LibraryGrid_MouseDoubleClick">
+   <DataGrid.Columns>
+    <DataGridTextColumn Header="Artist" Binding="{Binding Artist}" Width="1.25*"/>
+    <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="1.55*"/>
+    <DataGridTextColumn Header="Manufacturer" Binding="{Binding Manufacturer}" Width="0.85*"/>
+    <DataGridTextColumn Header="Disc / Track" Binding="{Binding DiscId}" Width="0.85*"/>
+    <DataGridTextColumn Header="Format" Binding="{Binding Format}" Width="82"/>
+    <DataGridTextColumn Header="Path" Binding="{Binding FilePath}" Width="1.5*"/>
+   </DataGrid.Columns>
+  </DataGrid>
+
+  <Grid Grid.Row="3" Margin="0,7,0,3">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <StackPanel Grid.Column="0" Orientation="Horizontal">
+    <Button Content="|◀ FIRST" Click="FirstPage_Click"/><Button Content="◀ PREV" Click="PreviousPage_Click"/>
+   </StackPanel>
+   <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+    <TextBlock Text="Page" VerticalAlignment="Center" Margin="3"/>
+    <TextBox x:Name="PageBox" Width="75" Text="1" TextAlignment="Center"/>
+    <Button Content="GO" Click="GoPage_Click"/>
+    <TextBlock x:Name="PageStatusText" Text="of 1 • 0 tracks" VerticalAlignment="Center" Margin="8,0" Foreground="#AFC0D1"/>
+   </StackPanel>
+   <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+    <Button Content="NEXT ▶" Click="NextPage_Click"/><Button Content="LAST ▶|" Click="LastPage_Click"/>
+   </StackPanel>
+  </Grid>
+
+  <Grid Grid.Row="4" Margin="0,4,0,0">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#8FA0B2" VerticalAlignment="Center" Text="Loading library..."/>
+   <StackPanel Grid.Column="1" Orientation="Horizontal">
+    <Button x:Name="AddSingerButton" Content="ADD TO SELECTED SINGER" Click="AddSinger_Click"/>
+    <Button x:Name="AddDeck1Button" Content="ADD TO DECK 1" Click="AddDeck1_Click" Visibility="Collapsed"/>
+    <Button x:Name="AddDeck2Button" Content="ADD TO DECK 2" Click="AddDeck2_Click" Visibility="Collapsed"/>
+   </StackPanel>
+  </Grid>
+ </Grid>
+</Window>

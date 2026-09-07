@@ -1,0 +1,960 @@
+<Window x:Class="HazzKaraokeHoster.App.MainWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Hazz Karaoke Hoster" Width="1440" Height="840" MinWidth="320" MinHeight="240"
+ Foreground="#F4F7FA" WindowStartupLocation="CenterScreen"
+ FontFamily="Segoe UI" FontSize="14" TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType"
+ UseLayoutRounding="True" SnapsToDevicePixels="True" PreviewMouseDown="MainWindow_PreviewMouseDown">
+
+ <Window.Background>
+  <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+   <GradientStop Color="#0A0D10" Offset="0"/>
+   <GradientStop Color="#242B31" Offset="0.48"/>
+   <GradientStop Color="#090C0F" Offset="1"/>
+  </LinearGradientBrush>
+ </Window.Background>
+ <Window.Resources>
+  <LinearGradientBrush x:Key="PanelBrush" StartPoint="0,0" EndPoint="1,1">
+   <GradientStop Color="#303940" Offset="0"/>
+   <GradientStop Color="#151B20" Offset="0.45"/>
+   <GradientStop Color="#080B0E" Offset="1"/>
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Panel2Brush" StartPoint="0,0" EndPoint="0,1">
+   <GradientStop Color="#252D33" Offset="0"/>
+   <GradientStop Color="#0B0F12" Offset="1"/>
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="BorderBrush" Color="#77838C"/>
+  <SolidColorBrush x:Key="MutedBrush" Color="#B9C6D3"/>
+  <LinearGradientBrush x:Key="DeckABrush" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#E17B68" Offset="0"/><GradientStop Color="#843526" Offset="0.52"/><GradientStop Color="#3A1711" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="KaraokeBrush" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#73B6DE" Offset="0"/><GradientStop Color="#286890" Offset="0.52"/><GradientStop Color="#123247" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DeckBBrush" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#8BC487" Offset="0"/><GradientStop Color="#477947" Offset="0.52"/><GradientStop Color="#213C22" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="PlaylistBrush" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#D5B45A" Offset="0"/><GradientStop Color="#80631F" Offset="0.52"/><GradientStop Color="#3A2D0E" Offset="1"/></LinearGradientBrush>
+
+  <Style TargetType="Button">
+   <Setter Property="Foreground" Value="White"/>
+   <Setter Property="Background" Value="#303A42"/>
+   <Setter Property="BorderBrush" Value="#7B8993"/>
+   <Setter Property="BorderThickness" Value="1"/>
+   <Setter Property="Padding" Value="9,5"/>
+   <Setter Property="Margin" Value="3"/>
+   <Setter Property="MinHeight" Value="32"/>
+   <Setter Property="MinWidth" Value="60"/>
+   <Setter Property="FontSize" Value="12.5"/>
+   <Setter Property="FontWeight" Value="SemiBold"/>
+   <Setter Property="Cursor" Value="Hand"/>
+   <Setter Property="Template">
+    <Setter.Value>
+     <ControlTemplate TargetType="Button">
+      <Border x:Name="Chrome" CornerRadius="3" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+       <Grid>
+        <Border Height="1" VerticalAlignment="Top" Background="#A8FFFFFF" Margin="1,0,1,0"/>
+        <Border x:Name="Illumination" Background="White" Opacity="0" CornerRadius="2" Margin="-7,-3" IsHitTestVisible="False"/>
+        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+       </Grid>
+      </Border>
+      <ControlTemplate.Triggers>
+       <Trigger Property="IsMouseOver" Value="True">
+        <Setter TargetName="Illumination" Property="Opacity" Value="0.16"/>
+        <Setter TargetName="Chrome" Property="Effect">
+         <Setter.Value><DropShadowEffect Color="#FFFFFF" BlurRadius="12" ShadowDepth="0" Opacity="0.65"/></Setter.Value>
+        </Setter>
+       </Trigger>
+       <Trigger Property="IsPressed" Value="True">
+        <Setter TargetName="Illumination" Property="Opacity" Value="0.28"/>
+        <Setter TargetName="Chrome" Property="BorderBrush" Value="#D8FAFF"/>
+       </Trigger>
+       <Trigger Property="Tag" Value="Active">
+        <Setter TargetName="Illumination" Property="Opacity" Value="0.25"/>
+        <Setter TargetName="Chrome" Property="BorderBrush" Value="#BDF6FF"/>
+        <Setter TargetName="Chrome" Property="Effect">
+         <Setter.Value><DropShadowEffect Color="#38DFFF" BlurRadius="18" ShadowDepth="0" Opacity="1"/></Setter.Value>
+        </Setter>
+        <Setter Property="Foreground" Value="White"/>
+       </Trigger>
+       <Trigger Property="IsEnabled" Value="False">
+        <Setter TargetName="Chrome" Property="Opacity" Value="0.4"/>
+        <Setter Property="Cursor" Value="Arrow"/>
+       </Trigger>
+      </ControlTemplate.Triggers>
+     </ControlTemplate>
+    </Setter.Value>
+   </Setter>
+  </Style>
+  <Style x:Key="PlayButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Background" Value="#207044"/><Setter Property="BorderBrush" Value="#60D58C"/></Style>
+  <Style x:Key="StopButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Background" Value="#842D37"/><Setter Property="BorderBrush" Value="#E26A73"/></Style>
+  <Style x:Key="PauseButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Background" Value="#806111"/><Setter Property="BorderBrush" Value="#E2B84C"/></Style>
+  <Style x:Key="LoadButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Background" Value="#245D94"/><Setter Property="BorderBrush" Value="#62A9EA"/></Style>
+  <Style x:Key="SaveButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Background" Value="#146D72"/><Setter Property="BorderBrush" Value="#4AC5CA"/></Style>
+  <Style x:Key="SpecialButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Background" Value="#67428B"/><Setter Property="BorderBrush" Value="#B58AE0"/></Style>
+  <Style TargetType="TextBox">
+   <Setter Property="Foreground" Value="White"/>
+   <Setter Property="Background" Value="#0D131A"/>
+   <Setter Property="BorderBrush" Value="#44515F"/>
+   <Setter Property="Padding" Value="8,5"/>
+   <Setter Property="Margin" Value="3"/>
+   <Setter Property="CaretBrush" Value="White"/>
+  </Style>
+  <Style TargetType="ComboBox">
+   <Setter Property="Foreground" Value="White"/>
+   <Setter Property="Background" Value="#202A35"/>
+   <Setter Property="BorderBrush" Value="#657585"/>
+   <Setter Property="BorderThickness" Value="1"/>
+   <Setter Property="Padding" Value="5,3"/>
+   <Setter Property="Margin" Value="3"/>
+   <Setter Property="MinHeight" Value="29"/>
+   <Setter Property="Template">
+    <Setter.Value>
+     <ControlTemplate TargetType="ComboBox">
+      <Grid>
+       <Border x:Name="ComboChrome" Background="#18232D" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2"/>
+       <ContentPresenter x:Name="SelectionPresenter" Margin="8,2,29,2" VerticalAlignment="Center" HorizontalAlignment="Left"
+                         Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                         ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" IsHitTestVisible="False"/>
+       <TextBox x:Name="PART_EditableTextBox" Margin="5,2,29,2" Padding="2,0" VerticalContentAlignment="Center"
+                Background="#18232D" Foreground="White" BorderThickness="0" CaretBrush="White" Visibility="Hidden"/>
+       <ToggleButton x:Name="DropDownToggle" HorizontalAlignment="Right" Width="27" Margin="0" Padding="0" Focusable="False"
+                     ClickMode="Press" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+        <ToggleButton.Template>
+         <ControlTemplate TargetType="ToggleButton">
+          <Border x:Name="ArrowChrome" Background="#2D3B47" BorderBrush="#657585" BorderThickness="1,0,0,0" CornerRadius="0,2,2,0">
+           <Path Width="8" Height="5" Fill="#F7FAFC" Stretch="Fill" Data="M 0 0 L 8 0 L 4 5 Z" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+           <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ArrowChrome" Property="Background" Value="#356B8F"/></Trigger>
+           <Trigger Property="IsChecked" Value="True"><Setter TargetName="ArrowChrome" Property="Background" Value="#285577"/></Trigger>
+          </ControlTemplate.Triggers>
+         </ControlTemplate>
+        </ToggleButton.Template>
+       </ToggleButton>
+       <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+        <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="360"
+                Background="#111A22" BorderBrush="#8294A4" BorderThickness="1" Padding="2">
+         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" CanContentScroll="True">
+          <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+         </ScrollViewer>
+        </Border>
+       </Popup>
+      </Grid>
+      <ControlTemplate.Triggers>
+       <Trigger Property="IsEditable" Value="True">
+        <Setter TargetName="SelectionPresenter" Property="Visibility" Value="Hidden"/>
+        <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+       </Trigger>
+       <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="ComboChrome" Property="BorderBrush" Value="#7EDCFF"/></Trigger>
+       <Trigger Property="IsEnabled" Value="False">
+        <Setter TargetName="ComboChrome" Property="Background" Value="#25303A"/>
+        <Setter Property="Foreground" Value="#C5D0DA"/>
+        <Setter TargetName="PART_EditableTextBox" Property="Foreground" Value="#C5D0DA"/>
+        <Setter TargetName="DropDownToggle" Property="Opacity" Value="0.6"/>
+       </Trigger>
+      </ControlTemplate.Triggers>
+     </ControlTemplate>
+    </Setter.Value>
+   </Setter>
+  </Style>
+  <Style TargetType="ComboBoxItem">
+   <Setter Property="Foreground" Value="#F7FAFC"/>
+   <Setter Property="Background" Value="#18222D"/>
+   <Setter Property="Padding" Value="8,6"/>
+   <Setter Property="FontSize" Value="13.5"/>
+   <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+   <Setter Property="Template">
+    <Setter.Value>
+     <ControlTemplate TargetType="ComboBoxItem">
+      <Border x:Name="ItemChrome" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+       <ContentPresenter VerticalAlignment="Center"/>
+      </Border>
+      <ControlTemplate.Triggers>
+       <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="ItemChrome" Property="Background" Value="#356B8F"/><Setter Property="Foreground" Value="White"/></Trigger>
+       <Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemChrome" Property="Background" Value="#285577"/><Setter Property="Foreground" Value="White"/></Trigger>
+       <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="#93A3B2"/></Trigger>
+      </ControlTemplate.Triggers>
+     </ControlTemplate>
+    </Setter.Value>
+   </Setter>
+  </Style>
+  <Style TargetType="CheckBox">
+   <Setter Property="Foreground" Value="#F4F7FA"/>
+   <Setter Property="Margin" Value="6,4"/>
+   <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style TargetType="ListBox">
+   <Setter Property="Background" Value="#0E141B"/>
+   <Setter Property="Foreground" Value="White"/>
+   <Setter Property="BorderBrush" Value="#34404D"/>
+   <Setter Property="BorderThickness" Value="1"/>
+  </Style>
+  <Style TargetType="DataGrid">
+   <Setter Property="Background" Value="#0E141B"/>
+   <Setter Property="Foreground" Value="White"/>
+   <Setter Property="RowBackground" Value="#111820"/>
+   <Setter Property="AlternatingRowBackground" Value="#17202A"/>
+   <Setter Property="BorderBrush" Value="#34404D"/>
+   <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+   <Setter Property="RowHeight" Value="32"/>
+   <Setter Property="FontSize" Value="13.5"/>
+   <Setter Property="HorizontalGridLinesBrush" Value="#293440"/>
+   <Setter Property="HeadersVisibility" Value="Column"/>
+   <Setter Property="CanUserAddRows" Value="False"/>
+   <Setter Property="CanUserDeleteRows" Value="False"/>
+   <Setter Property="SelectionMode" Value="Single"/>
+   <Setter Property="SelectionUnit" Value="FullRow"/>
+  </Style>
+  <Style TargetType="DataGridColumnHeader">
+   <Setter Property="Background" Value="#222D38"/>
+   <Setter Property="Foreground" Value="White"/>
+   <Setter Property="FontWeight" Value="SemiBold"/>
+   <Setter Property="Padding" Value="8,6"/>
+   <Setter Property="FontSize" Value="13"/>
+   <Setter Property="BorderBrush" Value="#34404D"/>
+  </Style>
+
+  <!-- Explicit menu colours prevent Windows' default white submenu background
+       from combining with the application's inherited white foreground. -->
+  <Style TargetType="MenuItem">
+   <Setter Property="Foreground" Value="#F4F7FA"/>
+   <Setter Property="Background" Value="#18222D"/>
+   <Setter Property="BorderBrush" Value="#344454"/>
+   <Setter Property="Padding" Value="12,8"/>
+   <Setter Property="FontSize" Value="13"/>
+   <Setter Property="FontWeight" Value="SemiBold"/>
+   <Style.Triggers>
+    <Trigger Property="IsHighlighted" Value="True">
+     <Setter Property="Background" Value="#315B76"/>
+     <Setter Property="Foreground" Value="White"/>
+    </Trigger>
+    <Trigger Property="IsSubmenuOpen" Value="True">
+     <Setter Property="Background" Value="#294A60"/>
+     <Setter Property="Foreground" Value="White"/>
+    </Trigger>
+    <Trigger Property="IsEnabled" Value="False">
+     <Setter Property="Foreground" Value="#82909E"/>
+    </Trigger>
+   </Style.Triggers>
+  </Style>
+  <Style TargetType="Separator">
+   <Setter Property="Margin" Value="4,3"/>
+   <Setter Property="Background" Value="#465665"/>
+  </Style>
+
+  <Style x:Key="HeaderMenuItemStyle" TargetType="MenuItem">
+   <Setter Property="Foreground" Value="#F4F7FA"/>
+   <Setter Property="Background" Value="#17212B"/>
+   <Setter Property="FontWeight" Value="SemiBold"/>
+   <Setter Property="FontSize" Value="13"/>
+   <Setter Property="Padding" Value="10,7"/>
+   <Style.Triggers>
+    <Trigger Property="IsHighlighted" Value="True">
+     <Setter Property="Background" Value="#315B76"/>
+     <Setter Property="Foreground" Value="White"/>
+    </Trigger>
+    <Trigger Property="IsSubmenuOpen" Value="True">
+     <Setter Property="Background" Value="#294A60"/>
+     <Setter Property="Foreground" Value="White"/>
+    </Trigger>
+   </Style.Triggers>
+  </Style>
+  <Style x:Key="CompactHeaderButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+   <Setter Property="MinHeight" Value="28"/>
+   <Setter Property="MinWidth" Value="82"/>
+   <Setter Property="Padding" Value="8,3"/>
+   <Setter Property="FontSize" Value="11.5"/>
+   <Setter Property="Margin" Value="4,2"/>
+  </Style>
+
+  <DataTemplate x:Key="MusicPlaylistItemTemplate">
+   <Grid MinHeight="29">
+    <Grid.ColumnDefinitions>
+     <ColumnDefinition Width="68"/>
+     <ColumnDefinition Width="0.95*"/>
+     <ColumnDefinition Width="1.25*"/>
+     <ColumnDefinition Width="58"/>
+    </Grid.ColumnDefinitions>
+    <TextBlock Grid.Column="0" Text="{Binding NumberText}" FontWeight="Bold" VerticalAlignment="Center" Margin="5,0"/>
+    <TextBlock Grid.Column="1" Text="{Binding DisplayArtist}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0"/>
+    <TextBlock Grid.Column="2" Text="{Binding DisplayTitle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0"/>
+    <TextBlock Grid.Column="3" Text="{Binding DurationText}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4,0,6,0"/>
+   </Grid>
+  </DataTemplate>
+  <Style x:Key="MusicPlaylistItemStyle" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+   <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+   <Setter Property="Padding" Value="2"/>
+   <Setter Property="Margin" Value="0,1"/>
+   <Setter Property="Foreground" Value="#F4F7FA"/>
+   <Setter Property="Background" Value="#111820"/>
+   <Style.Triggers>
+    <DataTrigger Binding="{Binding IsPlayedThisSession}" Value="True">
+     <Setter Property="Background" Value="#8B2635"/>
+     <Setter Property="Foreground" Value="White"/>
+     <Setter Property="FontWeight" Value="SemiBold"/>
+    </DataTrigger>
+    <DataTrigger Binding="{Binding IsNowPlaying}" Value="True">
+     <Setter Property="Background" Value="#F3C94B"/>
+     <Setter Property="Foreground" Value="#151515"/>
+     <Setter Property="FontWeight" Value="Bold"/>
+    </DataTrigger>
+    <Trigger Property="IsSelected" Value="True">
+     <Setter Property="BorderBrush" Value="#DCE8F3"/>
+     <Setter Property="BorderThickness" Value="1"/>
+    </Trigger>
+   </Style.Triggers>
+  </Style>
+ </Window.Resources>
+
+ <Grid x:Name="HostViewport" ClipToBounds="True" SizeChanged="HostViewport_SizeChanged">
+  <Viewbox x:Name="HostAutoFit" Stretch="Uniform" StretchDirection="DownOnly">
+ <Grid x:Name="HostLayout" Width="1680" Height="1100" Margin="8">
+  <Grid.RowDefinitions>
+   <RowDefinition Height="Auto"/>
+   <RowDefinition Height="Auto"/>
+   <RowDefinition Height="*"/>
+  </Grid.RowDefinitions>
+
+  <!-- COMPACT HEADER + DROP-DOWN MENUS -->
+  <Grid Grid.Row="0" Margin="2,0,2,5">
+   <Grid.ColumnDefinitions>
+    <ColumnDefinition Width="Auto"/>
+    <ColumnDefinition Width="*"/>
+    <ColumnDefinition Width="Auto"/>
+   </Grid.ColumnDefinitions>
+   <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+    <Border Width="150" Height="54" ClipToBounds="True" CornerRadius="6" BorderBrush="#344A5C" BorderThickness="1" Background="#101821" ToolTip="Hazz Karaoke Hoster">
+     <Image Source="Assets/HazzKaraokeLogo.png" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" Margin="4"/>
+    </Border>
+    <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
+     <TextBlock Text="KARAOKE HOSTER" FontSize="16" FontWeight="Bold" Foreground="#E8F0F7"/>
+     <TextBlock Text="LIVE HOST CONSOLE" FontSize="10" FontWeight="SemiBold" Foreground="#8EA3B6"/>
+     <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="10.5" FontWeight="Bold" Foreground="#6EC1E4" Margin="0,2,0,0"/>
+    </StackPanel>
+    <Border Background="#22303C" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
+     <TextBlock Text="v0.17.20" FontSize="11" FontWeight="Bold" Foreground="#D4DEE8"/>
+    </Border>
+   </StackPanel>
+
+   <Menu x:Name="TopMenu" Grid.Column="2" Background="#121923" Foreground="White" VerticalAlignment="Center" Padding="2" Margin="8,0,0,0">
+    <MenuItem Header="LIBRARY" Style="{StaticResource HeaderMenuItemStyle}">
+     <MenuItem Header="Browse Library…" Click="OpenLibraryBrowser_Click"/>
+     <MenuItem Header="Music History / Lists…" Click="OpenMusicArchive_Click"/>
+     <Separator/>
+     <MenuItem Header="Database">
+      <MenuItem Header="Open Database Folder" Click="OpenDatabaseFolder_Click"/>
+      <MenuItem Header="Backup Database…" Click="BackupDatabase_Click"/>
+     </MenuItem>
+     <Separator/>
+     <MenuItem Header="Rescan Watched Folders…" Click="RescanWatchedFolders_Click"/>
+     <MenuItem Header="Auto-watch New Files: ON" IsEnabled="False"/>
+    </MenuItem>
+    <MenuItem Header="IMPORT" Style="{StaticResource HeaderMenuItemStyle}">
+     <MenuItem Header="Import Karaoke Folders…" Click="ImportKaraoke_Click"/>
+     <MenuItem Header="Import Music Folders…" Click="ImportMusic_Click"/>
+     <Separator/>
+     <MenuItem Header="Import BPM Studio…" Click="ImportBpmStudio_Click"/>
+     <MenuItem Header="SMART IMPORT">
+      <MenuItem Header="Import Singer History…" Click="ImportSingerHistory_Click"/>
+      <Separator/>
+      <MenuItem Header="Detect from File…" Click="ImportOtherSoftware_Click"/>
+      <MenuItem Header="Detect from Application Folder…" Click="ImportSmartFolder_Click"/>
+      <Separator/>
+      <MenuItem Header="VirtualDJ database.xml…" Click="ImportVirtualDj_Click"/>
+      <MenuItem Header="Supported Applications" IsEnabled="False"/>
+      <MenuItem Header="MediaMonkey • CompuHost • Lyrx • KaraFun" IsEnabled="False"/>
+      <MenuItem Header="Siglos • PowerKaraoke • OpenKJ • PCDJ DEX" IsEnabled="False"/>
+      <MenuItem Header="VirtualDJ • Karma • BPM Studio • rekordbox • iTunes" IsEnabled="False"/>
+      <MenuItem Header="SongBookDB • kJams • JustKaraoke • Sax &amp; Dottys" IsEnabled="False"/>
+      <MenuItem Header="Serato • Mixxx • Winamp • WPL/XSPF/ASX" IsEnabled="False"/>
+     </MenuItem>
+     <MenuItem Header="Import Karma">
+      <MenuItem Header="Singers / History…" Click="ImportKarma_Click"/>
+      <MenuItem Header="Complete Karaoke Library…" Click="ImportKarmaLibrary_Click"/>
+     </MenuItem>
+    </MenuItem>
+    <MenuItem x:Name="DisplayMenuRoot" Header="DISPLAY" Style="{StaticResource HeaderMenuItemStyle}">
+     <MenuItem Header="Open Audience Display" Click="AudienceButton_Click"/>
+     <MenuItem x:Name="DisplayTargetsMenuItem" Header="Send Full Screen To" SubmenuOpened="DisplayTargetsMenu_Opened"/>
+     <MenuItem Header="Send Windowed To Preferred Display" Click="SendAudienceToDisplay_Click"/>
+     <MenuItem Header="Full Screen On Preferred Display" Click="AudienceFullScreen_Click"/>
+     <MenuItem Header="Windowed / Move &amp; Resize" Click="AudienceWindowed_Click"/>
+     <Separator/>
+     <MenuItem Header="Overlay / Next Singer Settings…" Click="DisplaySettingsMenu_Click"/>
+    </MenuItem>
+    <MenuItem Header="SHOW" Style="{StaticResource HeaderMenuItemStyle}">
+     <MenuItem Header="New Show" Click="NewShow_Click"/>
+     <Separator/>
+     <MenuItem x:Name="KaraokeOnlyModeMenuItem" Header="Karaoke Only Mode (Hide Music Decks)" IsCheckable="True" Click="KaraokeOnlyMode_Click"
+               ToolTip="Hide Deck 1 and Deck 2 and expand the karaoke workspace to the full host window."/>
+     <MenuItem Header="Toggle Karaoke Preview" Click="TogglePreview_Click"/>
+    </MenuItem>
+   </Menu>
+
+   <!-- Retained as a hidden backing selector for preferred-monitor logic. -->
+   <ComboBox x:Name="DisplayCombo" Grid.Column="1" Width="1" Height="1" Visibility="Collapsed" DisplayMemberPath="Label"/>
+  </Grid>
+
+  <!-- SEARCH BAR -->
+  <Border Grid.Row="1" Background="#121923" BorderBrush="#3A4653" BorderThickness="1" CornerRadius="5" Padding="6" Margin="2,0,2,7">
+   <Grid>
+    <Grid.ColumnDefinitions>
+     <ColumnDefinition Width="Auto"/>
+     <ColumnDefinition Width="Auto"/>
+     <ColumnDefinition Width="Auto"/>
+     <ColumnDefinition Width="*"/>
+     <ColumnDefinition Width="Auto"/>
+     <ColumnDefinition Width="Auto"/>
+    </Grid.ColumnDefinitions>
+    <TextBlock Text="SEARCH" Grid.Column="0" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" Margin="7,0,10,0" Foreground="#C0CDD9"/>
+    <Button x:Name="SearchKaraokeButton" Grid.Column="1" Content="KARAOKE" Style="{StaticResource LoadButtonStyle}" Click="SearchKaraokeMode_Click" ToolTip="CD+G, ZIP and video karaoke are searched together"/>
+    <Button x:Name="SearchMusicButton" Grid.Column="2" Content="MUSIC" Style="{StaticResource SaveButtonStyle}" Click="SearchMusicMode_Click" ToolTip="Search ordinary background music"/>
+    <TextBox x:Name="SearchBox" Grid.Column="3" FontSize="16" TextChanged="SearchBox_TextChanged" ToolTip="Artist, title, manufacturer or disc ID" MinWidth="140"/>
+    <Button x:Name="CancelImportButton" Grid.Column="4" Content="CANCEL IMPORT" Style="{StaticResource StopButtonStyle}" Click="CancelImport_Click" Visibility="Collapsed"/>
+    <StackPanel Grid.Column="5" Margin="10,0,5,0" VerticalAlignment="Center" MinWidth="135">
+     <TextBlock x:Name="SearchStatus" Foreground="#B6C3D0" Text="Database starting..." TextTrimming="CharacterEllipsis"/>
+     <TextBlock x:Name="LibraryCountText" Foreground="#899AAB" Text="Karaoke 0 • Music 0" FontSize="11.5"/>
+    </StackPanel>
+   </Grid>
+  </Border>
+
+  <!-- MAIN THREE-COLUMN HOST LAYOUT -->
+  <Grid Grid.Row="2">
+   <Grid.ColumnDefinitions>
+    <ColumnDefinition x:Name="MainLeftColumn" Width="0.93*" MinWidth="190"/>
+    <ColumnDefinition Width="8"/>
+    <ColumnDefinition x:Name="MainCenterColumn" Width="1.24*" MinWidth="290"/>
+    <ColumnDefinition Width="8"/>
+    <ColumnDefinition x:Name="MainRightColumn" Width="0.93*" MinWidth="190"/>
+   </Grid.ColumnDefinitions>
+
+   <GridSplitter x:Name="MainLeftSplitter" Grid.Column="1" Width="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#26313D"
+                 ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="True" ToolTip="Drag to resize Deck 1 and the centre area"/>
+   <GridSplitter x:Name="MainRightSplitter" Grid.Column="3" Width="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#26313D"
+                 ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="True" ToolTip="Drag to resize the centre area and Deck 2"/>
+
+   <!-- LEFT: MUSIC DECK A + PLAYLIST -->
+   <Grid x:Name="MusicDeckAPanel" Grid.Column="0">
+    <Grid.RowDefinitions>
+     <RowDefinition x:Name="DeckAPlayerRow" Height="205" MinHeight="145"/>
+     <RowDefinition Height="8"/>
+     <RowDefinition x:Name="DeckAPlaylistRow" Height="*" MinHeight="100"/>
+    </Grid.RowDefinitions>
+    <GridSplitter Grid.Row="1" Height="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#26313D"
+                  ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" ShowsPreview="True" ToolTip="Drag to resize Deck 1 player / playlist"/>
+
+    <Border Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="#66392E" BorderThickness="1" CornerRadius="5">
+     <Grid>
+      <Grid.RowDefinitions>
+       <RowDefinition Height="38"/>
+       <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <Border Background="{StaticResource DeckABrush}" CornerRadius="5,5,0,0">
+       <TextBlock Text="DECK 1" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+      </Border>
+      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
+       <Grid Margin="8">
+        <Grid.RowDefinitions>
+         <RowDefinition Height="Auto"/>
+         <RowDefinition Height="*" MinHeight="36"/>
+         <RowDefinition Height="Auto"/>
+         <RowDefinition Height="Auto"/>
+         <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+       <TextBlock x:Name="DeckATitle" Text="No track loaded" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Margin="3,4,3,8"/>
+       <Border Grid.Row="1" Background="#020605" BorderBrush="#607069" BorderThickness="1" CornerRadius="4" Margin="3">
+        <Canvas x:Name="DeckALedViewport" Height="48" ClipToBounds="True" VerticalAlignment="Center">
+         <TextBlock x:Name="DeckALedText" Text="DECK 1 READY  •  LOAD MUSIC" Foreground="#5CFF9A" FontFamily="Consolas"
+                    FontSize="22" FontWeight="Bold" Canvas.Top="9" TextOptions.TextRenderingMode="ClearType">
+          <TextBlock.Effect><DropShadowEffect Color="#20FF72" BlurRadius="12" ShadowDepth="0" Opacity="0.95"/></TextBlock.Effect>
+          <TextBlock.RenderTransform><TranslateTransform x:Name="DeckALedTransform"/></TextBlock.RenderTransform>
+         </TextBlock>
+        </Canvas>
+       </Border>
+       <WrapPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,5,0,1">
+        <Button Content="ADD FILES" Style="{StaticResource SaveButtonStyle}" Click="DeckAAdd_Click"/>
+        <Button x:Name="DeckAPlayButton" Content="▶ PLAY" Style="{StaticResource PlayButtonStyle}" Click="DeckAPlay_Click"/>
+        <Button x:Name="DeckAPauseButton" Content="Ⅱ PAUSE" Style="{StaticResource PauseButtonStyle}" Click="DeckAPause_Click"/>
+        <Button Content="■ STOP" Style="{StaticResource StopButtonStyle}" Click="DeckAStop_Click"/>
+        <Button Content="SHUFFLE" Style="{StaticResource SpecialButtonStyle}" Click="DeckAShuffle_Click" ToolTip="Randomise the remaining queued tracks. The currently playing track stays at #1."/>
+       </WrapPanel>
+       <StackPanel Grid.Row="3" Margin="4,3,4,1">
+        <ProgressBar x:Name="DeckAProgress" Height="5" Minimum="0" Maximum="1" Value="0" IsHitTestVisible="False"/>
+        <TextBlock x:Name="DeckATimeText" Text="ELAPSED 00:00  •  REMAINING --:--  •  TOTAL --:--" HorizontalAlignment="Center"
+                   Foreground="#AFC0D1" FontSize="11" FontWeight="SemiBold" Margin="0,3,0,0"/>
+       </StackPanel>
+       <Grid Grid.Row="4" Margin="4,3,4,0">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <TextBlock Text="VOLUME" VerticalAlignment="Center" Foreground="#AFC0D1" FontWeight="SemiBold" Margin="0,0,9,0"/>
+        <Slider x:Name="DeckAVolume" Grid.Column="1" Minimum="0" Maximum="1" Value="0.8" ValueChanged="DeckAVolume_ValueChanged" VerticalAlignment="Center"/>
+       </Grid>
+       </Grid>
+      </ScrollViewer>
+     </Grid>
+    </Border>
+
+    <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="#695827" BorderThickness="1" CornerRadius="5">
+     <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="27"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <Border Background="{StaticResource PlaylistBrush}" CornerRadius="5,5,0,0">
+       <TextBlock Text="DECK 1 PLAYLIST" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+      </Border>
+      <Grid Grid.Row="1" Margin="9,3,9,0">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="68"/><ColumnDefinition Width="0.95*"/><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="58"/></Grid.ColumnDefinitions>
+       <TextBlock Text="#" FontWeight="Bold" Foreground="#B8C7D5" Margin="5,0"/>
+       <TextBlock Grid.Column="1" Text="ARTIST" FontWeight="Bold" Foreground="#B8C7D5" Margin="4,0"/>
+       <TextBlock Grid.Column="2" Text="TITLE" FontWeight="Bold" Foreground="#B8C7D5" Margin="4,0"/>
+       <TextBlock Grid.Column="3" Text="TIME" FontWeight="Bold" Foreground="#B8C7D5" HorizontalAlignment="Right" Margin="4,0,6,0"/>
+      </Grid>
+      <ListBox x:Name="DeckAPlaylist" Grid.Row="2" Margin="7" FontSize="13" AllowDrop="True" SelectionMode="Extended"
+               ItemTemplate="{StaticResource MusicPlaylistItemTemplate}" ItemContainerStyle="{StaticResource MusicPlaylistItemStyle}"
+               PreviewMouseLeftButtonDown="MusicPlaylist_PreviewMouseLeftButtonDown" PreviewMouseMove="MusicPlaylist_PreviewMouseMove"
+               KeyDown="DeckAPlaylist_KeyDown" DragOver="MusicPlaylist_DragOver" Drop="DeckAPlaylist_Drop"
+               ToolTip="Select one or more tracks. Press Delete or use REMOVE SELECTED to take them out of this deck queue."/>
+      <WrapPanel Grid.Row="3" Margin="5,2,5,5" HorizontalAlignment="Center">
+       <Button Content="SAVE PLAYLIST" Style="{StaticResource SaveButtonStyle}" Click="DeckASavePlaylist_Click" Margin="2" MinHeight="34" MinWidth="112" ToolTip="Save Deck 1's remaining playlist as a named Hazz playlist for later reuse."/>
+       <Button Content="REMOVE SELECTED" Style="{StaticResource StopButtonStyle}" Click="DeckARemoveSelected_Click" Margin="2" MinHeight="34" MinWidth="122" ToolTip="Remove the selected unplayed track(s) from Deck 1. This does not delete the music files or library records."/>
+       <Button Content="LOAD PLAYLIST / HISTORY…" Style="{StaticResource LoadButtonStyle}" Click="DeckALoadPlaylist_Click" Margin="2" MinHeight="34" MinWidth="150" ToolTip="Load a complete saved/imported playlist or music-history list into Deck 1."/>
+      </WrapPanel>
+     </Grid>
+    </Border>
+   </Grid>
+
+   <!-- CENTRE: KARAOKE DECK + SINGER LIST + PREVIEW -->
+   <Grid x:Name="KaraokeWorkspace" Grid.Column="2">
+    <Grid.RowDefinitions>
+     <RowDefinition x:Name="KaraokeDeckRow" Height="250" MinHeight="185"/>
+     <RowDefinition Height="8"/>
+     <RowDefinition x:Name="SingerListRow" Height="*" MinHeight="105"/>
+     <RowDefinition x:Name="KaraokePreviewSplitterRow" Height="8"/>
+     <RowDefinition x:Name="KaraokePreviewRow" Height="120" MinHeight="0"/>
+    </Grid.RowDefinitions>
+    <GridSplitter Grid.Row="1" Height="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#26313D"
+                  ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" ShowsPreview="True" ToolTip="Drag to resize Karaoke Deck / singer list"/>
+    <GridSplitter x:Name="KaraokePreviewSplitter" Grid.Row="3" Height="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#26313D"
+                  ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" ShowsPreview="True" ToolTip="Drag to resize singer list / karaoke preview"/>
+
+    <Border Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="#305F80" BorderThickness="1" CornerRadius="5">
+     <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+      <Border Background="{StaticResource KaraokeBrush}" CornerRadius="5,5,0,0">
+       <TextBlock Text="KARAOKE DECK" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+      </Border>
+      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
+       <Grid Margin="7">
+        <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+       </Grid.RowDefinitions>
+       <TextBlock x:Name="KaraokeNowText" Text="No karaoke track loaded" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="4,3,4,5"/>
+       <WrapPanel Grid.Row="1" HorizontalAlignment="Center">
+        <Button Content="LOAD NEXT SINGER" Style="{StaticResource LoadButtonStyle}" Click="LoadNextSinger_Click" ToolTip="Load the first singer's next queued song"/>
+        <Button Content="LOAD FILE" Style="{StaticResource LoadButtonStyle}" Click="LoadKaraoke_Click"/>
+        <Button x:Name="TvDisplay2Button" Content="TV" Style="{StaticResource LoadButtonStyle}" Click="TvDisplay2_Click" MinWidth="58" FontWeight="Bold" ToolTip="One-click singer screen: send the audience/karaoke display fullscreen to Display 2."/>
+        <Button x:Name="KaraokePlayButton" Content="▶ PLAY" Style="{StaticResource PlayButtonStyle}" Click="KaraokePlay_Click"/>
+        <Button x:Name="KaraokePauseButton" Content="Ⅱ PAUSE" Style="{StaticResource PauseButtonStyle}" Click="KaraokePause_Click" ToolTip="Pause / resume from the same position"/>
+        <Button Content="■ STOP" Style="{StaticResource StopButtonStyle}" Click="KaraokeStop_Click"/>
+        <Button Content="FIND ALTERNATIVE" Style="{StaticResource SpecialButtonStyle}" Click="FindAlternative_Click" ToolTip="Play the next karaoke version of the same artist/title"/>
+        <Button x:Name="KamikazeButton" Content="KAMIKAZE" Click="Kamikaze_Click" Background="#A92E55" ToolTip="Randomly assign the next singer a karaoke-library song. Press again for another random choice."/>
+       </WrapPanel>
+       <StackPanel Grid.Row="2" Margin="5,3,5,1">
+        <ProgressBar x:Name="KaraokeProgress" Height="6" Minimum="0" Maximum="1" Value="0" IsHitTestVisible="False"/>
+        <TextBlock x:Name="KaraokeTimeText" Text="ELAPSED 00:00  •  REMAINING --:--  •  TOTAL --:--" HorizontalAlignment="Center"
+                   Foreground="#B9C9D8" FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"/>
+       </StackPanel>
+       <Grid Grid.Row="3" Margin="0,5,0,0">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Background="#0F161E" BorderBrush="#354655" BorderThickness="1" CornerRadius="4" Padding="5" Margin="3">
+         <StackPanel>
+          <TextBlock Text="KEY" HorizontalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="#9FB0C1"/>
+          <WrapPanel HorizontalAlignment="Center">
+           <Button Content="−" Style="{StaticResource LoadButtonStyle}" Click="KeyDown_Click" MinWidth="38"/>
+           <TextBlock x:Name="KeyText" Text="0" FontSize="23" Width="46" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold"/>
+           <Button Content="+" Style="{StaticResource LoadButtonStyle}" Click="KeyUp_Click" MinWidth="38"/>
+           <Button Content="RESET" Style="{StaticResource PauseButtonStyle}" Click="KeyReset_Click"/>
+          </WrapPanel>
+         </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Background="#0F161E" BorderBrush="#354655" BorderThickness="1" CornerRadius="4" Padding="5" Margin="3">
+         <StackPanel>
+          <TextBlock Text="CD+G GRAPHICS SYNC · 0.25 SECOND STEPS" HorizontalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="#9FB0C1"/>
+          <WrapPanel HorizontalAlignment="Center">
+           <Button Content="−0.25s" Style="{StaticResource LoadButtonStyle}" Click="CdgEarlier_Click"/>
+           <TextBlock x:Name="CdgSyncText" Text="0.00s" FontSize="22" Width="78" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold"/>
+           <Button Content="+0.25s" Style="{StaticResource LoadButtonStyle}" Click="CdgLater_Click"/>
+           <Button Content="RESET" Style="{StaticResource PauseButtonStyle}" Click="CdgReset_Click"/>
+          </WrapPanel>
+         </StackPanel>
+        </Border>
+       </Grid>
+       <Border x:Name="MusicAutomationPanel" Grid.Row="4" Background="#0F161E" BorderBrush="#354655" BorderThickness="1" CornerRadius="4" Padding="5" Margin="3,5,3,2">
+        <Grid>
+         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+         <WrapPanel Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <CheckBox x:Name="AutoCrossfadeCheck" Content="AUTO CROSSFADE" IsChecked="True" VerticalAlignment="Center"/>
+          <TextBlock Text="TIME" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="#9FB0C1" FontWeight="SemiBold"/>
+          <Slider x:Name="CrossfadeSecondsSlider" Minimum="0.5" Maximum="12" TickFrequency="0.5" IsSnapToTickEnabled="True" Value="4" Width="145" ValueChanged="CrossfadeSeconds_ValueChanged" VerticalAlignment="Center" Margin="3,0"/>
+          <TextBlock x:Name="CrossfadeSecondsText" Text="4.0s" Width="48" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Bold"/>
+          <Button Content="FADE NOW" Style="{StaticResource SpecialButtonStyle}" Click="FadeNow_Click" MinWidth="92" ToolTip="Immediately start the configured crossfade from the playing music deck to the other deck."/>
+          <Button x:Name="PlayMusicButton" Content="▶ PLAY MUSIC" Style="{StaticResource PlayButtonStyle}" Click="PlayMusic_Click" MinWidth="110" ToolTip="Stop karaoke if necessary and start the next music track that was scheduled before karaoke."/>
+         </WrapPanel>
+         <TextBlock x:Name="MusicAutomationStatus" Grid.Row="1" Text="Music ready" HorizontalAlignment="Center" Margin="4,2" Foreground="#9EABB9" TextTrimming="CharacterEllipsis"/>
+         <Grid Grid.Row="2" Margin="2,3,2,0">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <TextBlock Grid.Column="0" Text="DECK 1" FontWeight="Bold" Foreground="#9FB0C1" VerticalAlignment="Center" Margin="0,0,8,0"/>
+          <Slider x:Name="VisualCrossfaderSlider" Grid.Column="1" Minimum="0" Maximum="100" Value="0" IsHitTestVisible="False" Focusable="False" VerticalAlignment="Center" ToolTip="Live visual crossfade position. Left = Deck 1, right = Deck 2."/>
+          <TextBlock x:Name="CrossfaderPositionText" Grid.Column="2" Text="D1 100%  •  D2 0%" Width="120" TextAlignment="Center" VerticalAlignment="Center" Foreground="#C9D5E0" FontWeight="SemiBold" Margin="8,0"/>
+          <TextBlock Grid.Column="3" Text="DECK 2" FontWeight="Bold" Foreground="#9FB0C1" VerticalAlignment="Center"/>
+         </Grid>
+        </Grid>
+       </Border>
+       <Border Grid.Row="5" Background="#0F161E" BorderBrush="#354655" BorderThickness="1" CornerRadius="4" Padding="5" Margin="3,3,3,2">
+        <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+         <CheckBox x:Name="AutoSkipSilenceCheck" Content="SKIP SILENT INTRO" IsChecked="True" ToolTip="At the start of karaoke, jump over leading silence only. Mid-song quiet sections are never skipped automatically."/>
+         <Button Content="SKIP SILENCE NOW" Style="{StaticResource PauseButtonStyle}" Click="SkipSilenceNow_Click" ToolTip="If the karaoke is currently in a silent section, jump to the next audible section."/>
+         <TextBlock Text="PRE-ROLL" Foreground="#9FB0C1" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,4,0"/>
+         <Slider x:Name="SkipSilencePreRollSlider" Minimum="0" Maximum="2" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="0.5" Width="130" Margin="3,0"
+                 ValueChanged="SkipSilencePreRoll_ValueChanged" VerticalAlignment="Center"/>
+         <TextBlock x:Name="SkipSilencePreRollText" Text="0.50s" Width="48" FontWeight="Bold" VerticalAlignment="Center" TextAlignment="Center"/>
+        </WrapPanel>
+       </Border>
+       <TextBlock Grid.Row="6" Text="Dedicated karaoke playback · MP3+G / ZIP / Video" Foreground="#718294" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,3,0,0"/>
+       </Grid>
+      </ScrollViewer>
+     </Grid>
+    </Border>
+
+    <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="#40505F" BorderThickness="1" CornerRadius="5">
+     <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <Border Background="#263747" CornerRadius="5,5,0,0">
+       <Grid>
+        <TextBlock Text="KARAOKE SINGERS LIST" FontSize="17" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+        <Button x:Name="PreviewToggleButton" Content="HIDE PREVIEW" Style="{StaticResource CompactHeaderButtonStyle}" Background="#67428B" BorderBrush="#B58AE0" HorizontalAlignment="Right" VerticalAlignment="Center" Click="TogglePreview_Click" ToolTip="Show or hide the host karaoke preview and give the singer list more space."/>
+       </Grid>
+      </Border>
+      <Grid Grid.Row="1" Margin="7,7,7,3">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <ComboBox x:Name="SingerNameBox" Grid.Column="0" ToolTip="Type to search all saved singers. Shows up to 100, most recently used first." FontSize="15" IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                 MaxDropDownHeight="320" DropDownOpened="SingerPicker_Opened" DropDownClosed="SingerPicker_Closed" TextBoxBase.TextChanged="SingerPicker_TextChanged"
+                 VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True">
+        <ComboBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ComboBox.ItemsPanel>
+       </ComboBox>
+       <TextBox x:Name="ManualSongBox" Grid.Column="1" ToolTip="Optional manual song title" FontSize="15"/>
+       <Button Grid.Column="2" Content="ADD SINGER" Style="{StaticResource LoadButtonStyle}" Click="AddSinger_Click"/>
+      </Grid>
+      <DataGrid x:Name="QueueList" Grid.Row="2" Margin="7,3" AutoGenerateColumns="False" IsReadOnly="True" FontSize="14"
+                AllowDrop="True"
+                PreviewMouseLeftButtonDown="QueueList_PreviewMouseLeftButtonDown"
+                PreviewMouseMove="QueueList_PreviewMouseMove"
+                MouseDoubleClick="QueueList_MouseDoubleClick"
+                PreviewMouseRightButtonDown="QueueList_PreviewMouseRightButtonDown"
+                DragOver="QueueList_DragOver"
+                Drop="QueueList_Drop"
+                ToolTip="Drag singers to reorder. Drag a KARAOKE search result onto a singer to add it. Double-click a singer to manage their songs/history. Right-click for singer controls.">
+       <DataGrid.ContextMenu>
+        <ContextMenu Opened="SingerContextMenu_Opened">
+         <MenuItem Header="ADD SONG / SEARCH…" Click="SingerMenuAddSong_Click"/>
+         <MenuItem Header="OPEN SONGS &amp; HISTORY…" Click="SingerMenuOpenHistory_Click"/>
+         <Separator/>
+         <MenuItem Header="HOLD SINGER" Tag="HoldToggle" Click="SingerMenuHold_Click"/>
+         <MenuItem Header="SKIP ONCE (MOVE TO BOTTOM)" Click="SingerMenuSkipOnce_Click"/>
+         <MenuItem Header="SET AS NEXT" Click="SingerMenuSetNext_Click"/>
+         <MenuItem Header="MOVE UP" Click="SingerMenuMoveUp_Click"/>
+         <MenuItem Header="MOVE DOWN" Click="SingerMenuMoveDown_Click"/>
+         <MenuItem Header="MOVE TO TOP" Click="SingerMenuMoveTop_Click"/>
+         <Separator/>
+         <MenuItem Header="KAMIKAZE FOR THIS SINGER" Click="SingerMenuKamikaze_Click"/>
+         <MenuItem Header="CLEAR QUEUED SONGS" Click="SingerMenuClearSongs_Click"/>
+         <MenuItem Header="EDIT NAME / NOTES…" Click="SingerMenuEdit_Click"/>
+         <Separator/>
+         <MenuItem Header="REMOVE FROM SHOW" Click="SingerMenuRemove_Click"/>
+        </ContextMenu>
+       </DataGrid.ContextMenu>
+       <DataGrid.Columns>
+        <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="58"/>
+        <DataGridTextColumn Header="Singer" Binding="{Binding SingerName}" Width="1.05*"/>
+        <DataGridTextColumn Header="Next Song" Binding="{Binding NextSongTitle}" Width="1.45*"/>
+        <DataGridTextColumn Header="Artist" Binding="{Binding NextArtist}" Width="1.05*"/>
+        <DataGridTextColumn Header="Songs" Binding="{Binding SongCount}" Width="55"/>
+        <DataGridTextColumn Header="Key" Binding="{Binding NextKey}" Width="50"/>
+        <DataGridTextColumn Header="Sync" Binding="{Binding NextSync, StringFormat={}{0:+0.00;-0.00;0.00}s}" Width="72"/>
+       </DataGrid.Columns>
+      </DataGrid>
+      <Grid Grid.Row="3" Margin="4,2,4,6">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <TextBlock x:Name="QueueDragHint" Grid.Column="0" Text="Drag to reorder • right-click singer for Hold / Skip / History / Kamikaze / Remove" Foreground="#7F91A3" VerticalAlignment="Center" Margin="5,0"/>
+       <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
+        <Button Content="▲ MOVE UP" Style="{StaticResource LoadButtonStyle}" Click="QueueUp_Click"/>
+        <Button Content="▼ MOVE DOWN" Style="{StaticResource LoadButtonStyle}" Click="QueueDown_Click"/>
+        <Button Content="SET AS NEXT" Style="{StaticResource PlayButtonStyle}" Click="SetNext_Click"/>
+        <Button Content="REMOVE" Style="{StaticResource StopButtonStyle}" Click="QueueRemove_Click"/>
+       </WrapPanel>
+      </Grid>
+     </Grid>
+    </Border>
+
+    <Border x:Name="KaraokePreviewPanel" Grid.Row="4" Background="#06090D" BorderBrush="#40505F" BorderThickness="1" CornerRadius="5">
+     <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="34"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+      <Border Background="#19232D" CornerRadius="5,5,0,0">
+       <TextBlock Text="KARAOKE PREVIEW" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#C7D3DF"/>
+      </Border>
+      <Grid Grid.Row="1" Margin="5" ClipToBounds="True" Background="Black">
+       <MediaElement x:Name="KaraokeMedia" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" Volume="0.9" IsHitTestVisible="False"/>
+       <Image x:Name="CdgPreview" Stretch="Uniform" Visibility="Collapsed" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
+       <TextBlock x:Name="KaraokePreviewLabel" Text="NO KARAOKE LOADED" Foreground="#55FFFFFF" FontSize="23" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+      </Grid>
+     </Grid>
+    </Border>
+   </Grid>
+
+   <!-- RIGHT: MUSIC DECK B + PLAYLIST -->
+   <Grid x:Name="MusicDeckBPanel" Grid.Column="4">
+    <Grid.RowDefinitions>
+     <RowDefinition x:Name="DeckBPlayerRow" Height="205" MinHeight="145"/>
+     <RowDefinition Height="8"/>
+     <RowDefinition x:Name="DeckBPlaylistRow" Height="*" MinHeight="100"/>
+    </Grid.RowDefinitions>
+    <GridSplitter Grid.Row="1" Height="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#26313D"
+                  ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" ShowsPreview="True" ToolTip="Drag to resize Deck 2 player / playlist"/>
+
+    <Border Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="#3A5C3A" BorderThickness="1" CornerRadius="5">
+     <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+      <Border Background="{StaticResource DeckBBrush}" CornerRadius="5,5,0,0">
+       <TextBlock Text="DECK 2" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+      </Border>
+      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
+       <Grid Margin="8">
+        <Grid.RowDefinitions>
+         <RowDefinition Height="Auto"/>
+         <RowDefinition Height="*" MinHeight="36"/>
+         <RowDefinition Height="Auto"/>
+         <RowDefinition Height="Auto"/>
+         <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+       <TextBlock x:Name="DeckBTitle" Text="No track loaded" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Margin="3,4,3,8"/>
+       <Border Grid.Row="1" Background="#020605" BorderBrush="#607069" BorderThickness="1" CornerRadius="4" Margin="3">
+        <Canvas x:Name="DeckBLedViewport" Height="48" ClipToBounds="True" VerticalAlignment="Center">
+         <TextBlock x:Name="DeckBLedText" Text="DECK 2 READY  •  LOAD MUSIC" Foreground="#5CFF9A" FontFamily="Consolas"
+                    FontSize="22" FontWeight="Bold" Canvas.Top="9" TextOptions.TextRenderingMode="ClearType">
+          <TextBlock.Effect><DropShadowEffect Color="#20FF72" BlurRadius="12" ShadowDepth="0" Opacity="0.95"/></TextBlock.Effect>
+          <TextBlock.RenderTransform><TranslateTransform x:Name="DeckBLedTransform"/></TextBlock.RenderTransform>
+         </TextBlock>
+        </Canvas>
+       </Border>
+       <WrapPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,5,0,1">
+        <Button Content="ADD FILES" Style="{StaticResource SaveButtonStyle}" Click="DeckBAdd_Click"/>
+        <Button x:Name="DeckBPlayButton" Content="▶ PLAY" Style="{StaticResource PlayButtonStyle}" Click="DeckBPlay_Click"/>
+        <Button x:Name="DeckBPauseButton" Content="Ⅱ PAUSE" Style="{StaticResource PauseButtonStyle}" Click="DeckBPause_Click"/>
+        <Button Content="■ STOP" Style="{StaticResource StopButtonStyle}" Click="DeckBStop_Click"/>
+        <Button Content="SHUFFLE" Style="{StaticResource SpecialButtonStyle}" Click="DeckBShuffle_Click" ToolTip="Randomise the remaining queued tracks. The currently playing track stays at #1."/>
+       </WrapPanel>
+       <StackPanel Grid.Row="3" Margin="4,3,4,1">
+        <ProgressBar x:Name="DeckBProgress" Height="5" Minimum="0" Maximum="1" Value="0" IsHitTestVisible="False"/>
+        <TextBlock x:Name="DeckBTimeText" Text="ELAPSED 00:00  •  REMAINING --:--  •  TOTAL --:--" HorizontalAlignment="Center"
+                   Foreground="#AFC0D1" FontSize="11" FontWeight="SemiBold" Margin="0,3,0,0"/>
+       </StackPanel>
+       <Grid Grid.Row="4" Margin="4,3,4,0">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <TextBlock Text="VOLUME" VerticalAlignment="Center" Foreground="#AFC0D1" FontWeight="SemiBold" Margin="0,0,9,0"/>
+        <Slider x:Name="DeckBVolume" Grid.Column="1" Minimum="0" Maximum="1" Value="0.8" ValueChanged="DeckBVolume_ValueChanged" VerticalAlignment="Center"/>
+       </Grid>
+       </Grid>
+      </ScrollViewer>
+     </Grid>
+    </Border>
+
+    <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="#695827" BorderThickness="1" CornerRadius="5">
+     <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="27"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <Border Background="{StaticResource PlaylistBrush}" CornerRadius="5,5,0,0">
+       <TextBlock Text="DECK 2 PLAYLIST" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+      </Border>
+      <Grid Grid.Row="1" Margin="9,3,9,0">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="68"/><ColumnDefinition Width="0.95*"/><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="58"/></Grid.ColumnDefinitions>
+       <TextBlock Text="#" FontWeight="Bold" Foreground="#B8C7D5" Margin="5,0"/>
+       <TextBlock Grid.Column="1" Text="ARTIST" FontWeight="Bold" Foreground="#B8C7D5" Margin="4,0"/>
+       <TextBlock Grid.Column="2" Text="TITLE" FontWeight="Bold" Foreground="#B8C7D5" Margin="4,0"/>
+       <TextBlock Grid.Column="3" Text="TIME" FontWeight="Bold" Foreground="#B8C7D5" HorizontalAlignment="Right" Margin="4,0,6,0"/>
+      </Grid>
+      <ListBox x:Name="DeckBPlaylist" Grid.Row="2" Margin="7" FontSize="13" AllowDrop="True" SelectionMode="Extended"
+               ItemTemplate="{StaticResource MusicPlaylistItemTemplate}" ItemContainerStyle="{StaticResource MusicPlaylistItemStyle}"
+               PreviewMouseLeftButtonDown="MusicPlaylist_PreviewMouseLeftButtonDown" PreviewMouseMove="MusicPlaylist_PreviewMouseMove"
+               KeyDown="DeckBPlaylist_KeyDown" DragOver="MusicPlaylist_DragOver" Drop="DeckBPlaylist_Drop"
+               ToolTip="Select one or more tracks. Press Delete or use REMOVE SELECTED to take them out of this deck queue."/>
+      <WrapPanel Grid.Row="3" Margin="5,2,5,5" HorizontalAlignment="Center">
+       <Button Content="SAVE PLAYLIST" Style="{StaticResource SaveButtonStyle}" Click="DeckBSavePlaylist_Click" Margin="2" MinHeight="34" MinWidth="112" ToolTip="Save Deck 2's remaining playlist as a named Hazz playlist for later reuse."/>
+       <Button Content="REMOVE SELECTED" Style="{StaticResource StopButtonStyle}" Click="DeckBRemoveSelected_Click" Margin="2" MinHeight="34" MinWidth="122" ToolTip="Remove the selected unplayed track(s) from Deck 2. This does not delete the music files or library records."/>
+       <Button Content="LOAD PLAYLIST / HISTORY…" Style="{StaticResource LoadButtonStyle}" Click="DeckBLoadPlaylist_Click" Margin="2" MinHeight="34" MinWidth="150" ToolTip="Load a complete saved/imported playlist or music-history list into Deck 2."/>
+      </WrapPanel>
+     </Grid>
+    </Border>
+   </Grid>
+
+   <!-- SEARCH RESULTS OVERLAY: appears over centre while typing -->
+   <Border x:Name="SearchResultsOverlay" Grid.Column="0" Panel.ZIndex="20"
+           VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="0,5,0,0"
+           Background="#F20D131A" BorderBrush="#657586" BorderThickness="1" CornerRadius="6"
+           Visibility="Collapsed">
+    <Grid Margin="7">
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+     <DockPanel Margin="3,0,3,5">
+      <TextBlock x:Name="SearchResultsTitle" Text="KARAOKE SEARCH RESULTS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+      <Button Content="CLOSE" Style="{StaticResource StopButtonStyle}" DockPanel.Dock="Right" HorizontalAlignment="Right" Click="SearchClose_Click"/>
+     </DockPanel>
+     <DataGrid x:Name="SearchGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" MouseDoubleClick="SearchGrid_MouseDoubleClick"
+               PreviewKeyDown="SearchGrid_PreviewKeyDown"
+               PreviewMouseLeftButtonDown="SearchGrid_PreviewMouseLeftButtonDown" PreviewMouseMove="SearchGrid_PreviewMouseMove"
+               ToolTip="In KARAOKE mode, drag a result onto a singer's row.">
+      <DataGrid.Columns>
+       <DataGridTextColumn Header="Artist" Binding="{Binding Artist}" Width="1.7*"/>
+       <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="1.9*"/>
+       <DataGridTextColumn Header="Maker" Binding="{Binding Manufacturer}" Width="*"/>
+       <DataGridTextColumn Header="Disc" Binding="{Binding DiscId}" Width="*"/>
+       <DataGridTextColumn Header="Format" Binding="{Binding Format}" Width="80"/>
+      </DataGrid.Columns>
+     </DataGrid>
+     <DockPanel Grid.Row="2" Margin="3,5,3,0">
+      <TextBlock x:Name="SearchDragHint" Text="Karaoke: drag a song onto a singer. Music: add the selected result to either music deck." Foreground="#8FA0B2" VerticalAlignment="Center"/>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+       <Button Content="ADD TO DECK 1" Style="{StaticResource LoadButtonStyle}" Click="SearchAddDeck1_Click"/>
+       <Button Content="ADD TO DECK 2" Style="{StaticResource LoadButtonStyle}" Click="SearchAddDeck2_Click"/>
+      </StackPanel>
+     </DockPanel>
+    </Grid>
+   </Border>
+
+   <MediaElement x:Name="DeckAMedia" Visibility="Collapsed" LoadedBehavior="Manual" UnloadedBehavior="Stop"/>
+   <MediaElement x:Name="DeckBMedia" Visibility="Collapsed" LoadedBehavior="Manual" UnloadedBehavior="Stop"/>
+  </Grid>
+
+  <!-- DISPLAY SETTINGS POPUP -->
+  <Popup x:Name="DisplaySettingsPopup" PlacementTarget="{Binding ElementName=TopMenu}" Placement="Bottom" StaysOpen="True"
+         AllowsTransparency="True">
+   <Viewbox x:Name="SettingsAutoFit" Stretch="Uniform" StretchDirection="DownOnly">
+   <Border Width="900" Background="#FF101820" TextElement.Foreground="#F7FAFC" BorderBrush="#748697" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,4,0,0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+     <Grid>
+      <Grid.RowDefinitions>
+       <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+       <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+       <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <TextBlock Text="AUDIENCE DISPLAY SETTINGS" Foreground="White" FontSize="20" FontWeight="Bold" Margin="3,0,3,10"/>
+
+      <StackPanel Grid.Row="1" Orientation="Horizontal">
+       <CheckBox x:Name="ShowNextSingerCheck" Content="Show next 4 singers" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged"/>
+       <CheckBox x:Name="ShowNextSongCheck" Content="Show songs" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged"/>
+       <TextBlock Text="Next 4 and rotation scroller are automatically hidden during karaoke playback." Foreground="#D0DAE4" VerticalAlignment="Center" Margin="10,0,0,0"/>
+      </StackPanel>
+      <WrapPanel Grid.Row="2" Margin="0,2">
+       <TextBlock Text="Singer font" VerticalAlignment="Center" Margin="4"/>
+       <ComboBox x:Name="NextFontCombo" Width="180" SelectionChanged="OverlayChanged"/>
+       <TextBlock Text="Size" VerticalAlignment="Center" Margin="4"/>
+       <ComboBox x:Name="NextSizeCombo" Width="82" SelectionChanged="OverlayChanged"><ComboBoxItem Content="32"/><ComboBoxItem Content="40"/><ComboBoxItem Content="48" IsSelected="True"/><ComboBoxItem Content="56"/><ComboBoxItem Content="64"/><ComboBoxItem Content="72"/></ComboBox>
+       <TextBlock Text="Position" VerticalAlignment="Center" Margin="4"/>
+       <ComboBox x:Name="PositionCombo" Width="150" SelectionChanged="OverlayChanged"><ComboBoxItem Content="TopCenter"/><ComboBoxItem Content="BottomCenter" IsSelected="True"/><ComboBoxItem Content="TopLeft"/><ComboBoxItem Content="TopRight"/><ComboBoxItem Content="BottomLeft"/><ComboBoxItem Content="BottomRight"/></ComboBox>
+      </WrapPanel>
+
+      <WrapPanel Grid.Row="3" Margin="0,5,0,8">
+       <TextBlock Text="FONT COLOURS" FontWeight="Bold" Foreground="#EAF1F8" VerticalAlignment="Center" Margin="4,0,10,0"/>
+       <Button x:Name="NextHeadingColorButton" Content="HEADING" Width="112" Background="#FFD34D" Foreground="Black" Click="NextHeadingColor_Click" ToolTip="Colour of NEXT SINGERS heading"/>
+       <Button x:Name="NextPositionColorButton" Content="POSITION #" Width="112" Background="#FFD34D" Foreground="Black" Click="NextPositionColor_Click" ToolTip="Colour of singer rotation numbers"/>
+       <Button x:Name="NextSingerColorButton" Content="SINGER" Width="112" Background="White" Foreground="Black" Click="NextSingerColor_Click" ToolTip="Colour of singer names"/>
+       <Button x:Name="NextSongColorButton" Content="SONG / ARTIST" Width="126" Background="#D8E2EF" Foreground="Black" Click="NextSongColor_Click" ToolTip="Colour of song and artist text"/>
+       <Button x:Name="RotationScrollerColorButton" Content="ROTATION" Width="112" Background="White" Foreground="Black" Click="RotationScrollerColor_Click" ToolTip="Colour of the numbered full singer rotation in the scroller"/>
+       <Button x:Name="VenueScrollerColorButton" Content="VENUE MSG" Width="112" Background="#FFD34D" Foreground="Black" Click="VenueScrollerColor_Click" ToolTip="Colour of the optional venue message in the scroller"/>
+      </WrapPanel>
+
+      <Grid Grid.Row="4" Margin="0,4">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+       <CheckBox x:Name="ScrollerCheck" Content="Full singer rotation scroller" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged" ToolTip="Always scrolls the complete current singer rotation with position numbers."/>
+       <TextBox x:Name="ScrollerTextBox" Grid.Column="1" Text="WELCOME TO KARAOKE WITH HAZZ • PLEASE HAVE YOUR NEXT SONG READY •" TextChanged="OverlayChanged" ToolTip="Optional venue message appended after the complete numbered singer rotation."/>
+      </Grid>
+      <WrapPanel Grid.Row="5" Margin="0,2,0,9">
+       <TextBlock Text="Scroller font" VerticalAlignment="Center" Margin="4"/>
+       <ComboBox x:Name="ScrollerFontCombo" Width="180" SelectionChanged="OverlayChanged"/>
+       <TextBlock Text="Size" VerticalAlignment="Center" Margin="4"/>
+       <ComboBox x:Name="ScrollerSizeCombo" Width="82" SelectionChanged="OverlayChanged"><ComboBoxItem Content="22"/><ComboBoxItem Content="26"/><ComboBoxItem Content="30" IsSelected="True"/><ComboBoxItem Content="36"/><ComboBoxItem Content="42"/></ComboBox>
+       <TextBlock Text="Speed" VerticalAlignment="Center" Margin="4"/>
+       <Slider x:Name="ScrollerSpeedSlider" Minimum="40" Maximum="250" Value="110" Width="150" ValueChanged="OverlayChanged" VerticalAlignment="Center"/>
+       <TextBlock x:Name="ScrollerSpeedText" Width="75" VerticalAlignment="Center" Text="110 px/s" Margin="6,0,0,0"/>
+       <TextBlock Text="Position" VerticalAlignment="Center" Margin="8,0,4,0"/>
+       <ComboBox x:Name="ScrollerPositionCombo" Width="100" SelectionChanged="OverlayChanged" ToolTip="Place the scrolling singer rotation at the top or bottom of the audience screen"><ComboBoxItem Content="Bottom" IsSelected="True"/><ComboBoxItem Content="Top"/></ComboBox>
+      </WrapPanel>
+
+      <Border Grid.Row="6" BorderBrush="#3C4A58" BorderThickness="1,1,1,0" Margin="0,2,0,8"/>
+
+      <Grid Grid.Row="7" Margin="0,2,0,7">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+       <CheckBox x:Name="AudienceBackgroundEnabledCheck" Grid.Column="0" Content="Singer-view background" Checked="OverlayChanged" Unchecked="OverlayChanged" ToolTip="Shown between karaoke songs behind the Next Singer display."/>
+       <StackPanel Grid.Column="1"><Button Content="IMAGE / GIF / VIDEO…" Style="{StaticResource LoadButtonStyle}" Click="ChooseAudienceBackground_Click"/><Button Content="CHOOSE FOLDER…" Style="{StaticResource LoadButtonStyle}" Click="ChooseAudienceBackgroundFolder_Click" ToolTip="Slideshow: images and muted looping videos, one minute each"/></StackPanel>
+       <Button Grid.Column="2" Content="CLEAR" Style="{StaticResource StopButtonStyle}" Click="ClearAudienceBackground_Click"/>
+       <StackPanel Grid.Column="3">
+        <TextBlock x:Name="AudienceBackgroundFileText" Text="No background selected" Foreground="#D8E2EC" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8,0,0,0"/>
+        <StackPanel Orientation="Horizontal" Margin="8,4,0,0">
+         <TextBlock Text="Screen fit" VerticalAlignment="Center"/>
+         <ComboBox x:Name="BackgroundStretchCombo" Width="145" Margin="8,0,18,0" SelectionChanged="OverlayChanged" ToolTip="Fit shows the whole image; Fill crops edges; Stretch fills without cropping; Center keeps the original size"><ComboBoxItem Content="Fit" IsSelected="True"/><ComboBoxItem Content="Fill (crop)"/><ComboBoxItem Content="Stretch"/><ComboBoxItem Content="Center"/></ComboBox>
+         <TextBlock Text="GIF speed" VerticalAlignment="Center"/>
+         <Slider x:Name="BackgroundGifSpeedSlider" Minimum="0.25" Maximum="4" Value="1" TickFrequency="0.25" IsSnapToTickEnabled="True" Width="150" Margin="8,0" ValueChanged="OverlayChanged" ToolTip="GIF playback speed: 0.25x to 4x. Slideshow slots stay one minute."/>
+         <TextBlock Text="{Binding ElementName=BackgroundGifSpeedSlider, Path=Value, StringFormat={}{0:0.##}x}" VerticalAlignment="Center"/>
+        </StackPanel>
+       </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="8" Margin="0,2,0,4">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+       <CheckBox x:Name="AudienceLogoEnabledCheck" Grid.Column="0" Content="Persistent audience logo" Checked="OverlayChanged" Unchecked="OverlayChanged" ToolTip="When enabled, the logo stays above CD+G and video karaoke."/>
+       <Button Grid.Column="1" Content="CHOOSE LOGO…" Style="{StaticResource LoadButtonStyle}" Click="ChooseAudienceLogo_Click"/>
+       <Button Grid.Column="2" Content="CLEAR" Style="{StaticResource StopButtonStyle}" Click="ClearAudienceLogo_Click"/>
+       <TextBlock x:Name="AudienceLogoFileText" Grid.Column="3" Text="No logo selected" Foreground="#D8E2EC" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8,0,0,0"/>
+      </Grid>
+
+      <WrapPanel Grid.Row="9" Margin="26,0,0,2">
+       <TextBlock Text="Logo position" VerticalAlignment="Center" Margin="4"/>
+       <ComboBox x:Name="LogoPositionCombo" Width="150" SelectionChanged="OverlayChanged">
+        <ComboBoxItem Content="TopLeft"/><ComboBoxItem Content="TopCenter"/><ComboBoxItem Content="TopRight" IsSelected="True"/>
+        <ComboBoxItem Content="BottomLeft"/><ComboBoxItem Content="BottomCenter"/><ComboBoxItem Content="BottomRight"/>
+       </ComboBox>
+       <TextBlock Text="Logo width" VerticalAlignment="Center" Margin="10,4,4,4"/>
+       <Slider x:Name="LogoWidthSlider" Minimum="60" Maximum="800" Value="180" Width="190" TickFrequency="20" ValueChanged="LogoWidthSlider_ValueChanged" VerticalAlignment="Center"/>
+       <TextBlock x:Name="LogoWidthText" Text="180px" Width="60" FontWeight="Bold" VerticalAlignment="Center" TextAlignment="Center"/>
+       <TextBlock Text="Transparent PNG recommended. Logo always stays above CD+G/video." Foreground="#D0DAE4" VerticalAlignment="Center" Margin="10,0,0,0"/>
+      </WrapPanel>
+
+      <Border Grid.Row="10" BorderBrush="#596B7A" BorderThickness="1" CornerRadius="5" Padding="8" Margin="0,10,0,0" Background="#151F29">
+       <StackPanel>
+        <TextBlock Text="KAMIKAZE KARAOKE AUDIENCE MESSAGE" FontWeight="Bold" Foreground="#F4F7FA" Margin="3,0,3,6"/>
+        <WrapPanel>
+         <TextBlock Text="Text" VerticalAlignment="Center" Margin="4"/>
+         <TextBox x:Name="KamikazeTextBox" Width="240" Text="KAMIKAZE KARAOKE!" TextChanged="OverlayChanged"/>
+         <TextBlock Text="Font" VerticalAlignment="Center" Margin="8,4,4,4"/>
+         <ComboBox x:Name="KamikazeFontCombo" Width="180" SelectionChanged="OverlayChanged"/>
+         <TextBlock Text="Size" VerticalAlignment="Center" Margin="8,4,4,4"/>
+         <ComboBox x:Name="KamikazeSizeCombo" Width="82" SelectionChanged="OverlayChanged">
+          <ComboBoxItem Content="48"/><ComboBoxItem Content="64"/><ComboBoxItem Content="72"/><ComboBoxItem Content="84" IsSelected="True"/><ComboBoxItem Content="96"/><ComboBoxItem Content="112"/><ComboBoxItem Content="128"/>
+         </ComboBox>
+         <Button x:Name="KamikazeColorButton" Content="TEXT COLOUR" Width="120" Background="#FFD34D" Foreground="Black" Click="KamikazeColor_Click"/>
+        </WrapPanel>
+        <TextBlock Text="Shown large on the audience screen after KAMIKAZE assigns a random song, and hidden the instant the next karaoke song starts." Foreground="#CAD5DF" Margin="4,5,4,0" TextWrapping="Wrap"/>
+       </StackPanel>
+      </Border>
+
+      <DockPanel Grid.Row="11" Margin="0,12,0,0" LastChildFill="True">
+       <TextBlock Text="Settings update live. This panel stays open until CLOSE is pressed or you click elsewhere in Hazz."
+                  Foreground="#CAD5DF" VerticalAlignment="Center" TextWrapping="Wrap" Margin="4,0,12,0"/>
+       <Button DockPanel.Dock="Right" Content="CLOSE" Style="{StaticResource StopButtonStyle}" Width="100" Click="CloseDisplaySettings_Click"/>
+      </DockPanel>
+     </Grid>
+    </ScrollViewer>
+   </Border>
+   </Viewbox>
+  </Popup>
+  <MediaElement x:Name="QuickMusicMedia" Width="1" Height="1" Opacity="0" IsHitTestVisible="False"
+                LoadedBehavior="Manual" UnloadedBehavior="Manual"/>
+ </Grid>
+  </Viewbox>
+ </Grid>
+</Window>

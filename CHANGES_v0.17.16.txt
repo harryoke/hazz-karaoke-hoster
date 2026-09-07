@@ -1,0 +1,20 @@
+HAZZ KARAOKE HOSTER v0.17.16
+
+PROFESSIONAL STEEL CONSOLE
+- Replaced the flat host-console appearance with dark brushed-steel panel gradients and metallic deck headers.
+- Buttons now have a beveled steel face, top highlight and luminous cyan hover/pressed feedback.
+- Active search mode and live transport controls remain illuminated while in use.
+- Disabled controls use a clearly dimmed steel state.
+
+SCROLLING MUSIC-DECK LED DISPLAYS
+- Deck 1 and Deck 2 now include bright green LED-style scrolling displays.
+- Each display reports READY, CUED, NOW PLAYING or PAUSED.
+- Loaded tracks scroll the artist and title continuously across the deck display.
+
+ONLINE VIDEO REMOVAL
+- Removed the online video search button, window, connectivity monitor and all associated browser code.
+- Removed the Microsoft WebView2 package dependency and the online-video change notes.
+
+BUILD
+- Version increased to 0.17.16.
+- Visual Studio Release | x64 Rebuild Solution continues to create one standalone EXE in RELEASE\HazzKaraokeHoster.

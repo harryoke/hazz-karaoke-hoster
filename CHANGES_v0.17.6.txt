@@ -1,0 +1,28 @@
+Hazz Karaoke Hoster v0.17.6
+
+MediaMonkey Smart Import correction
+- MediaMonkey's database can contain a full-text virtual table using its private SQLite
+  tokenizer named `mm`. The standard SQLite runtime correctly reports that this private
+  tokenizer is unavailable.
+- Smart Import now excludes virtual full-text/search tables from schema candidates and
+  imports from MediaMonkey's ordinary Songs table.
+- External SQLite connections are non-pooled, query-only and read-only. The original
+  MediaMonkey database remains unchanged.
+- Optional vendor tables that depend on unavailable private SQLite extensions are skipped
+  individually instead of aborting discovery of readable song tables.
+
+Visual Studio build
+- The solution contains no build-after-build or nested publish command.
+- Visual Studio Build Solution compiles the normal application output.
+- For a self-contained single EXE, right-click HazzKaraokeHoster.App, choose Publish and
+  select HazzStandalone, or run BUILD-EXE.cmd.
+- Publishing uses one MSBuild worker to avoid the prior child-node/MSB4166 failure.
+
+Validation
+- A regression database includes a MediaMonkey-style FTS table using tokenizer `mm` plus
+  a normal Songs table. Preview and import must select the Songs table and preserve the
+  source byte-for-byte.
+- Smart Import format checks, Release build, Visual Studio 2026 MSBuild, standalone publish
+  and source ZIP integrity are validated for this release.
+
+All v0.17.5 and earlier features remain available.

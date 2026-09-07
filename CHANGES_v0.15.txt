@@ -1,0 +1,15 @@
+Hazz Karaoke Hoster v0.15
+===========================
+
+KARAOKE ONLY MODE
+- SHOW > Karaoke Only Mode (Hide Music Decks) toggles a dedicated karaoke-hosting workspace.
+- Both music decks and playlists disappear completely from the main GUI.
+- The karaoke workspace expands across the full host window, giving substantially more room to the singer rotation, karaoke controls and preview.
+- The music crossfade/Play Music controls and MUSIC search button are hidden in Karaoke Only Mode.
+- Enabling Karaoke Only Mode safely stops any hidden music playback without deleting the queued music playlists.
+- Karaoke playback no longer attempts to fade/resume music while Karaoke Only Mode is active.
+- Switching back restores both music decks, playlist panels and the user's previous karaoke-deck height.
+- The selected mode is remembered in ui-layout.json and restored at the next launch.
+- A header status label clearly shows KARAOKE ONLY MODE or KARAOKE + MUSIC MODE.
+
+The underlying music database, playlists and importer remain intact so the mode is fully reversible.
