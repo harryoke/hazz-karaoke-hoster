@@ -1,4 +1,4 @@
-# Hazz Karaoke Hoster v0.17.20 — Visual Studio 2026
+# Hazz Karaoke Hoster v0.17.21 — Visual Studio 2026
 
 Professional Windows live-show console for singer rotation, karaoke playback, interval music and a dedicated audience display.
 
@@ -7,7 +7,17 @@ Professional Windows live-show console for singer rotation, karaoke playback, in
 - [Dummy's Guide](https://harryoke.github.io/hazz-karaoke-hoster/quick-start.html)
 - [Complete Manual](https://harryoke.github.io/hazz-karaoke-hoster/manual.html)
 
-The ready-to-run package is a self-contained Windows x64 application. The repository contains the complete C# WPF source, tests and documentation. Build `HazzKaraokeHoster.sln` with Visual Studio 2026 using **Release | x64**, or run `BUILD-EXE.cmd`.
+## v0.17.21 — Flexible music workflow and Fade Stop
+
+- Music search now supports Shift-click range selection, Ctrl-click individual selection and Ctrl+A.
+- Add to Deck 1, Add to Deck 2 and drag-and-drop carry every selected track in visible result order.
+- A Select All button makes it quick to queue the complete result set for a folder or other search.
+- Batch queueing skips missing files, tags them as broken and reports the number skipped.
+- Karaoke Fade Stop lowers both normal and pitch-shifted audio smoothly before ending the performance and resuming music.
+- Optional Single Deck + Side List mode keeps Deck 1 as the music player and turns Deck 2 into a persistent staging list.
+- Tracks can be selected and dragged from the side list into Deck 1; Deck 1 then advances through its queue automatically.
+
+See CHANGES_v0.17.21.txt.
 
 ## v0.17.20 — Function colours and singer-history migration
 

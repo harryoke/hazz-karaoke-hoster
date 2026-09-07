@@ -1,0 +1,35 @@
+Hazz Karaoke Hoster v0.17.21
+================================
+
+MUSIC SEARCH MULTI-SELECTION
+
+- Shift-click selects a continuous range of Music search results.
+- Ctrl-click adds or removes individual tracks from the selection.
+- Ctrl+A and the new SELECT ALL button select every visible result.
+- ADD TO DECK 1 and ADD TO DECK 2 queue the complete selection in displayed order.
+- Dragging a selected Music result carries the complete selection to either deck.
+- Batch queueing skips missing files, tags them as broken and reports the skipped count.
+- Karaoke search remains single-selection so songs still drag safely onto one singer at a time.
+
+KARAOKE FADE STOP
+
+- The Karaoke Stop button is now labelled FADE STOP.
+- Live karaoke audio fades smoothly for 1.5 seconds before playback ends.
+- The fade applies to normal Windows playback and the live pitch-shift audio engine.
+- Paused playback, media errors, shutdown and safety cleanup still stop immediately.
+- Background music resumes only after the karaoke fade has completed.
+
+SINGLE DECK + SIDE LIST MODE
+
+- A new Show menu option keeps Deck 1 as the only music player.
+- Deck 2 changes into a tall music side list with its playback controls hidden.
+- Music searches, files and saved playlists can be staged in the side list.
+- One or several selected side-list tracks can be dragged into Deck 1 in order.
+- Crossfade controls are disabled in this mode and Deck 2 cannot start accidentally.
+- Deck 1 automatically advances through its own playlist.
+- The selected mode and side-list contents survive application restarts.
+
+BUILD
+
+- Version advanced to 0.17.21.
+- Visual Studio 2026 Release x64 build validated.

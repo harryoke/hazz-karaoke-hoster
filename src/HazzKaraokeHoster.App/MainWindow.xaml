@@ -327,7 +327,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="10.5" FontWeight="Bold" Foreground="#6EC1E4" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="#22303C" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v0.17.20" FontSize="11" FontWeight="Bold" Foreground="#D4DEE8"/>
+     <TextBlock Text="v0.17.21" FontSize="11" FontWeight="Bold" Foreground="#D4DEE8"/>
     </Border>
    </StackPanel>
 
@@ -382,6 +382,8 @@
      <Separator/>
      <MenuItem x:Name="KaraokeOnlyModeMenuItem" Header="Karaoke Only Mode (Hide Music Decks)" IsCheckable="True" Click="KaraokeOnlyMode_Click"
                ToolTip="Hide Deck 1 and Deck 2 and expand the karaoke workspace to the full host window."/>
+     <MenuItem x:Name="SingleDeckModeMenuItem" Header="Single Deck + Side List Mode" IsCheckable="True" Click="SingleDeckMode_Click"
+               ToolTip="Use Deck 1 for playback and turn Deck 2 into a holding list that can be dragged into Deck 1."/>
      <MenuItem Header="Toggle Karaoke Preview" Click="TogglePreview_Click"/>
     </MenuItem>
    </Menu>
@@ -553,7 +555,7 @@
         <Button x:Name="TvDisplay2Button" Content="TV" Style="{StaticResource LoadButtonStyle}" Click="TvDisplay2_Click" MinWidth="58" FontWeight="Bold" ToolTip="One-click singer screen: send the audience/karaoke display fullscreen to Display 2."/>
         <Button x:Name="KaraokePlayButton" Content="▶ PLAY" Style="{StaticResource PlayButtonStyle}" Click="KaraokePlay_Click"/>
         <Button x:Name="KaraokePauseButton" Content="Ⅱ PAUSE" Style="{StaticResource PauseButtonStyle}" Click="KaraokePause_Click" ToolTip="Pause / resume from the same position"/>
-        <Button Content="■ STOP" Style="{StaticResource StopButtonStyle}" Click="KaraokeStop_Click"/>
+        <Button x:Name="KaraokeStopButton" Content="▼ FADE STOP" Style="{StaticResource StopButtonStyle}" Click="KaraokeStop_Click" ToolTip="Fade the karaoke audio smoothly, then stop"/>
         <Button Content="FIND ALTERNATIVE" Style="{StaticResource SpecialButtonStyle}" Click="FindAlternative_Click" ToolTip="Play the next karaoke version of the same artist/title"/>
         <Button x:Name="KamikazeButton" Content="KAMIKAZE" Click="Kamikaze_Click" Background="#A92E55" ToolTip="Randomly assign the next singer a karaoke-library song. Press again for another random choice."/>
        </WrapPanel>
@@ -595,7 +597,7 @@
           <TextBlock Text="TIME" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="#9FB0C1" FontWeight="SemiBold"/>
           <Slider x:Name="CrossfadeSecondsSlider" Minimum="0.5" Maximum="12" TickFrequency="0.5" IsSnapToTickEnabled="True" Value="4" Width="145" ValueChanged="CrossfadeSeconds_ValueChanged" VerticalAlignment="Center" Margin="3,0"/>
           <TextBlock x:Name="CrossfadeSecondsText" Text="4.0s" Width="48" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Bold"/>
-          <Button Content="FADE NOW" Style="{StaticResource SpecialButtonStyle}" Click="FadeNow_Click" MinWidth="92" ToolTip="Immediately start the configured crossfade from the playing music deck to the other deck."/>
+          <Button x:Name="FadeNowButton" Content="FADE NOW" Style="{StaticResource SpecialButtonStyle}" Click="FadeNow_Click" MinWidth="92" ToolTip="Immediately start the configured crossfade from the playing music deck to the other deck."/>
           <Button x:Name="PlayMusicButton" Content="▶ PLAY MUSIC" Style="{StaticResource PlayButtonStyle}" Click="PlayMusic_Click" MinWidth="110" ToolTip="Stop karaoke if necessary and start the next music track that was scheduled before karaoke."/>
          </WrapPanel>
          <TextBlock x:Name="MusicAutomationStatus" Grid.Row="1" Text="Music ready" HorizontalAlignment="Center" Margin="4,2" Foreground="#9EABB9" TextTrimming="CharacterEllipsis"/>
@@ -713,10 +715,10 @@
    <Grid x:Name="MusicDeckBPanel" Grid.Column="4">
     <Grid.RowDefinitions>
      <RowDefinition x:Name="DeckBPlayerRow" Height="205" MinHeight="145"/>
-     <RowDefinition Height="8"/>
+     <RowDefinition x:Name="DeckBSplitterRow" Height="8"/>
      <RowDefinition x:Name="DeckBPlaylistRow" Height="*" MinHeight="100"/>
     </Grid.RowDefinitions>
-    <GridSplitter Grid.Row="1" Height="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#26313D"
+    <GridSplitter x:Name="DeckBSplitter" Grid.Row="1" Height="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#26313D"
                   ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" ShowsPreview="True" ToolTip="Drag to resize Deck 2 player / playlist"/>
 
     <Border Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="#3A5C3A" BorderThickness="1" CornerRadius="5">
@@ -770,7 +772,7 @@
      <Grid>
       <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="27"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <Border Background="{StaticResource PlaylistBrush}" CornerRadius="5,5,0,0">
-       <TextBlock Text="DECK 2 PLAYLIST" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+       <TextBlock x:Name="DeckBPlaylistHeading" Text="DECK 2 PLAYLIST" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
       </Border>
       <Grid Grid.Row="1" Margin="9,3,9,0">
        <Grid.ColumnDefinitions><ColumnDefinition Width="68"/><ColumnDefinition Width="0.95*"/><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="58"/></Grid.ColumnDefinitions>
@@ -785,6 +787,7 @@
                KeyDown="DeckBPlaylist_KeyDown" DragOver="MusicPlaylist_DragOver" Drop="DeckBPlaylist_Drop"
                ToolTip="Select one or more tracks. Press Delete or use REMOVE SELECTED to take them out of this deck queue."/>
       <WrapPanel Grid.Row="3" Margin="5,2,5,5" HorizontalAlignment="Center">
+       <Button x:Name="DeckBSideAddFilesButton" Content="ADD FILES" Style="{StaticResource SaveButtonStyle}" Click="DeckBAdd_Click" Margin="2" MinHeight="34" MinWidth="92" Visibility="Collapsed" ToolTip="Add music files to the side list."/>
        <Button Content="SAVE PLAYLIST" Style="{StaticResource SaveButtonStyle}" Click="DeckBSavePlaylist_Click" Margin="2" MinHeight="34" MinWidth="112" ToolTip="Save Deck 2's remaining playlist as a named Hazz playlist for later reuse."/>
        <Button Content="REMOVE SELECTED" Style="{StaticResource StopButtonStyle}" Click="DeckBRemoveSelected_Click" Margin="2" MinHeight="34" MinWidth="122" ToolTip="Remove the selected unplayed track(s) from Deck 2. This does not delete the music files or library records."/>
        <Button Content="LOAD PLAYLIST / HISTORY…" Style="{StaticResource LoadButtonStyle}" Click="DeckBLoadPlaylist_Click" Margin="2" MinHeight="34" MinWidth="150" ToolTip="Load a complete saved/imported playlist or music-history list into Deck 2."/>
@@ -804,7 +807,7 @@
       <TextBlock x:Name="SearchResultsTitle" Text="KARAOKE SEARCH RESULTS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
       <Button Content="CLOSE" Style="{StaticResource StopButtonStyle}" DockPanel.Dock="Right" HorizontalAlignment="Right" Click="SearchClose_Click"/>
      </DockPanel>
-     <DataGrid x:Name="SearchGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" MouseDoubleClick="SearchGrid_MouseDoubleClick"
+     <DataGrid x:Name="SearchGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" MouseDoubleClick="SearchGrid_MouseDoubleClick"
                PreviewKeyDown="SearchGrid_PreviewKeyDown"
                PreviewMouseLeftButtonDown="SearchGrid_PreviewMouseLeftButtonDown" PreviewMouseMove="SearchGrid_PreviewMouseMove"
                ToolTip="In KARAOKE mode, drag a result onto a singer's row.">
@@ -817,10 +820,11 @@
       </DataGrid.Columns>
      </DataGrid>
      <DockPanel Grid.Row="2" Margin="3,5,3,0">
-      <TextBlock x:Name="SearchDragHint" Text="Karaoke: drag a song onto a singer. Music: add the selected result to either music deck." Foreground="#8FA0B2" VerticalAlignment="Center"/>
+      <TextBlock x:Name="SearchDragHint" Text="Karaoke: drag a song onto a singer. Music: select tracks and add them to either music deck." Foreground="#8FA0B2" VerticalAlignment="Center"/>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+       <Button x:Name="SearchSelectAllButton" Content="SELECT ALL" Style="{StaticResource SaveButtonStyle}" Click="SearchSelectAll_Click" Visibility="Collapsed" ToolTip="Select every visible Music search result"/>
        <Button Content="ADD TO DECK 1" Style="{StaticResource LoadButtonStyle}" Click="SearchAddDeck1_Click"/>
-       <Button Content="ADD TO DECK 2" Style="{StaticResource LoadButtonStyle}" Click="SearchAddDeck2_Click"/>
+       <Button x:Name="SearchAddDeck2Button" Content="ADD TO DECK 2" Style="{StaticResource LoadButtonStyle}" Click="SearchAddDeck2_Click"/>
       </StackPanel>
      </DockPanel>
     </Grid>

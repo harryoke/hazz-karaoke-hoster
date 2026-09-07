@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster Complete Manual
 
-Complete operating documentation for version 0.17.20.
+Complete operating documentation for version 0.17.21.
 
 ## 1 Getting started
 
@@ -83,7 +83,7 @@ Press Karaoke beside the Search box, then type part of an artist, title, manufac
 
 ### Music search
 
-Press Music and enter an artist or title. Drag results to Deck 1 or Deck 2. Music results appear over the centre so both deck playlists remain visible.
+Press Music and enter an artist, title or folder name. Music results appear over the centre so both deck playlists remain visible. Shift-click selects a range and Ctrl-click selects individual tracks. Ctrl+A or Select All selects the complete visible result set. Drag the selection to a deck or press Add to Deck 1 or Add to Deck 2. Tracks are added in displayed order; missing files are marked as broken and skipped.
 
 ### Space-bar quick play
 
@@ -125,9 +125,9 @@ Songs and History shows previous performances with last-sung date, times sung, k
 - Press Play. Hazz records the performance in singer history when playback begins.
 - At the end, Hazz advances the show state and restores background music when configured.
 
-### Pause and stop
+### Pause and Fade Stop
 
-Pause resumes from the same position. Stop ends the loaded performance. Starting karaoke stops Music Search quick play and suspends normal background music.
+Pause resumes from the same position. Fade Stop lowers karaoke audio smoothly for about 1.5 seconds, then ends the performance and resumes background music. Media errors and shutdown still stop immediately. Starting karaoke stops Music Search quick play and suspends normal background music.
 
 ### Key
 
@@ -158,6 +158,10 @@ Save Playlist stores the remaining unplayed order under a name. Reusing a name r
 ### Crossfade
 
 When Auto Crossfade is enabled, Hazz prepares the other deck and fades near the end of the active track. The Time slider controls the fade length. Fade Now starts the transition immediately. Play Music starts the next scheduled background track after karaoke.
+
+### Single Deck and Side List
+
+Choose Show, Single Deck + Side List Mode to use Deck 1 as the only player. Deck 2 becomes a tall holding list and its playback controls are hidden. Add search results, files or saved playlists to the side list, then select one or several tracks and drag them into Deck 1. Deck 1 advances through its own queue automatically. The mode and both lists are restored after restart.
 
 ## 9 Audience display
 

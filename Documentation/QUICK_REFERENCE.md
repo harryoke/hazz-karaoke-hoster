@@ -11,7 +11,7 @@
 ## Emergency controls
 
 - Pause pauses the current deck.
-- Stop ends it.
+- Fade Stop lowers karaoke audio smoothly, then ends it.
 - Hold temporarily removes a singer from automatic selection.
 - Skip Once passes them once.
 - File failures are marked as broken and colour-coded.

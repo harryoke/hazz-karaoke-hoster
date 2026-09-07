@@ -16,6 +16,7 @@ internal sealed class UiLayoutSettings
     public double WindowHeight { get; set; } = 840;
     public bool WindowMaximized { get; set; } = false;
     public bool KaraokeOnlyMode { get; set; } = false;
+    public bool SingleDeckMode { get; set; } = false;
 
     // Audience artwork is stored with the host UI settings so it survives restarts.
     public bool AudienceBackgroundEnabled { get; set; } = false;

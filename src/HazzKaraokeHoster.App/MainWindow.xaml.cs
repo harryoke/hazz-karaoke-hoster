@@ -23,6 +23,9 @@ namespace HazzKaraokeHoster.App;
 
 public partial class MainWindow : Window
 {
+    private const string SearchSongBatchDataFormat = "HazzSearchSongBatch";
+    private const string SideListQueueBatchDataFormat = "HazzSideListQueueBatch";
+    private const double KaraokePlaybackVolume = 0.9;
     private readonly HazzDatabase _db = new();
     private readonly ILibraryRepository _library;
     private readonly ILibraryImportService _libraryImporter;
@@ -86,6 +89,7 @@ public partial class MainWindow : Window
     private readonly HashSet<string> _musicPlayedThisSession = new(StringComparer.OrdinalIgnoreCase);
 
     private CancellationTokenSource? _searchCts;
+    private CancellationTokenSource? _karaokeStopFadeCts;
     private CancellationTokenSource? _importCts;
     private CancellationTokenSource? _silenceScanCts;
     private string _searchMediaKind = "Karaoke";
@@ -114,6 +118,9 @@ public partial class MainWindow : Window
     private string _alternativeTitle = string.Empty;
     private DateTime _lastTimelineUiUtc = DateTime.MinValue;
     private double _lastPreviewHeight = 250;
+    private double _deckBPlayerHeightBeforeSideList = 205;
+    private bool _singleDeckMode;
+    private bool _autoCrossfadeBeforeSingleDeck = true;
     private string _audienceBackgroundFolderPath = string.Empty;
     private string _audienceBackgroundImagePath = string.Empty;
     private string _audienceLogoImagePath = string.Empty;
@@ -286,6 +293,7 @@ public partial class MainWindow : Window
             _searchCts?.Cancel();
             _importCts?.Cancel();
             _silenceScanCts?.Cancel();
+            _karaokeStopFadeCts?.Cancel();
             _karaokeVisualTimer.Stop();
             _musicAutomationTimer.Stop();
             _musicQueueSaveTimer.Stop();
@@ -468,6 +476,8 @@ public partial class MainWindow : Window
         _lastPreviewHeight = 120;
         SetPreviewVisible(settings.PreviewVisible);
         SetKaraokeOnlyMode(settings.KaraokeOnlyMode, stopMusic: false, saveImmediately: false);
+        _deckBPlayerHeightBeforeSideList = Math.Max(145, settings.DeckBPlayerHeight);
+        SetSingleDeckMode(settings.SingleDeckMode, stopDeck2: false, saveImmediately: false);
         ClampFixedRowsToViewport();
         BackgroundGifSpeedSlider.Value = double.IsFinite(settings.AudienceBackgroundGifSpeed) ? Math.Clamp(settings.AudienceBackgroundGifSpeed, 0.25, 4) : 1;
         SelectComboItemByContent(BackgroundStretchCombo, DisplayBackgroundStretch(settings.AudienceBackgroundStretchMode), "Fit");
@@ -523,7 +533,7 @@ public partial class MainWindow : Window
             CenterColumnWeight = Math.Max(0.05, MainCenterColumn.ActualWidth / totalWidth),
             RightColumnWeight = Math.Max(0.05, MainRightColumn.ActualWidth / totalWidth),
             DeckAPlayerHeight = Math.Max(145, DeckAPlayerRow.ActualHeight),
-            DeckBPlayerHeight = Math.Max(145, DeckBPlayerRow.ActualHeight),
+            DeckBPlayerHeight = Math.Max(145, _singleDeckMode ? _deckBPlayerHeightBeforeSideList : DeckBPlayerRow.ActualHeight),
             KaraokeDeckHeight = Math.Max(185, _karaokeOnlyMode ? _fullModeKaraokeDeckHeight : KaraokeDeckRow.ActualHeight),
             KaraokePreviewHeight = Math.Max(80, KaraokePreviewPanel.Visibility == Visibility.Visible ? KaraokePreviewRow.ActualHeight : _lastPreviewHeight),
             PreviewVisible = KaraokePreviewPanel.Visibility == Visibility.Visible,
@@ -531,6 +541,7 @@ public partial class MainWindow : Window
             WindowHeight = Math.Max(MinHeight, WindowState == WindowState.Maximized ? RestoreBounds.Height : ActualHeight),
             WindowMaximized = WindowState == WindowState.Maximized,
             KaraokeOnlyMode = _karaokeOnlyMode,
+            SingleDeckMode = _singleDeckMode,
             AudienceBackgroundEnabled = AudienceBackgroundEnabledCheck.IsChecked == true,
             AudienceBackgroundGifSpeed = BackgroundGifSpeedSlider.Value,
             AudienceBackgroundStretchMode = SelectedBackgroundStretch(),
@@ -723,6 +734,79 @@ public partial class MainWindow : Window
         SetKaraokeOnlyMode(KaraokeOnlyModeMenuItem.IsChecked, stopMusic: true, saveImmediately: true);
     }
 
+    private void SingleDeckMode_Click(object sender, RoutedEventArgs e)
+    {
+        SetSingleDeckMode(SingleDeckModeMenuItem.IsChecked, stopDeck2: true, saveImmediately: true);
+    }
+
+    private void SetSingleDeckMode(bool enabled, bool stopDeck2, bool saveImmediately)
+    {
+        _singleDeckMode = enabled;
+        if (SingleDeckModeMenuItem is not null) SingleDeckModeMenuItem.IsChecked = enabled;
+
+        if (enabled)
+        {
+            if (DeckBPlayerRow.ActualHeight >= 145) _deckBPlayerHeightBeforeSideList = DeckBPlayerRow.ActualHeight;
+            if (stopDeck2) StopDeckTwoForSideListMode();
+            CancelMusicTransitions();
+            _autoCrossfadeBeforeSingleDeck = AutoCrossfadeCheck.IsChecked == true;
+            AutoCrossfadeCheck.IsChecked = false;
+            AutoCrossfadeCheck.IsEnabled = false;
+            CrossfadeSecondsSlider.IsEnabled = false;
+            FadeNowButton.IsEnabled = false;
+            DeckBPlayerRow.MinHeight = 0;
+            DeckBPlayerRow.Height = new GridLength(0);
+            DeckBSplitterRow.Height = new GridLength(0);
+            DeckBSplitter.Visibility = Visibility.Collapsed;
+            DeckBPlaylistHeading.Text = "MUSIC SIDE LIST • DRAG TRACKS TO DECK 1";
+            DeckBSideAddFilesButton.Visibility = Visibility.Visible;
+            SearchAddDeck2Button.Content = "ADD TO SIDE LIST";
+            DeckBPlaylist.ToolTip = "Holding list: select and drag tracks into Deck 1. Delete or Remove Selected removes them from this list.";
+        }
+        else
+        {
+            DeckBPlayerRow.MinHeight = 145;
+            DeckBPlayerRow.Height = new GridLength(Math.Max(145, _deckBPlayerHeightBeforeSideList));
+            DeckBSplitterRow.Height = new GridLength(8);
+            DeckBSplitter.Visibility = Visibility.Visible;
+            DeckBPlaylistHeading.Text = "DECK 2 PLAYLIST";
+            DeckBSideAddFilesButton.Visibility = Visibility.Collapsed;
+            SearchAddDeck2Button.Content = "ADD TO DECK 2";
+            DeckBPlaylist.ToolTip = "Select one or more tracks. Press Delete or use REMOVE SELECTED to take them out of this deck queue.";
+            AutoCrossfadeCheck.IsEnabled = true;
+            CrossfadeSecondsSlider.IsEnabled = true;
+            FadeNowButton.IsEnabled = true;
+            AutoCrossfadeCheck.IsChecked = _autoCrossfadeBeforeSingleDeck;
+        }
+
+        if (!_karaokeOnlyMode)
+        {
+            HostModeText.Text = enabled ? "KARAOKE + SINGLE MUSIC DECK" : "KARAOKE + MUSIC MODE";
+            SearchStatus.Text = enabled ? "Single Deck mode • Deck 2 is a side list" : "Karaoke + Music Mode";
+        }
+        UpdateVisualCrossfader();
+        ClampFixedRowsToViewport();
+        if (saveImmediately && IsLoaded) SaveMainLayout();
+    }
+
+    private void StopDeckTwoForSideListMode()
+    {
+        StopDeck(MusicDeckId.Deck2);
+        SetDeckFadeFactor(MusicDeckId.Deck2, 0.0);
+        _deck2CurrentItem = null;
+        _deck2CurrentIndex = -1;
+        if (_activeMusicDeck == MusicDeckId.Deck2) _activeMusicDeck = MusicDeckId.None;
+        if (_resumeMusicDeck == MusicDeckId.Deck2)
+        {
+            _resumeMusicDeck = MusicDeckId.Deck1;
+            _resumeMusicIndex = GetScheduledIndex(MusicDeckId.Deck1);
+            _resumeMusicItem = _resumeMusicIndex >= 0
+                ? PlaylistFor(MusicDeckId.Deck1).Items[_resumeMusicIndex] as MusicQueueItem
+                : null;
+        }
+        RecalculateMusicDeckOrder(MusicDeckId.Deck2);
+    }
+
     private void SetKaraokeOnlyMode(bool enabled, bool stopMusic, bool saveImmediately)
     {
         _karaokeOnlyMode = enabled;
@@ -769,9 +853,9 @@ public partial class MainWindow : Window
             Grid.SetColumn(KaraokeWorkspace, 2);
             Grid.SetColumnSpan(KaraokeWorkspace, 1);
             KaraokeDeckRow.Height = new GridLength(Math.Clamp(_fullModeKaraokeDeckHeight, 185, 700));
-            HostModeText.Text = "KARAOKE + MUSIC MODE";
+            HostModeText.Text = _singleDeckMode ? "KARAOKE + SINGLE MUSIC DECK" : "KARAOKE + MUSIC MODE";
             HostModeText.Foreground = new SolidColorBrush(Color.FromRgb(0x6E, 0xC1, 0xE4));
-            SearchStatus.Text = "Karaoke + Music Mode";
+            SearchStatus.Text = _singleDeckMode ? "Single Deck mode • Deck 2 is a side list" : "Karaoke + Music Mode";
         }
 
         ClampFixedRowsToViewport();
@@ -1106,10 +1190,12 @@ public partial class MainWindow : Window
         Grid.SetColumn(SearchResultsOverlay, _searchMediaKind == "Music" ? 2 : 0);
         SetButtonActive(SearchKaraokeButton, _searchMediaKind == "Karaoke");
         SetButtonActive(SearchMusicButton, _searchMediaKind == "Music");
+        SearchGrid.SelectionMode = _searchMediaKind == "Music" ? DataGridSelectionMode.Extended : DataGridSelectionMode.Single;
+        SearchSelectAllButton.Visibility = _searchMediaKind == "Music" ? Visibility.Visible : Visibility.Collapsed;
         SearchResultsTitle.Text = _searchMediaKind.ToUpperInvariant() + " SEARCH RESULTS";
         SearchDragHint.Text = _searchMediaKind == "Karaoke"
             ? "Drag a karaoke result onto a singer. CD+G, ZIP and video karaoke are all treated as KARAOKE."
-            : "Select a music result and press SPACE for instant play; SPACE again stops. Or use ADD TO DECK 1 / ADD TO DECK 2.";
+            : "Shift-click selects a range; Ctrl-click selects individual tracks; Ctrl+A selects every result. Drag or add the selection to a deck.";
     }
 
     private async void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => await RunSearchAsync();
@@ -1192,7 +1278,13 @@ public partial class MainWindow : Window
         if (Math.Abs(p.X - _searchDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
             Math.Abs(p.Y - _searchDragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
         var song = _searchDragSong;
-        DragDrop.DoDragDrop(SearchGrid, new DataObject(typeof(SongRecord), song), DragDropEffects.Copy);
+        var data = new DataObject(typeof(SongRecord), song);
+        if (_searchMediaKind == "Music")
+        {
+            var songs = GetSelectedMusicSearchSongs();
+            if (songs.Count > 0) data.SetData(SearchSongBatchDataFormat, songs.ToArray());
+        }
+        DragDrop.DoDragDrop(SearchGrid, data, DragDropEffects.Copy);
         _searchDragSong = null;
     }
 
@@ -1356,12 +1448,63 @@ public partial class MainWindow : Window
 
     private void SearchAddDeck1_Click(object sender, RoutedEventArgs e)
     {
-        if (SearchGrid.SelectedItem is SongRecord song) AddSearchSongToMusicDeck(song, DeckAPlaylist);
+        AddSelectedSearchSongsToMusicDeck(DeckAPlaylist);
     }
 
     private void SearchAddDeck2_Click(object sender, RoutedEventArgs e)
     {
-        if (SearchGrid.SelectedItem is SongRecord song) AddSearchSongToMusicDeck(song, DeckBPlaylist);
+        AddSelectedSearchSongsToMusicDeck(DeckBPlaylist);
+    }
+
+    private void SearchSelectAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (_searchMediaKind != "Music" || SearchGrid.Items.Count == 0) return;
+        SearchGrid.SelectAll();
+        SearchStatus.Text = $"Selected {SearchGrid.SelectedItems.Count:N0} music results";
+    }
+
+    private IReadOnlyList<SongRecord> GetSelectedMusicSearchSongs()
+    {
+        if (_searchMediaKind != "Music") return Array.Empty<SongRecord>();
+        var selected = SearchGrid.SelectedItems.OfType<SongRecord>()
+            .Where(song => string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase))
+            .ToHashSet();
+        if (selected.Count == 0 && SearchGrid.SelectedItem is SongRecord current &&
+            string.Equals(current.MediaKind, "Music", StringComparison.OrdinalIgnoreCase))
+            selected.Add(current);
+        return SearchGrid.Items.OfType<SongRecord>().Where(selected.Contains).ToArray();
+    }
+
+    private void AddSelectedSearchSongsToMusicDeck(ListBox deck)
+    {
+        var songs = GetSelectedMusicSearchSongs();
+        if (songs.Count == 0)
+        {
+            SearchStatus.Text = "Select one or more music results first";
+            return;
+        }
+
+        var added = 0;
+        var broken = 0;
+        foreach (var song in songs)
+        {
+            if (!File.Exists(song.FilePath))
+            {
+                BrokenMediaRegistry.Mark(song.FilePath, "File missing or unavailable");
+                broken++;
+                continue;
+            }
+            deck.Items.Add(CreateMusicQueueItem(song));
+            added++;
+        }
+
+        RenumberPlaylist(deck);
+        if (deck.SelectedIndex < 0 && deck.Items.Count > 0) deck.SelectedIndex = 0;
+        var deckNumber = ReferenceEquals(deck, DeckBPlaylist) ? 2 : 1;
+        var targetName = _singleDeckMode && deckNumber == 2 ? "Side List" : $"Deck {deckNumber}";
+        SearchStatus.Text = broken == 0
+            ? $"Added {added:N0} track(s) to {targetName}"
+            : $"Added {added:N0} track(s) to {targetName}; skipped {broken:N0} missing file(s)";
     }
 
     private void AddSearchSongToMusicDeck(SongRecord song, ListBox deck)
@@ -2185,6 +2328,8 @@ public partial class MainWindow : Window
 
     private void ReplaceKaraokePackage(KaraokePackage package, CdgDecoder? decoder, bool preservePresentation = false)
     {
+        CancelKaraokeStopFade();
+        RestoreKaraokePlaybackVolume();
         var keepAudienceInKaraokeMode = preservePresentation && _karaokePresentationActive;
         KaraokeMedia.Stop();
         KaraokeMedia.Source = null;
@@ -2243,6 +2388,9 @@ public partial class MainWindow : Window
             if (!await LoadNextSingerAsync()) return;
         }
         if (_karaokePackage is null || KaraokeMedia.Source is null) return;
+
+        CancelKaraokeStopFade();
+        RestoreKaraokePlaybackVolume();
 
         if (AutoSkipSilenceCheck?.IsChecked == true && KaraokeMedia.Position.TotalSeconds < 0.15)
             await SkipSilenceAsync(autoStart: true);
@@ -2370,14 +2518,70 @@ public partial class MainWindow : Window
         }
     }
 
-    private void KaraokeStop_Click(object sender, RoutedEventArgs e)
+    private async void KaraokeStop_Click(object sender, RoutedEventArgs e)
     {
         // STOP is the live-show handoff back to background music. The singer request
         // remains consumed (it is not restored and is not written to history), the
         // audience karaoke visual is cleared, and the music scheduler resumes from the
         // next track that was remembered when karaoke started.
-        KaraokeStopForMusicResume();
-        ResumeMusicAfterKaraoke(forceStart: true);
+        await FadeOutKaraokeForMusicResumeAsync();
+    }
+
+    private async Task FadeOutKaraokeForMusicResumeAsync()
+    {
+        CancelKaraokeStopFade();
+        if (!_karaokePlaying || _karaokePaused)
+        {
+            KaraokeStopForMusicResume(cancelPendingFade: false);
+            RestoreKaraokePlaybackVolume();
+            ResumeMusicAfterKaraoke(forceStart: true);
+            return;
+        }
+
+        var fadeCts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _karaokeStopFadeCts = fadeCts;
+        KaraokeStopButton.IsEnabled = false;
+        const int fadeSteps = 20;
+        var startingMediaVolume = Math.Clamp(KaraokeMedia.Volume, 0.0, KaraokePlaybackVolume);
+
+        try
+        {
+            for (var step = 1; step <= fadeSteps; step++)
+            {
+                fadeCts.Token.ThrowIfCancellationRequested();
+                var factor = 1.0 - step / (double)fadeSteps;
+                KaraokeMedia.Volume = startingMediaVolume * factor;
+                _pitchAudio.SetVolume(KaraokePlaybackVolume * factor);
+                await Task.Delay(75, fadeCts.Token);
+            }
+
+            KaraokeStopForMusicResume(cancelPendingFade: false);
+            RestoreKaraokePlaybackVolume();
+            ResumeMusicAfterKaraoke(forceStart: true);
+        }
+        catch (OperationCanceledException)
+        {
+            RestoreKaraokePlaybackVolume();
+        }
+        finally
+        {
+            if (ReferenceEquals(_karaokeStopFadeCts, fadeCts)) _karaokeStopFadeCts = null;
+            fadeCts.Dispose();
+            KaraokeStopButton.IsEnabled = true;
+        }
+    }
+
+    private void CancelKaraokeStopFade()
+    {
+        var pending = _karaokeStopFadeCts;
+        _karaokeStopFadeCts = null;
+        pending?.Cancel();
+    }
+
+    private void RestoreKaraokePlaybackVolume()
+    {
+        KaraokeMedia.Volume = KaraokePlaybackVolume;
+        _pitchAudio.SetVolume(KaraokePlaybackVolume);
     }
 
     private async void FindAlternative_Click(object sender, RoutedEventArgs e)
@@ -2616,6 +2820,8 @@ public partial class MainWindow : Window
 
     private async Task KaraokeCompletedAsync()
     {
+        CancelKaraokeStopFade();
+        RestoreKaraokePlaybackVolume();
         _pitchAudio.Stop();
         _karaokePlaying = false;
         _karaokePaused = false;
@@ -2769,6 +2975,11 @@ public partial class MainWindow : Window
 
     private void StartManualMusicDeck(MusicDeckId deck)
     {
+        if (_singleDeckMode && deck == MusicDeckId.Deck2)
+        {
+            UpdateMusicAutomationStatus("Deck 2 is a side list • drag tracks into Deck 1 to play them");
+            return;
+        }
         if (_karaokePresentationActive)
         {
             KaraokeStopForMusicResume();
@@ -2793,6 +3004,7 @@ public partial class MainWindow : Window
 
     private bool StartDeckAt(MusicDeckId deck, int index, double fadeFactor, bool makeActive)
     {
+        if (_singleDeckMode && deck == MusicDeckId.Deck2) return false;
         var list = PlaylistFor(deck);
         if (list.Items.Count == 0) return false;
         index = Math.Clamp(index, 0, list.Items.Count - 1);
@@ -2894,6 +3106,11 @@ public partial class MainWindow : Window
 
     private void FadeNow_Click(object sender, RoutedEventArgs e)
     {
+        if (_singleDeckMode)
+        {
+            UpdateMusicAutomationStatus("Fade Now is unavailable in Single Deck mode");
+            return;
+        }
         if (_karaokePresentationActive || _musicSuspendedForKaraoke)
         {
             UpdateMusicAutomationStatus("FADE NOW unavailable while karaoke owns the audience output");
@@ -2932,8 +3149,9 @@ public partial class MainWindow : Window
         ResumeMusicAfterKaraoke(forceStart: true);
     }
 
-    private void KaraokeStopForMusicResume()
+    private void KaraokeStopForMusicResume(bool cancelPendingFade = true)
     {
+        if (cancelPendingFade) CancelKaraokeStopFade();
         KaraokeMedia.Stop();
         _pitchAudio.Stop();
         _karaokePlaying = false;
@@ -3087,6 +3305,7 @@ public partial class MainWindow : Window
 
     private void TryBeginAutomaticCrossfade()
     {
+        if (_singleDeckMode) return;
         var from = _activeMusicDeck;
         if (IsDeckPaused(from)) return;
         var media = MediaFor(from);
@@ -3104,6 +3323,7 @@ public partial class MainWindow : Window
 
     private void BeginCrossfade(MusicDeckId from, MusicDeckId to)
     {
+        if (_singleDeckMode) return;
         if (_crossfadeActive || from == MusicDeckId.None || to == MusicDeckId.None) return;
         var index = GetScheduledIndex(to);
         if (index < 0 || !StartDeckAt(to, index, 0.0, makeActive: false)) return;
@@ -3154,6 +3374,19 @@ public partial class MainWindow : Window
         if (_activeMusicDeck != deck) return;
         SetDeckFadeFactor(deck, 0.0);
         AdvanceCompletedMusicItem(deck);
+
+        if (_singleDeckMode && deck == MusicDeckId.Deck1)
+        {
+            var nextIndex = GetScheduledIndex(MusicDeckId.Deck1);
+            if (nextIndex >= 0 && StartDeckAt(MusicDeckId.Deck1, nextIndex, 1.0, makeActive: true))
+            {
+                UpdateMusicAutomationStatus("Deck 1 playing next queued track");
+                return;
+            }
+            _activeMusicDeck = MusicDeckId.None;
+            UpdateMusicAutomationStatus("Deck 1 playlist finished");
+            return;
+        }
 
         if (AutoCrossfadeCheck?.IsChecked == true)
         {
@@ -3314,7 +3547,9 @@ public partial class MainWindow : Window
         if (index < 0) index = _resumeMusicIndex;
         if (deck == MusicDeckId.None || !HasTracks(deck) || index < 0 || index >= PlaylistFor(deck).Items.Count)
         {
-            deck = HasTracks(MusicDeckId.Deck1) ? MusicDeckId.Deck1 : HasTracks(MusicDeckId.Deck2) ? MusicDeckId.Deck2 : MusicDeckId.None;
+            deck = HasTracks(MusicDeckId.Deck1)
+                ? MusicDeckId.Deck1
+                : !_singleDeckMode && HasTracks(MusicDeckId.Deck2) ? MusicDeckId.Deck2 : MusicDeckId.None;
             index = deck == MusicDeckId.None ? -1 : GetScheduledIndex(deck);
         }
 
@@ -4185,7 +4420,9 @@ public partial class MainWindow : Window
         list.Items.Add(CreateMusicQueueItem(song));
         RenumberPlaylist(list);
         if (list.SelectedIndex < 0) list.SelectedIndex = 0;
-        UpdateMusicAutomationStatus($"Added {song.Title} to Deck {deck}");
+        UpdateMusicAutomationStatus(_singleDeckMode && deck == 2
+            ? $"Added {song.Title} to the Side List"
+            : $"Added {song.Title} to Deck {deck}");
     }
 
     private void MusicPlaylist_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -4214,6 +4451,16 @@ public partial class MainWindow : Window
         var data = new DataObject();
         data.SetData(typeof(MusicQueueItem), item);
         data.SetData("HazzMusicPlaylistSource", source.Name);
+        if (_singleDeckMode && ReferenceEquals(source, DeckBPlaylist))
+        {
+            var selected = source.SelectedItems.OfType<MusicQueueItem>().ToHashSet();
+            if (!selected.Contains(item)) selected = new HashSet<MusicQueueItem> { item };
+            var ordered = source.Items.OfType<MusicQueueItem>()
+                .Where(selected.Contains)
+                .Where(candidate => !candidate.IsNowPlaying)
+                .ToArray();
+            if (ordered.Length > 0) data.SetData(SideListQueueBatchDataFormat, ordered);
+        }
         DragDrop.DoDragDrop(source, data, DragDropEffects.Move);
         _musicPlaylistDragItem = null;
         _musicPlaylistDragSource = null;
@@ -4221,8 +4468,14 @@ public partial class MainWindow : Window
 
     private void MusicPlaylist_DragOver(object sender, DragEventArgs e)
     {
-        if (e.Data.GetData(typeof(MusicQueueItem)) is MusicQueueItem)
+        if (e.Data.GetData(SideListQueueBatchDataFormat) is MusicQueueItem[] queued && queued.Length > 0)
+            e.Effects = _singleDeckMode && (ReferenceEquals(sender, DeckAPlaylist) || ReferenceEquals(sender, DeckBPlaylist))
+                ? DragDropEffects.Move : DragDropEffects.None;
+        else if (e.Data.GetData(typeof(MusicQueueItem)) is MusicQueueItem)
             e.Effects = DragDropEffects.Move;
+        else if (e.Data.GetData(SearchSongBatchDataFormat) is SongRecord[] songs && songs.Length > 0 &&
+                 songs.All(song => string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)))
+            e.Effects = DragDropEffects.Copy;
         else if (e.Data.GetData(typeof(SongRecord)) is SongRecord song &&
                  string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase))
             e.Effects = DragDropEffects.Copy;
@@ -4236,6 +4489,73 @@ public partial class MainWindow : Window
 
     private void HandleMusicPlaylistDrop(ListBox target, MusicDeckId targetDeck, DragEventArgs e)
     {
+        if (e.Data.GetData(SideListQueueBatchDataFormat) is MusicQueueItem[] sideListItems && sideListItems.Length > 0)
+        {
+            var sideSourceName = e.Data.GetData("HazzMusicPlaylistSource") as string;
+            if (!_singleDeckMode || !string.Equals(sideSourceName, DeckBPlaylist.Name, StringComparison.Ordinal) ||
+                (!ReferenceEquals(target, DeckAPlaylist) && !ReferenceEquals(target, DeckBPlaylist)))
+            {
+                e.Handled = true;
+                return;
+            }
+
+            var insertAt = GetMusicPlaylistInsertIndex(target, e.OriginalSource as DependencyObject, e.GetPosition(target));
+            var movingItems = sideListItems.Where(item => DeckBPlaylist.Items.Contains(item) && !item.IsNowPlaying).ToArray();
+            if (ReferenceEquals(target, DeckBPlaylist))
+            {
+                insertAt -= movingItems.Count(item => DeckBPlaylist.Items.IndexOf(item) < insertAt);
+            }
+            foreach (var sideListItem in movingItems) DeckBPlaylist.Items.Remove(sideListItem);
+            insertAt = Math.Clamp(insertAt, 0, target.Items.Count);
+            foreach (var sideListItem in movingItems) target.Items.Insert(insertAt++, sideListItem);
+            RenumberPlaylist(DeckBPlaylist);
+            RenumberPlaylist(target);
+            RecalculateMusicDeckOrder(MusicDeckId.Deck1);
+            RecalculateMusicDeckOrder(MusicDeckId.Deck2);
+            var firstMoved = movingItems.FirstOrDefault();
+            if (firstMoved is not null)
+            {
+                target.SelectedItem = firstMoved;
+                target.ScrollIntoView(firstMoved);
+            }
+            UpdateMusicAutomationStatus(ReferenceEquals(target, DeckAPlaylist)
+                ? $"Moved {movingItems.Length:N0} track(s) from the side list to Deck 1"
+                : $"Reordered {movingItems.Length:N0} track(s) in the side list");
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Data.GetData(SearchSongBatchDataFormat) is SongRecord[] songs && songs.Length > 0)
+        {
+            var insertAt = GetMusicPlaylistInsertIndex(target, e.OriginalSource as DependencyObject, e.GetPosition(target));
+            var firstInserted = -1;
+            var added = 0;
+            var broken = 0;
+            foreach (var selectedSong in songs.Where(candidate => string.Equals(candidate.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)))
+            {
+                if (!File.Exists(selectedSong.FilePath))
+                {
+                    BrokenMediaRegistry.Mark(selectedSong.FilePath, "File missing or unavailable");
+                    broken++;
+                    continue;
+                }
+                if (firstInserted < 0) firstInserted = insertAt;
+                target.Items.Insert(insertAt++, CreateMusicQueueItem(selectedSong));
+                added++;
+            }
+            RenumberPlaylist(target);
+            RecalculateMusicDeckOrder(targetDeck);
+            if (firstInserted >= 0) target.SelectedIndex = firstInserted;
+            var targetName = _singleDeckMode && targetDeck == MusicDeckId.Deck2
+                ? "Side List"
+                : $"Deck {(targetDeck == MusicDeckId.Deck2 ? 2 : 1)}";
+            UpdateMusicAutomationStatus(broken == 0
+                ? $"Added {added:N0} selected track(s) to {targetName}"
+                : $"Added {added:N0} selected track(s); skipped {broken:N0} missing file(s)");
+            e.Handled = true;
+            return;
+        }
+
         if (e.Data.GetData(typeof(SongRecord)) is SongRecord song)
         {
             if (!string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)) return;
@@ -4253,7 +4573,7 @@ public partial class MainWindow : Window
         var source = string.Equals(sourceName, DeckBPlaylist.Name, StringComparison.Ordinal) ? DeckBPlaylist : DeckAPlaylist;
         var sourceDeck = ReferenceEquals(source, DeckBPlaylist) ? MusicDeckId.Deck2 : MusicDeckId.Deck1;
         if (!source.Items.Contains(item)) return;
-        if (!ReferenceEquals(source, target))
+        if (!ReferenceEquals(source, target) && !(_singleDeckMode && ReferenceEquals(source, DeckBPlaylist) && ReferenceEquals(target, DeckAPlaylist)))
         {
             UpdateMusicAutomationStatus("Drag music within the same deck playlist to reorder it");
             e.Handled = true;
@@ -4273,7 +4593,9 @@ public partial class MainWindow : Window
         else RenumberPlaylist(target);
         target.SelectedItem = item;
         target.ScrollIntoView(item);
-        UpdateMusicAutomationStatus($"Playlist order changed • {item.DisplayArtist} — {item.DisplayTitle}");
+        UpdateMusicAutomationStatus(!ReferenceEquals(source, target)
+            ? $"Moved to Deck 1 • {item.DisplayArtist} — {item.DisplayTitle}"
+            : $"Playlist order changed • {item.DisplayArtist} — {item.DisplayTitle}");
         e.Handled = true;
     }
 
