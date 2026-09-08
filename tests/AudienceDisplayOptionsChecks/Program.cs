@@ -17,6 +17,7 @@ internal static class Check
         var image = (Image)audience.FindName("SingerBackgroundImage");
         var gif = (Image)audience.FindName("SingerBackgroundGif");
         var video = (MediaElement)audience.FindName("SingerBackgroundVideo");
+        var musicVideo = (MediaElement)audience.FindName("MusicVideoMedia");
         var scroller = (Border)audience.FindName("ScrollerPanel");
         var next = (Border)audience.FindName("NextSingerPanel");
 
@@ -48,6 +49,10 @@ internal static class Check
         });
         Require(scroller.VerticalAlignment == VerticalAlignment.Bottom && next.Margin.Bottom == 74 && next.Margin.Top == 30,
             "Bottom scroller placement or bottom Next Singer clearance is incorrect.");
+        Require(musicVideo.IsMuted && musicVideo.Volume == 0 && musicVideo.Stretch == Stretch.Uniform,
+            "VJ music-video output is not silent and screen-fitted.");
+        foreach (var method in new[] { "ShowMusicVideo", "PauseMusicVideo", "ResumeMusicVideo", "SyncMusicVideo", "ClearMusicVideo" })
+            Require(typeof(AudienceWindow).GetMethod(method) is not null, $"Audience VJ method is missing: {method}");
         audience.Close();
 
         var main = new MainWindow();
@@ -93,7 +98,38 @@ internal static class Check
         update.Invoke(main, null);
         Require(Grid.GetColumn(overlay) == 0, "Karaoke search does not leave the singer rotation available.");
 
-        Console.WriteLine("PASS: semantic button colours/active lighting, high-contrast dropdowns, four background fit modes, scroller clearance, and search drop targets.");
+        var singleDeck = typeof(MainWindow).GetMethod("SetSingleDeckMode", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        singleDeck.Invoke(main, new object[] { true, false, false });
+        var deck2Player = (Border)main.FindName("DeckBPlayerControlsPanel");
+        var sideControls = (Border)main.FindName("DeckBSideListControlsPanel");
+        var deck2Footer = (WrapPanel)main.FindName("DeckBPlaylistFooter");
+        Require(deck2Player.Visibility == Visibility.Collapsed && sideControls.Visibility == Visibility.Visible && deck2Footer.Visibility == Visibility.Collapsed,
+            "Single Deck mode did not replace the complete Deck 2 player with side-list controls.");
+        var sideButtons = Walk(sideControls).OfType<Button>().Select(button => button.Content?.ToString()).ToHashSet();
+        foreach (var label in new[] { "ADD FILES", "LOAD LIST…", "SAVE LIST", "SELECT ALL", "▲ MOVE UP", "▼ MOVE DOWN", "SEND TO DECK 1 →", "SHUFFLE LIST", "REMOVE SELECTED", "CLEAR LIST" })
+            Require(sideButtons.Contains(label), $"Side-list control is missing: {label}");
+        singleDeck.Invoke(main, new object[] { false, false, false });
+        Require(deck2Player.Visibility == Visibility.Visible && sideControls.Visibility == Visibility.Collapsed && deck2Footer.Visibility == Visibility.Visible,
+            "Normal mode did not restore the Deck 2 player.");
+
+        Require(main.FindName("DeckAProgress") is Slider && main.FindName("DeckBProgress") is Slider,
+            "Music decks do not expose draggable seek sliders.");
+        Require(((Border)main.FindName("KaraokeDeckDropTarget")).AllowDrop,
+            "The Karaoke Deck is not a drop target.");
+        var deckType = typeof(MainWindow).GetNestedType("MusicDeckId", BindingFlags.NonPublic)!;
+        var deck1 = Enum.Parse(deckType, "Deck1");
+        var setPaused = typeof(MainWindow).GetMethod("SetDeckPaused", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        setPaused.Invoke(main, new[] { deck1, (object)true });
+        Require(Equals(((Button)main.FindName("DeckAPauseButton")).Content, "▶ RESUME"), "Pause does not switch to Resume.");
+        setPaused.Invoke(main, new[] { deck1, (object)false });
+        Require(Equals(((Button)main.FindName("DeckAPauseButton")).Content, "Ⅱ PAUSE"), "Resume does not restore the Pause label.");
+        var handoffSeconds = (double)typeof(MainWindow).GetField("KaraokeStopHandoffSeconds", BindingFlags.Static | BindingFlags.NonPublic)!.GetRawConstantValue()!;
+        Require(Math.Abs(handoffSeconds - 1.5) < 0.001, "Karaoke Fade Stop handoff is not fixed at 1.5 seconds.");
+        Require(typeof(MainWindow).GetField("_audienceMusicVideoDeck", BindingFlags.Instance | BindingFlags.NonPublic) is not null &&
+                typeof(MainWindow).GetMethod("ApplyCurrentMusicVideoToAudience", BindingFlags.Instance | BindingFlags.NonPublic) is not null,
+            "Music-deck VJ routing is not wired to the audience display.");
+
+        Console.WriteLine("PASS: colours, dropdowns, audience layout, VJ video routing, search placement, dedicated side-list controls, seek sliders, Karaoke Deck drop target, pause/resume state and 1.5-second handoff.");
         application.Shutdown();
     }
 

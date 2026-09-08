@@ -327,7 +327,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="10.5" FontWeight="Bold" Foreground="#6EC1E4" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="#22303C" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v0.17.21" FontSize="11" FontWeight="Bold" Foreground="#D4DEE8"/>
+     <TextBlock Text="v0.17.22" FontSize="11" FontWeight="Bold" Foreground="#D4DEE8"/>
     </Border>
    </StackPanel>
 
@@ -346,7 +346,7 @@
     </MenuItem>
     <MenuItem Header="IMPORT" Style="{StaticResource HeaderMenuItemStyle}">
      <MenuItem Header="Import Karaoke Folders…" Click="ImportKaraoke_Click"/>
-     <MenuItem Header="Import Music Folders…" Click="ImportMusic_Click"/>
+     <MenuItem Header="Import Music / Video Folders…" Click="ImportMusic_Click"/>
      <Separator/>
      <MenuItem Header="Import BPM Studio…" Click="ImportBpmStudio_Click"/>
      <MenuItem Header="SMART IMPORT">
@@ -476,7 +476,9 @@
         <Button Content="SHUFFLE" Style="{StaticResource SpecialButtonStyle}" Click="DeckAShuffle_Click" ToolTip="Randomise the remaining queued tracks. The currently playing track stays at #1."/>
        </WrapPanel>
        <StackPanel Grid.Row="3" Margin="4,3,4,1">
-        <ProgressBar x:Name="DeckAProgress" Height="5" Minimum="0" Maximum="1" Value="0" IsHitTestVisible="False"/>
+        <Slider x:Name="DeckAProgress" Height="18" Minimum="0" Maximum="1" Value="0" IsMoveToPointEnabled="True"
+                PreviewMouseLeftButtonDown="MusicSeek_PreviewMouseLeftButtonDown" PreviewMouseLeftButtonUp="MusicSeek_PreviewMouseLeftButtonUp"
+                ValueChanged="MusicSeek_ValueChanged" KeyUp="MusicSeek_KeyUp" ToolTip="Drag to choose the exact playback position."/>
         <TextBlock x:Name="DeckATimeText" Text="ELAPSED 00:00  •  REMAINING --:--  •  TOTAL --:--" HorizontalAlignment="Center"
                    Foreground="#AFC0D1" FontSize="11" FontWeight="SemiBold" Margin="0,3,0,0"/>
        </StackPanel>
@@ -531,7 +533,8 @@
     <GridSplitter x:Name="KaraokePreviewSplitter" Grid.Row="3" Height="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#26313D"
                   ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" ShowsPreview="True" ToolTip="Drag to resize singer list / karaoke preview"/>
 
-    <Border Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="#305F80" BorderThickness="1" CornerRadius="5">
+    <Border x:Name="KaraokeDeckDropTarget" Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="#305F80" BorderThickness="1" CornerRadius="5"
+            AllowDrop="True" DragOver="KaraokeDeck_DragOver" Drop="KaraokeDeck_Drop" ToolTip="Drop a Karaoke search result or karaoke file here to load it." >
      <Grid>
       <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="*"/></Grid.RowDefinitions>
       <Border Background="{StaticResource KaraokeBrush}" CornerRadius="5,5,0,0">
@@ -721,7 +724,7 @@
     <GridSplitter x:Name="DeckBSplitter" Grid.Row="1" Height="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#26313D"
                   ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" ShowsPreview="True" ToolTip="Drag to resize Deck 2 player / playlist"/>
 
-    <Border Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="#3A5C3A" BorderThickness="1" CornerRadius="5">
+    <Border x:Name="DeckBPlayerControlsPanel" Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="#3A5C3A" BorderThickness="1" CornerRadius="5">
      <Grid>
       <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="*"/></Grid.RowDefinitions>
       <Border Background="{StaticResource DeckBBrush}" CornerRadius="5,5,0,0">
@@ -754,7 +757,9 @@
         <Button Content="SHUFFLE" Style="{StaticResource SpecialButtonStyle}" Click="DeckBShuffle_Click" ToolTip="Randomise the remaining queued tracks. The currently playing track stays at #1."/>
        </WrapPanel>
        <StackPanel Grid.Row="3" Margin="4,3,4,1">
-        <ProgressBar x:Name="DeckBProgress" Height="5" Minimum="0" Maximum="1" Value="0" IsHitTestVisible="False"/>
+        <Slider x:Name="DeckBProgress" Height="18" Minimum="0" Maximum="1" Value="0" IsMoveToPointEnabled="True"
+                PreviewMouseLeftButtonDown="MusicSeek_PreviewMouseLeftButtonDown" PreviewMouseLeftButtonUp="MusicSeek_PreviewMouseLeftButtonUp"
+                ValueChanged="MusicSeek_ValueChanged" KeyUp="MusicSeek_KeyUp" ToolTip="Drag to choose the exact playback position."/>
         <TextBlock x:Name="DeckBTimeText" Text="ELAPSED 00:00  •  REMAINING --:--  •  TOTAL --:--" HorizontalAlignment="Center"
                    Foreground="#AFC0D1" FontSize="11" FontWeight="SemiBold" Margin="0,3,0,0"/>
        </StackPanel>
@@ -765,6 +770,30 @@
        </Grid>
        </Grid>
       </ScrollViewer>
+     </Grid>
+    </Border>
+
+    <Border x:Name="DeckBSideListControlsPanel" Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="#7B682F" BorderThickness="1" CornerRadius="5" Visibility="Collapsed">
+     <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <Border Background="{StaticResource PlaylistBrush}" CornerRadius="5,5,0,0">
+       <TextBlock Text="MUSIC SIDE LIST CONTROLS" FontSize="17" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+      </Border>
+      <StackPanel Grid.Row="1" Margin="7,5,7,7">
+       <TextBlock Text="Build and organise a holding list, then send selected tracks to Deck 1." Foreground="#C9D5E0" TextAlignment="Center" Margin="2,0,2,4"/>
+       <WrapPanel HorizontalAlignment="Center">
+        <Button Content="ADD FILES" Style="{StaticResource SaveButtonStyle}" Click="DeckBAdd_Click" ToolTip="Add music files to the side list."/>
+        <Button Content="LOAD LIST…" Style="{StaticResource LoadButtonStyle}" Click="DeckBLoadPlaylist_Click" ToolTip="Load a saved playlist or music-history list into the side list."/>
+        <Button Content="SAVE LIST" Style="{StaticResource SaveButtonStyle}" Click="DeckBSavePlaylist_Click" ToolTip="Save the side list for later use."/>
+        <Button Content="SELECT ALL" Style="{StaticResource SaveButtonStyle}" Click="SideListSelectAll_Click" ToolTip="Select every track in the side list."/>
+        <Button Content="▲ MOVE UP" Style="{StaticResource LoadButtonStyle}" Click="SideListMoveUp_Click" ToolTip="Move the selected track or block one position up."/>
+        <Button Content="▼ MOVE DOWN" Style="{StaticResource LoadButtonStyle}" Click="SideListMoveDown_Click" ToolTip="Move the selected track or block one position down."/>
+        <Button Content="SEND TO DECK 1 →" Style="{StaticResource PlayButtonStyle}" Click="SideListSendToDeck1_Click" ToolTip="Move selected tracks to the end of Deck 1 in their current order."/>
+        <Button Content="SHUFFLE LIST" Style="{StaticResource SpecialButtonStyle}" Click="DeckBShuffle_Click" ToolTip="Randomise the side-list order."/>
+        <Button Content="REMOVE SELECTED" Style="{StaticResource StopButtonStyle}" Click="DeckBRemoveSelected_Click" ToolTip="Remove selected tracks from the side list without deleting their files."/>
+        <Button Content="CLEAR LIST" Style="{StaticResource StopButtonStyle}" Click="SideListClear_Click" ToolTip="Remove every track from the side list without deleting any files."/>
+       </WrapPanel>
+      </StackPanel>
      </Grid>
     </Border>
 
@@ -786,7 +815,7 @@
                PreviewMouseLeftButtonDown="MusicPlaylist_PreviewMouseLeftButtonDown" PreviewMouseMove="MusicPlaylist_PreviewMouseMove"
                KeyDown="DeckBPlaylist_KeyDown" DragOver="MusicPlaylist_DragOver" Drop="DeckBPlaylist_Drop"
                ToolTip="Select one or more tracks. Press Delete or use REMOVE SELECTED to take them out of this deck queue."/>
-      <WrapPanel Grid.Row="3" Margin="5,2,5,5" HorizontalAlignment="Center">
+      <WrapPanel x:Name="DeckBPlaylistFooter" Grid.Row="3" Margin="5,2,5,5" HorizontalAlignment="Center">
        <Button x:Name="DeckBSideAddFilesButton" Content="ADD FILES" Style="{StaticResource SaveButtonStyle}" Click="DeckBAdd_Click" Margin="2" MinHeight="34" MinWidth="92" Visibility="Collapsed" ToolTip="Add music files to the side list."/>
        <Button Content="SAVE PLAYLIST" Style="{StaticResource SaveButtonStyle}" Click="DeckBSavePlaylist_Click" Margin="2" MinHeight="34" MinWidth="112" ToolTip="Save Deck 2's remaining playlist as a named Hazz playlist for later reuse."/>
        <Button Content="REMOVE SELECTED" Style="{StaticResource StopButtonStyle}" Click="DeckBRemoveSelected_Click" Margin="2" MinHeight="34" MinWidth="122" ToolTip="Remove the selected unplayed track(s) from Deck 2. This does not delete the music files or library records."/>

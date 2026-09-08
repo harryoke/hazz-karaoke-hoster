@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster Complete Manual
 
-Complete operating documentation for version 0.17.21.
+Complete operating documentation for version 0.17.22.
 
 ## 1 Getting started
 
@@ -124,10 +124,11 @@ Songs and History shows previous performances with last-sung date, times sung, k
 - Press TV if the audience screen is not already full screen on Display 2.
 - Press Play. Hazz records the performance in singer history when playback begins.
 - At the end, Hazz advances the show state and restores background music when configured.
+- To load without assigning a singer, drag a Karaoke search result or a supported karaoke file from Windows Explorer directly onto the Karaoke Deck. Hazz loads it without starting playback.
 
 ### Pause and Fade Stop
 
-Pause resumes from the same position. Fade Stop lowers karaoke audio smoothly for about 1.5 seconds, then ends the performance and resumes background music. Media errors and shutdown still stop immediately. Starting karaoke stops Music Search quick play and suspends normal background music.
+Pause resumes from the same position. Fade Stop lowers karaoke audio smoothly for 1.5 seconds, then ends the performance and fades the returning background track in over 1.5 seconds. Media errors and shutdown still stop immediately. Starting karaoke stops Music Search quick play and suspends normal background music.
 
 ### Key
 
@@ -149,7 +150,7 @@ Press Add Files, drag Music search results into a deck, or use Load Playlist or 
 
 ### Queue controls
 
-Play starts the selected or scheduled track. Pause, Stop and Shuffle affect that deck. Remove Selected removes unplayed entries without deleting files. Delete performs the same action when the list has focus. The current playing entry is protected.
+Play starts the selected or scheduled track. Pause retains the exact position; press Pause again or Play to resume. Drag the timeline slider to seek to an exact point, including while paused. Stop and Shuffle affect that deck. Remove Selected removes unplayed entries without deleting files. Delete performs the same action when the list has focus. The current playing entry is protected.
 
 ### Save and reload
 
@@ -161,7 +162,11 @@ When Auto Crossfade is enabled, Hazz prepares the other deck and fades near the 
 
 ### Single Deck and Side List
 
-Choose Show, Single Deck + Side List Mode to use Deck 1 as the only player. Deck 2 becomes a tall holding list and its playback controls are hidden. Add search results, files or saved playlists to the side list, then select one or several tracks and drag them into Deck 1. Deck 1 advances through its own queue automatically. The mode and both lists are restored after restart.
+Choose Show, Single Deck + Side List Mode to use Deck 1 as the only player. The complete Deck 2 player is removed and replaced by Add Files, Load List, Save List, Select All, Move Up, Move Down, Send to Deck 1, Shuffle List, Remove Selected and Clear List. Add search results, files or saved playlists to the side list, then drag tracks into Deck 1 or use Send to Deck 1. Deck 1 advances automatically. The mode and both lists are restored after restart.
+
+### VJ music videos
+
+Choose Import, Import Music / Video Folders to add video folders. When Deck 1 or Deck 2 plays a video file, Hazz mirrors the picture full-screen to the singer display while keeping that audience copy muted. Play, pause, resume, seek and stop remain synchronized. Karaoke automatically takes priority, and the music video returns when interval music resumes.
 
 ## 9 Audience display
 

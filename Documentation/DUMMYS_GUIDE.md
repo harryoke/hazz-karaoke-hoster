@@ -31,7 +31,8 @@ Simple steps for a first live show.
 - Read the singer and song shown in the Karaoke Deck.
 - Press the green Play button.
 - Use yellow Pause if needed.
-- Use red Fade Stop to lower the audio smoothly and end the song.
+- Use red Fade Stop to lower karaoke for 1.5 seconds; returning music then fades in for 1.5 seconds.
+- To load without a singer assignment, drag a Karaoke search result or karaoke file directly onto the Karaoke Deck, check it, then press Play.
 
 ## Keep the queue fair
 
@@ -59,8 +60,10 @@ Simple steps for a first live show.
 - Shift-click a range or Ctrl-click individual tracks, then drag the selection or use a deck button.
 - Press Select All or Ctrl+A to queue every visible result from a folder search.
 - Press the green Play button on a deck.
+- Pause keeps the exact position; press Pause or Play to resume. Drag the timeline to seek.
+- Import a music-video folder through Import, Import Music / Video Folders. Video tracks automatically appear full-screen and muted on the singer display while deck audio plays normally.
 - Enable Auto Crossfade if you want the decks to alternate.
-- For one-player operation, choose Show, Single Deck + Side List Mode. Add tracks to the side list, then drag them into Deck 1.
+- For one-player operation, choose Show, Single Deck + Side List Mode. The right panel becomes a proper side list with Add, Load, Save, Select, Move, Send to Deck 1, Shuffle, Remove and Clear controls.
 - Starting karaoke pauses the music plan; Play Music resumes the next scheduled track.
 - In Music search, Space quickly plays the highlighted result and Space again stops it.
 

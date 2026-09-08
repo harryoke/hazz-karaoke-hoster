@@ -28,6 +28,7 @@ public partial class AudienceWindow : Window
     private double _lastSeconds;
     private double _speed = 110;
     private bool _videoPlaying;
+    private bool _musicVideoPlaying;
     private bool _karaokeActive;
     private bool _showNextSinger = true;
     private bool _showNextSong = true;
@@ -67,6 +68,9 @@ public partial class AudienceWindow : Window
             AudienceMedia.Stop();
             AudienceMedia.Source = null;
             AudienceMedia.Close();
+            MusicVideoMedia.Stop();
+            MusicVideoMedia.Source = null;
+            MusicVideoMedia.Close();
             SingerBackgroundVideo.Stop();
             SingerBackgroundVideo.Source = null;
             SingerBackgroundVideo.Close();
@@ -133,6 +137,8 @@ public partial class AudienceWindow : Window
     public void SetKaraokeActive(bool active)
     {
         _karaokeActive = active;
+        if (active) MusicVideoMedia.Pause();
+        else if (_musicVideoPlaying && MusicVideoMedia.Source is not null) MusicVideoMedia.Play();
         UpdateOverlayLayerVisibility();
     }
 
@@ -303,6 +309,8 @@ public partial class AudienceWindow : Window
             ? Visibility.Visible : Visibility.Collapsed;
         SingerBackgroundVideo.Visibility = !_karaokeActive && _backgroundImageEnabled && SingerBackgroundVideo.Source is not null
             ? Visibility.Visible : Visibility.Collapsed;
+        MusicVideoMedia.Visibility = !_karaokeActive && MusicVideoMedia.Source is not null
+            ? Visibility.Visible : Visibility.Collapsed;
         // Singer-view artwork and informational overlays are deliberately hidden during karaoke.
         // The logo is different: if enabled it remains above CD+G/video for the whole show.
         SingerBackgroundImage.Visibility = !_karaokeActive && _backgroundImageEnabled && SingerBackgroundImage.Source is not null
@@ -442,6 +450,55 @@ public partial class AudienceWindow : Window
         AudienceCdgImage.Visibility = Visibility.Collapsed;
         _videoPlaying = false;
     }
+
+    public void ShowMusicVideo(string path, TimeSpan position, bool playing)
+    {
+        var uri = new Uri(path);
+        if (MusicVideoMedia.Source is null || !string.Equals(MusicVideoMedia.Source.LocalPath, uri.LocalPath, StringComparison.OrdinalIgnoreCase))
+        {
+            MusicVideoMedia.Stop();
+            MusicVideoMedia.Source = uri;
+        }
+        MusicVideoMedia.Position = position;
+        _musicVideoPlaying = playing;
+        if (!_karaokeActive && playing) MusicVideoMedia.Play();
+        else MusicVideoMedia.Pause();
+        UpdateOverlayLayerVisibility();
+    }
+
+    public void PauseMusicVideo()
+    {
+        MusicVideoMedia.Pause();
+        _musicVideoPlaying = false;
+    }
+
+    public void ResumeMusicVideo(TimeSpan position)
+    {
+        if (MusicVideoMedia.Source is null) return;
+        MusicVideoMedia.Position = position;
+        _musicVideoPlaying = true;
+        if (!_karaokeActive) MusicVideoMedia.Play();
+        UpdateOverlayLayerVisibility();
+    }
+
+    public void SyncMusicVideo(TimeSpan hostPosition)
+    {
+        if (!_musicVideoPlaying || _karaokeActive || MusicVideoMedia.Source is null) return;
+        var drift = Math.Abs((MusicVideoMedia.Position - hostPosition).TotalMilliseconds);
+        if (drift > 250) MusicVideoMedia.Position = hostPosition;
+    }
+
+    public void ClearMusicVideo()
+    {
+        MusicVideoMedia.Stop();
+        MusicVideoMedia.Source = null;
+        MusicVideoMedia.Visibility = Visibility.Collapsed;
+        _musicVideoPlaying = false;
+        UpdateOverlayLayerVisibility();
+    }
+
+    private void MusicVideo_Ended(object sender, RoutedEventArgs e) => ClearMusicVideo();
+    private void MusicVideo_Failed(object sender, ExceptionRoutedEventArgs e) => ClearMusicVideo();
 
     private void Position(OverlayPosition p)
     {

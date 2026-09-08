@@ -26,6 +26,7 @@ public partial class MainWindow : Window
     private const string SearchSongBatchDataFormat = "HazzSearchSongBatch";
     private const string SideListQueueBatchDataFormat = "HazzSideListQueueBatch";
     private const double KaraokePlaybackVolume = 0.9;
+    private const double KaraokeStopHandoffSeconds = 1.5;
     private readonly HazzDatabase _db = new();
     private readonly ILibraryRepository _library;
     private readonly ILibraryImportService _libraryImporter;
@@ -62,9 +63,14 @@ public partial class MainWindow : Window
     private bool _crossfadeActive;
     private bool _musicFadeOutForKaraoke;
     private bool _musicFadeInResume;
+    private double _musicResumeFadeSeconds = 4.0;
     private bool _musicSuspendedForKaraoke;
     private bool _deck1Paused;
     private bool _deck2Paused;
+    private TimeSpan _deck1PausedPosition;
+    private TimeSpan _deck2PausedPosition;
+    private bool _deck1SeekDragging;
+    private bool _deck2SeekDragging;
     private bool _quickSearchMusicActive;
     private bool _quickSearchMusicFadeInActive;
     private DateTime _quickSearchMusicTransitionStartedUtc = DateTime.MinValue;
@@ -94,6 +100,7 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _silenceScanCts;
     private string _searchMediaKind = "Karaoke";
     private AudienceWindow? _audience;
+    private MusicDeckId _audienceMusicVideoDeck = MusicDeckId.None;
     private MusicArchiveWindow? _musicArchiveWindow;
     private ImportProgressWindow? _bpmImportProgressWindow;
     private LibraryBrowserWindow? _libraryBrowserWindow;
@@ -754,17 +761,23 @@ public partial class MainWindow : Window
             AutoCrossfadeCheck.IsEnabled = false;
             CrossfadeSecondsSlider.IsEnabled = false;
             FadeNowButton.IsEnabled = false;
+            DeckBPlayerControlsPanel.Visibility = Visibility.Collapsed;
+            DeckBSideListControlsPanel.Visibility = Visibility.Visible;
+            DeckBPlaylistFooter.Visibility = Visibility.Collapsed;
             DeckBPlayerRow.MinHeight = 0;
-            DeckBPlayerRow.Height = new GridLength(0);
+            DeckBPlayerRow.Height = GridLength.Auto;
             DeckBSplitterRow.Height = new GridLength(0);
             DeckBSplitter.Visibility = Visibility.Collapsed;
-            DeckBPlaylistHeading.Text = "MUSIC SIDE LIST • DRAG TRACKS TO DECK 1";
-            DeckBSideAddFilesButton.Visibility = Visibility.Visible;
+            DeckBPlaylistHeading.Text = "MUSIC SIDE LIST";
+            DeckBSideAddFilesButton.Visibility = Visibility.Collapsed;
             SearchAddDeck2Button.Content = "ADD TO SIDE LIST";
             DeckBPlaylist.ToolTip = "Holding list: select and drag tracks into Deck 1. Delete or Remove Selected removes them from this list.";
         }
         else
         {
+            DeckBPlayerControlsPanel.Visibility = Visibility.Visible;
+            DeckBSideListControlsPanel.Visibility = Visibility.Collapsed;
+            DeckBPlaylistFooter.Visibility = Visibility.Visible;
             DeckBPlayerRow.MinHeight = 145;
             DeckBPlayerRow.Height = new GridLength(Math.Max(145, _deckBPlayerHeightBeforeSideList));
             DeckBSplitterRow.Height = new GridLength(8);
@@ -1135,21 +1148,35 @@ public partial class MainWindow : Window
         var now = DateTime.UtcNow;
         if (!force && (now - _lastTimelineUiUtc).TotalMilliseconds < 180) return;
         _lastTimelineUiUtc = now;
-        UpdateMediaTime(DeckAMedia, DeckATimeText, DeckAProgress);
-        UpdateMediaTime(DeckBMedia, DeckBTimeText, DeckBProgress);
+        UpdateMediaTime(DeckAMedia, DeckATimeText, DeckAProgress, _deck1SeekDragging);
+        UpdateMediaTime(DeckBMedia, DeckBTimeText, DeckBProgress, _deck2SeekDragging);
 
         var karaokeTotal = MediaDuration(KaraokeMedia);
         if (karaokeTotal <= TimeSpan.Zero && _pitchAudio.TotalTime > TimeSpan.Zero) karaokeTotal = _pitchAudio.TotalTime;
         UpdateTimeText(KaraokeMedia.Position, karaokeTotal, KaraokeTimeText, KaraokeProgress);
     }
 
-    private static void UpdateMediaTime(MediaElement media, TextBlock text, ProgressBar progress)
-        => UpdateTimeText(media.Position, MediaDuration(media), text, progress);
+    private static void UpdateMediaTime(MediaElement media, TextBlock text, Slider seek, bool dragging)
+    {
+        var position = media.Position;
+        var total = MediaDuration(media);
+        UpdateTimeTextOnly(position, total, text);
+        if (dragging) return;
+        seek.Maximum = Math.Max(1.0, total.TotalSeconds);
+        seek.Value = total > TimeSpan.Zero ? Math.Clamp(position.TotalSeconds, 0.0, total.TotalSeconds) : 0.0;
+        seek.IsEnabled = total > TimeSpan.Zero;
+    }
 
     private static TimeSpan MediaDuration(MediaElement media)
         => media.NaturalDuration.HasTimeSpan ? media.NaturalDuration.TimeSpan : TimeSpan.Zero;
 
     private static void UpdateTimeText(TimeSpan position, TimeSpan total, TextBlock text, ProgressBar progress)
+    {
+        UpdateTimeTextOnly(position, total, text);
+        progress.Value = total > TimeSpan.Zero ? Math.Clamp(position.TotalSeconds / total.TotalSeconds, 0.0, 1.0) : 0.0;
+    }
+
+    private static void UpdateTimeTextOnly(TimeSpan position, TimeSpan total, TextBlock text)
     {
         if (position < TimeSpan.Zero) position = TimeSpan.Zero;
         if (total > TimeSpan.Zero && position > total) position = total;
@@ -1157,7 +1184,56 @@ public partial class MainWindow : Window
         text.Text = total > TimeSpan.Zero
             ? $"ELAPSED {FormatPlayerTime(position)}  •  REMAINING {FormatPlayerTime(remaining)}  •  TOTAL {FormatPlayerTime(total)}"
             : $"ELAPSED {FormatPlayerTime(position)}  •  REMAINING --:--  •  TOTAL --:--";
-        progress.Value = total > TimeSpan.Zero ? Math.Clamp(position.TotalSeconds / total.TotalSeconds, 0.0, 1.0) : 0.0;
+    }
+
+    private void MusicSeek_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(sender, DeckAProgress)) _deck1SeekDragging = true;
+        else if (ReferenceEquals(sender, DeckBProgress)) _deck2SeekDragging = true;
+    }
+
+    private void MusicSeek_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not Slider slider) return;
+        var deck = ReferenceEquals(slider, DeckAProgress) ? MusicDeckId.Deck1 : MusicDeckId.Deck2;
+        if (deck == MusicDeckId.Deck1) _deck1SeekDragging = false;
+        else _deck2SeekDragging = false;
+        SeekMusicDeck(deck, slider.Value);
+    }
+
+    private void MusicSeek_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (sender is not Slider slider) return;
+        var isDeck1 = ReferenceEquals(slider, DeckAProgress);
+        if (!(isDeck1 ? _deck1SeekDragging : _deck2SeekDragging)) return;
+        var media = isDeck1 ? DeckAMedia : DeckBMedia;
+        var text = isDeck1 ? DeckATimeText : DeckBTimeText;
+        UpdateTimeTextOnly(TimeSpan.FromSeconds(slider.Value), MediaDuration(media), text);
+    }
+
+    private void MusicSeek_KeyUp(object sender, KeyEventArgs e)
+    {
+        if (sender is not Slider slider || e.Key is not (Key.Left or Key.Right or Key.Home or Key.End or Key.PageUp or Key.PageDown)) return;
+        SeekMusicDeck(ReferenceEquals(slider, DeckAProgress) ? MusicDeckId.Deck1 : MusicDeckId.Deck2, slider.Value);
+    }
+
+    private void SeekMusicDeck(MusicDeckId deck, double seconds)
+    {
+        var media = MediaFor(deck);
+        var total = MediaDuration(media);
+        if (CurrentMusicItemFor(deck) is null || total <= TimeSpan.Zero)
+        {
+            UpdateMusicAutomationStatus($"Load and play a track on {DeckName(deck)} before seeking");
+            return;
+        }
+
+        var target = TimeSpan.FromSeconds(Math.Clamp(seconds, 0.0, total.TotalSeconds));
+        media.Position = target;
+        if (IsDeckPaused(deck)) SetPausedPosition(deck, target);
+        if (_audienceMusicVideoDeck == deck && CurrentMusicItemFor(deck) is { } videoItem)
+            _audience?.ShowMusicVideo(videoItem.FilePath, target, !IsDeckPaused(deck));
+        UpdatePlayerTimeDisplays(force: true);
+        UpdateMusicAutomationStatus($"{DeckName(deck)} positioned at {target:hh\\:mm\\:ss\\.fff}");
     }
 
     private static string FormatPlayerTime(TimeSpan value)
@@ -1995,6 +2071,7 @@ public partial class MainWindow : Window
         UpdateAudienceNext();
         ApplyCurrentKaraokeVisualToAudience();
         _audience.SetKaraokeActive(_karaokePresentationActive);
+        ApplyCurrentMusicVideoToAudience();
         if (_kamikazeBannerRequested) _audience.ShowKamikazeBanner();
         return _audience;
     }
@@ -2282,6 +2359,53 @@ public partial class MainWindow : Window
         await LoadKaraokeAsync(dlg.FileName);
     }
 
+    private void KaraokeDeck_DragOver(object sender, DragEventArgs e)
+    {
+        var karaokeRecord = e.Data.GetData(typeof(SongRecord)) as SongRecord;
+        var filePaths = e.Data.GetData(DataFormats.FileDrop) as string[];
+        var supportedFile = filePaths?.FirstOrDefault(IsSupportedKaraokeDropPath);
+        e.Effects = (karaokeRecord is not null && !string.Equals(karaokeRecord.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)) || supportedFile is not null
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private async void KaraokeDeck_Drop(object sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        if (_karaokePlaying || _karaokePresentationActive)
+        {
+            UpdateMusicAutomationStatus("Fade Stop the current karaoke song before loading another track");
+            return;
+        }
+
+        var record = e.Data.GetData(typeof(SongRecord)) as SongRecord;
+        if (record is not null && string.Equals(record.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)) record = null;
+        var path = record?.FilePath;
+        if (string.IsNullOrWhiteSpace(path) && e.Data.GetData(DataFormats.FileDrop) is string[] filePaths)
+            path = filePaths.FirstOrDefault(IsSupportedKaraokeDropPath);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            UpdateMusicAutomationStatus("That item is not a supported karaoke track");
+            return;
+        }
+
+        if (!await LoadKaraokeAsync(path)) return;
+        ClearStartedSingerSongReference();
+        _activeSinger = null;
+        _activeSingerSong = null;
+        _activeSingerSongCheckedOut = false;
+        if (record is not null)
+        {
+            _currentKaraokeRecord = record;
+            KaraokeNowText.Text = string.IsNullOrWhiteSpace(record.Artist) ? record.Title : $"{record.Artist} — {record.Title}";
+        }
+        UpdateMusicAutomationStatus($"Karaoke Deck loaded • {KaraokeNowText.Text}");
+    }
+
+    private static bool IsSupportedKaraokeDropPath(string? path)
+        => !string.IsNullOrWhiteSpace(path) && MediaFileClassifier.Classify(path) != HazzMediaKind.Unknown;
+
     private async Task<bool> LoadKaraokeAsync(string path, bool preserveAlternativeCycle = false)
     {
         if (!preserveAlternativeCycle)
@@ -2534,7 +2658,7 @@ public partial class MainWindow : Window
         {
             KaraokeStopForMusicResume(cancelPendingFade: false);
             RestoreKaraokePlaybackVolume();
-            ResumeMusicAfterKaraoke(forceStart: true);
+            ResumeMusicAfterKaraoke(forceStart: true, fadeInSeconds: KaraokeStopHandoffSeconds);
             return;
         }
 
@@ -2557,7 +2681,7 @@ public partial class MainWindow : Window
 
             KaraokeStopForMusicResume(cancelPendingFade: false);
             RestoreKaraokePlaybackVolume();
-            ResumeMusicAfterKaraoke(forceStart: true);
+            ResumeMusicAfterKaraoke(forceStart: true, fadeInSeconds: KaraokeStopHandoffSeconds);
         }
         catch (OperationCanceledException)
         {
@@ -2984,6 +3108,11 @@ public partial class MainWindow : Window
         {
             KaraokeStopForMusicResume();
         }
+        if (IsDeckPaused(deck) && CurrentMusicItemFor(deck) is not null)
+        {
+            ResumePausedMusicDeck(deck);
+            return;
+        }
 
         CancelMusicTransitions();
         _musicSuspendedForKaraoke = false;
@@ -3030,6 +3159,16 @@ public partial class MainWindow : Window
         SetDeckPaused(deck, false);
         SetDeckFadeFactor(deck, fadeFactor);
         media.Play();
+        if (MediaFileClassifier.Classify(item.FilePath) == HazzMediaKind.Video)
+        {
+            _audienceMusicVideoDeck = deck;
+            _audience?.ShowMusicVideo(item.FilePath, TimeSpan.Zero, playing: true);
+        }
+        else if (makeActive)
+        {
+            _audienceMusicVideoDeck = MusicDeckId.None;
+            _audience?.ClearMusicVideo();
+        }
         _ = RecordMusicPlaySafeAsync(deck, item);
         if (makeActive) _activeMusicDeck = deck;
         return true;
@@ -3061,10 +3200,54 @@ public partial class MainWindow : Window
 
     private void PauseDeck(MusicDeckId deck)
     {
-        MediaFor(deck).Pause();
+        var current = CurrentMusicItemFor(deck);
+        if (current is null)
+        {
+            UpdateMusicAutomationStatus($"{DeckName(deck)} has no playing track to pause");
+            return;
+        }
+
+        if (IsDeckPaused(deck))
+        {
+            ResumePausedMusicDeck(deck);
+            return;
+        }
+
+        var media = MediaFor(deck);
+        SetPausedPosition(deck, media.Position);
+        media.Pause();
         SetDeckPaused(deck, true);
-        UpdateMusicAutomationStatus($"{DeckName(deck)} paused");
+        if (_audienceMusicVideoDeck == deck) _audience?.PauseMusicVideo();
+        UpdateMusicAutomationStatus($"{DeckName(deck)} paused at {FormatClock(PausedPositionFor(deck))} • press Pause or Play to resume");
     }
+
+    private void ResumePausedMusicDeck(MusicDeckId deck)
+    {
+        var media = MediaFor(deck);
+        var resumeAt = PausedPositionFor(deck);
+        media.Play();
+        if (resumeAt > TimeSpan.Zero) media.Position = resumeAt;
+        SetDeckPaused(deck, false);
+        if (CurrentMusicItemFor(deck) is { } item && MediaFileClassifier.Classify(item.FilePath) == HazzMediaKind.Video)
+        {
+            _audienceMusicVideoDeck = deck;
+            _audience?.ShowMusicVideo(item.FilePath, resumeAt, playing: true);
+        }
+        _activeMusicDeck = deck;
+        UpdateMusicAutomationStatus($"{DeckName(deck)} resumed at {FormatClock(resumeAt)}");
+    }
+
+    private TimeSpan PausedPositionFor(MusicDeckId deck)
+        => deck == MusicDeckId.Deck1 ? _deck1PausedPosition : _deck2PausedPosition;
+
+    private void SetPausedPosition(MusicDeckId deck, TimeSpan position)
+    {
+        if (deck == MusicDeckId.Deck1) _deck1PausedPosition = position;
+        else if (deck == MusicDeckId.Deck2) _deck2PausedPosition = position;
+    }
+
+    private static string FormatClock(TimeSpan time)
+        => time.TotalHours >= 1 ? time.ToString(@"h\:mm\:ss") : time.ToString(@"m\:ss");
 
     private void StopDeckFromButton(MusicDeckId deck)
     {
@@ -3200,6 +3383,8 @@ public partial class MainWindow : Window
         UpdatePlayerTimeDisplays();
         UpdateDeckLedDisplays();
         UpdateIlluminatedButtons();
+        if (_audienceMusicVideoDeck != MusicDeckId.None && !_karaokePresentationActive && !IsDeckPaused(_audienceMusicVideoDeck))
+            _audience?.SyncMusicVideo(MediaFor(_audienceMusicVideoDeck).Position);
         if (_karaokeOnlyMode) return;
         if (_quickSearchMusicFadeInActive)
         {
@@ -3225,7 +3410,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_musicSuspendedForKaraoke || AutoCrossfadeCheck?.IsChecked != true || _activeMusicDeck == MusicDeckId.None)
+        if (_musicSuspendedForKaraoke || AutoCrossfadeCheck?.IsChecked != true || _activeMusicDeck == MusicDeckId.None || IsDeckPaused(_activeMusicDeck))
             return;
 
         TryBeginAutomaticCrossfade();
@@ -3372,6 +3557,7 @@ public partial class MainWindow : Window
         }
 
         if (_activeMusicDeck != deck) return;
+        ClearMusicVideoForDeck(deck);
         SetDeckFadeFactor(deck, 0.0);
         AdvanceCompletedMusicItem(deck);
 
@@ -3406,6 +3592,7 @@ public partial class MainWindow : Window
     private void HandleMusicDeckFailed(MusicDeckId deck, Exception? error)
     {
         if (_musicSuspendedForKaraoke) return;
+        ClearMusicVideoForDeck(deck);
         BrokenMediaRegistry.Mark((deck == MusicDeckId.Deck1 ? _deck1CurrentItem : _deck2CurrentItem)?.FilePath, error?.Message ?? "Music playback failed");
         UpdateMusicAutomationStatus($"{DeckName(deck)} playback error");
         MessageBox.Show(error?.Message ?? $"{DeckName(deck)} could not play that file with the installed Windows codecs.",
@@ -3522,7 +3709,7 @@ public partial class MainWindow : Window
         UpdateMusicAutomationStatus("Karaoke playing • music queued for return");
     }
 
-    private void ResumeMusicAfterKaraoke(bool forceStart = false)
+    private void ResumeMusicAfterKaraoke(bool forceStart = false, double? fadeInSeconds = null)
     {
         if (_karaokeOnlyMode)
         {
@@ -3567,17 +3754,18 @@ public partial class MainWindow : Window
         }
 
         _musicSuspendedForKaraoke = false;
+        _musicResumeFadeSeconds = Math.Max(0.1, fadeInSeconds ?? CrossfadeSeconds);
         _musicFadeInResume = true;
         _musicTransitionStartedUtc = DateTime.UtcNow;
         _resumeMusicDeck = MusicDeckId.None;
         _resumeMusicIndex = -1;
         _resumeMusicItem = null;
-        UpdateMusicAutomationStatus($"Resuming with {DeckName(deck)}");
+        UpdateMusicAutomationStatus($"Resuming with {DeckName(deck)} • {_musicResumeFadeSeconds:0.0}s fade in");
     }
 
     private void UpdateMusicFadeInResume()
     {
-        var progress = TransitionProgress();
+        var progress = Math.Clamp((DateTime.UtcNow - _musicTransitionStartedUtc).TotalSeconds / _musicResumeFadeSeconds, 0.0, 1.0);
         if (_activeMusicDeck != MusicDeckId.None) SetDeckFadeFactor(_activeMusicDeck, progress);
         if (progress < 1.0) return;
         _musicFadeInResume = false;
@@ -3600,15 +3788,48 @@ public partial class MainWindow : Window
     {
         if (deck == MusicDeckId.None) return;
         MediaFor(deck).Stop();
+        ClearMusicVideoForDeck(deck);
         var current = CurrentMusicItemFor(deck);
         if (current is not null) current.IsNowPlaying = false;
         SetDeckPaused(deck, false);
     }
 
+    private void ApplyCurrentMusicVideoToAudience()
+    {
+        if (_audience is null) return;
+        var deck = _audienceMusicVideoDeck != MusicDeckId.None ? _audienceMusicVideoDeck : _activeMusicDeck;
+        var item = CurrentMusicItemFor(deck);
+        if (deck != MusicDeckId.None && item is not null && MediaFileClassifier.Classify(item.FilePath) == HazzMediaKind.Video)
+        {
+            _audienceMusicVideoDeck = deck;
+            _audience.ShowMusicVideo(item.FilePath, MediaFor(deck).Position, !IsDeckPaused(deck));
+            return;
+        }
+        _audienceMusicVideoDeck = MusicDeckId.None;
+        _audience.ClearMusicVideo();
+    }
+
+    private void ClearMusicVideoForDeck(MusicDeckId deck)
+    {
+        if (_audienceMusicVideoDeck != deck) return;
+        _audienceMusicVideoDeck = MusicDeckId.None;
+        _audience?.ClearMusicVideo();
+    }
+
     private void SetDeckPaused(MusicDeckId deck, bool paused)
     {
-        if (deck == MusicDeckId.Deck1) _deck1Paused = paused;
-        else if (deck == MusicDeckId.Deck2) _deck2Paused = paused;
+        if (deck == MusicDeckId.Deck1)
+        {
+            _deck1Paused = paused;
+            if (DeckAPauseButton is not null) DeckAPauseButton.Content = paused ? "▶ RESUME" : "Ⅱ PAUSE";
+            if (!paused) _deck1PausedPosition = TimeSpan.Zero;
+        }
+        else if (deck == MusicDeckId.Deck2)
+        {
+            _deck2Paused = paused;
+            if (DeckBPauseButton is not null) DeckBPauseButton.Content = paused ? "▶ RESUME" : "Ⅱ PAUSE";
+            if (!paused) _deck2PausedPosition = TimeSpan.Zero;
+        }
     }
 
     private bool IsDeckPaused(MusicDeckId deck)
@@ -3855,7 +4076,7 @@ public partial class MainWindow : Window
 
     private bool HasTracks(MusicDeckId deck) => deck != MusicDeckId.None && PlaylistFor(deck).Items.Count > 0;
     private static MusicDeckId Opposite(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? MusicDeckId.Deck2 : deck == MusicDeckId.Deck2 ? MusicDeckId.Deck1 : MusicDeckId.None;
-    private static string DeckName(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? "Deck 1" : deck == MusicDeckId.Deck2 ? "Deck 2" : "Music";
+    private string DeckName(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? "Deck 1" : deck == MusicDeckId.Deck2 ? (_singleDeckMode ? "Side List" : "Deck 2") : "Music";
 
     private ListBox PlaylistFor(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? DeckAPlaylist : DeckBPlaylist;
     private MediaElement MediaFor(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? DeckAMedia : DeckBMedia;
@@ -4638,6 +4859,104 @@ public partial class MainWindow : Window
         if (e.Key != Key.Delete) return;
         RemoveSelectedMusicTracks(MusicDeckId.Deck2);
         e.Handled = true;
+    }
+
+    private void SideListSelectAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_singleDeckMode) return;
+        DeckBPlaylist.SelectAll();
+        UpdateMusicAutomationStatus(DeckBPlaylist.Items.Count == 0
+            ? "Side List is empty"
+            : $"Side List • selected all {DeckBPlaylist.Items.Count:N0} track(s)");
+    }
+
+    private void SideListMoveUp_Click(object sender, RoutedEventArgs e) => MoveSideListSelection(-1);
+    private void SideListMoveDown_Click(object sender, RoutedEventArgs e) => MoveSideListSelection(1);
+
+    private void MoveSideListSelection(int direction)
+    {
+        if (!_singleDeckMode) return;
+        var selected = DeckBPlaylist.SelectedItems.OfType<MusicQueueItem>().ToHashSet();
+        if (selected.Count == 0)
+        {
+            UpdateMusicAutomationStatus("Select one or more Side List tracks to move");
+            return;
+        }
+
+        if (direction < 0)
+        {
+            for (var index = 1; index < DeckBPlaylist.Items.Count; index++)
+            {
+                var item = DeckBPlaylist.Items[index] as MusicQueueItem;
+                var previous = DeckBPlaylist.Items[index - 1] as MusicQueueItem;
+                if (item is null || previous is null || !selected.Contains(item) || selected.Contains(previous)) continue;
+                DeckBPlaylist.Items.RemoveAt(index);
+                DeckBPlaylist.Items.Insert(index - 1, item);
+            }
+        }
+        else
+        {
+            for (var index = DeckBPlaylist.Items.Count - 2; index >= 0; index--)
+            {
+                var item = DeckBPlaylist.Items[index] as MusicQueueItem;
+                var next = DeckBPlaylist.Items[index + 1] as MusicQueueItem;
+                if (item is null || next is null || !selected.Contains(item) || selected.Contains(next)) continue;
+                DeckBPlaylist.Items.RemoveAt(index);
+                DeckBPlaylist.Items.Insert(index + 1, item);
+            }
+        }
+
+        RenumberPlaylist(DeckBPlaylist);
+        RecalculateMusicDeckOrder(MusicDeckId.Deck2);
+        DeckBPlaylist.SelectedItems.Clear();
+        foreach (var item in DeckBPlaylist.Items.OfType<MusicQueueItem>().Where(selected.Contains))
+            DeckBPlaylist.SelectedItems.Add(item);
+        if (DeckBPlaylist.SelectedItems.Count > 0) DeckBPlaylist.ScrollIntoView(DeckBPlaylist.SelectedItems[0]);
+        MarkMusicDeckQueuesDirty();
+        UpdateMusicAutomationStatus($"Side List • moved {selected.Count:N0} track(s) {(direction < 0 ? "up" : "down")}");
+    }
+
+    private void SideListSendToDeck1_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_singleDeckMode) return;
+        var selected = DeckBPlaylist.Items.OfType<MusicQueueItem>()
+            .Where(item => DeckBPlaylist.SelectedItems.Contains(item))
+            .ToArray();
+        if (selected.Length == 0)
+        {
+            UpdateMusicAutomationStatus("Select one or more Side List tracks to send to Deck 1");
+            return;
+        }
+
+        foreach (var item in selected) DeckBPlaylist.Items.Remove(item);
+        foreach (var item in selected) DeckAPlaylist.Items.Add(item);
+        RenumberPlaylist(DeckBPlaylist);
+        RenumberPlaylist(DeckAPlaylist);
+        RecalculateMusicDeckOrder(MusicDeckId.Deck2);
+        RecalculateMusicDeckOrder(MusicDeckId.Deck1);
+        DeckAPlaylist.SelectedItems.Clear();
+        foreach (var item in selected) DeckAPlaylist.SelectedItems.Add(item);
+        DeckAPlaylist.ScrollIntoView(selected[0]);
+        MarkMusicDeckQueuesDirty();
+        UpdateMusicAutomationStatus($"Moved {selected.Length:N0} track(s) from the Side List to Deck 1");
+    }
+
+    private void SideListClear_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_singleDeckMode) return;
+        if (DeckBPlaylist.Items.Count == 0)
+        {
+            UpdateMusicAutomationStatus("Side List is already empty");
+            return;
+        }
+        if (MessageBox.Show(this,
+                $"Remove all {DeckBPlaylist.Items.Count:N0} tracks from the Side List?\n\nNo music files will be deleted.",
+                "Clear Side List", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+
+        DeckBPlaylist.Items.Clear();
+        RecalculateMusicDeckOrder(MusicDeckId.Deck2);
+        MarkMusicDeckQueuesDirty();
+        UpdateMusicAutomationStatus("Side List cleared");
     }
 
     private void RemoveSelectedMusicTracks(MusicDeckId deck)

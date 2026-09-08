@@ -10,6 +10,10 @@
 
   <Image x:Name="SingerBackgroundGif" Panel.ZIndex="2" Stretch="Uniform" Visibility="Collapsed" IsHitTestVisible="False"/>
 
+  <!-- VJ layer: muted mirror of the video playing on a music deck. -->
+  <MediaElement x:Name="MusicVideoMedia" Panel.ZIndex="5" LoadedBehavior="Manual" UnloadedBehavior="Close" Stretch="Uniform"
+                IsMuted="True" Volume="0" Visibility="Collapsed" IsHitTestVisible="False" MediaEnded="MusicVideo_Ended" MediaFailed="MusicVideo_Failed"/>
+
   <!-- Karaoke content layer. -->
   <MediaElement x:Name="AudienceMedia" Panel.ZIndex="10" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" IsMuted="True" Visibility="Collapsed" IsHitTestVisible="False"/>
   <Image x:Name="AudienceCdgImage" Panel.ZIndex="11" Stretch="Uniform" Visibility="Collapsed" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>

@@ -1,0 +1,50 @@
+Hazz Karaoke Hoster v0.17.22
+================================
+
+Single Deck side-list interface
+-------------------------------
+- Single Deck + Side List Mode now hides the complete Deck 2 player panel explicitly, including its title, LED, Play, Pause, Stop, Shuffle, time display, seek control and volume control.
+- Automatic display scaling can no longer make the hidden Deck 2 player reappear.
+- A dedicated side-list control panel replaces the player with Add Files, Load List, Save List, Select All, Move Up, Move Down, Send to Deck 1, Shuffle List, Remove Selected and Clear List.
+- Move and Send actions preserve the order of multi-selected tracks.
+- Clear List confirms the action and never deletes music files or library records.
+- Returning to normal mode restores the complete Deck 2 player and its standard playlist footer.
+
+Music pause and seek
+--------------------
+- Pause now retains the loaded track and its exact playback position.
+- The Pause button changes to Resume while paused.
+- Pressing either Resume or Play continues the same track instead of restarting or consuming it.
+- Automatic crossfade does not advance a deliberately paused deck.
+- Both music players now have a draggable seek slider.
+- The target time is shown while dragging and is applied when the slider is released.
+- Keyboard seeking with arrows, Page Up, Page Down, Home and End is supported.
+- Seeking a paused track updates the saved resume position.
+
+Smooth karaoke-to-music handover
+--------------------------------
+- Fade Stop lowers karaoke audio over 1.5 seconds.
+- Background music then fades in separately over 1.5 seconds.
+- The fixed return fade avoids an instant volume jump regardless of the normal crossfade-time setting.
+
+Direct Karaoke Deck loading
+----------------------------
+- Karaoke search results can be dragged directly onto the Karaoke Deck to load them.
+- Supported ZIP, CDG, audio and video files can be dragged from Windows Explorer onto the Karaoke Deck.
+- A dropped track is loaded for checking and does not begin playing automatically.
+- Music-only search records and unsupported files are rejected.
+- A new drop cannot interrupt karaoke that is already playing; use Fade Stop first.
+
+VJ music-video output
+---------------------
+- Music and video folders can be imported together from the Import menu.
+- When Deck 1 or Deck 2 plays a video file, its picture is mirrored full-screen to the singer/audience display.
+- The audience copy is always muted while the normal music deck supplies the show audio.
+- Play, pause, resume, seek and stop stay synchronized with the music deck.
+- Karaoke playback takes priority automatically; the music video returns when interval music resumes.
+
+Build and compatibility
+-----------------------
+- Version advanced to 0.17.22.
+- Visual Studio 2026 Release x64 single-file publishing remains enabled.
+- Existing v0.17.21 libraries, queues, settings and singer history remain compatible.
