@@ -14,4 +14,12 @@ public interface ILibraryRepository
     Task<(long Karaoke, long Music)> GetLibraryCountsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SongRecord>> GetRandomCandidatesAsync(string mediaKind, int limit = 64, CancellationToken cancellationToken = default);
     Task<LibraryBrowsePage> BrowseAsync(string mediaKind, string? filter, string sortBy, bool descending, int offset, int pageSize = 500, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<VirtualFolder>> GetVirtualFoldersAsync(CancellationToken cancellationToken = default);
+    Task<long> CreateVirtualFolderAsync(string name, long? parentId = null, CancellationToken cancellationToken = default);
+    Task RenameVirtualFolderAsync(long folderId, string name, CancellationToken cancellationToken = default);
+    Task DeleteVirtualFolderAsync(long folderId, CancellationToken cancellationToken = default);
+    Task EmptyVirtualFolderAsync(long folderId, CancellationToken cancellationToken = default);
+    Task AddSongToVirtualFolderAsync(long folderId, long songId, CancellationToken cancellationToken = default);
+    Task RemoveSongFromVirtualFolderAsync(long folderId, long songId, CancellationToken cancellationToken = default);
+    Task<LibraryBrowsePage> BrowseVirtualFolderAsync(long folderId, string mediaKind, string? filter, string sortBy, bool descending, int offset, int pageSize = 500, CancellationToken cancellationToken = default);
 }

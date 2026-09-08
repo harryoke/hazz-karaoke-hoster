@@ -1,4 +1,12 @@
-# Hazz Karaoke Hoster v0.17.23 — Visual Studio 2026
+# Hazz Karaoke Hoster v0.17.24 — Visual Studio 2026
+
+## v0.17.24 — BPM Studio-style virtual folders
+
+The Library Browser now supports persistent named folders and subfolders such as 80s, Rock
+and Jingles. Drag or add tracks into several categories without moving or copying the media files;
+then search, sort and load those folder contents with the normal Hazz controls.
+
+See CHANGES_v0.17.24.txt and Documentation/VIRTUAL_FOLDERS_GUIDE.md.
 
 ## v0.17.23 — Singer entry correction
 

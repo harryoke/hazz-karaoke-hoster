@@ -18,6 +18,7 @@ public sealed class HazzDatabase
             Mode = SqliteOpenMode.ReadWriteCreate,
             Cache = SqliteCacheMode.Shared,
             Pooling = true,
+            ForeignKeys = true,
             DefaultTimeout = 15
         }.ToString();
     }
@@ -170,6 +171,24 @@ CREATE TABLE IF NOT EXISTS song_sources (
     UNIQUE(song_id, source_type, source_path)
 );
 CREATE INDEX IF NOT EXISTS ix_song_sources_source ON song_sources(source_type, source_path);
+
+CREATE TABLE IF NOT EXISTS virtual_folders (
+    id INTEGER PRIMARY KEY,
+    parent_id INTEGER NULL REFERENCES virtual_folders(id) ON DELETE CASCADE,
+    name TEXT NOT NULL COLLATE NOCASE,
+    created_utc TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK(parent_id IS NULL OR parent_id <> id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_virtual_folders_parent_name
+    ON virtual_folders(COALESCE(parent_id, 0), name COLLATE NOCASE);
+
+CREATE TABLE IF NOT EXISTS virtual_folder_songs (
+    folder_id INTEGER NOT NULL REFERENCES virtual_folders(id) ON DELETE CASCADE,
+    song_id INTEGER NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+    added_utc TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(folder_id, song_id)
+);
+CREATE INDEX IF NOT EXISTS ix_virtual_folder_songs_song ON virtual_folder_songs(song_id, folder_id);
 """;
             await command.ExecuteNonQueryAsync(cancellationToken);
         }

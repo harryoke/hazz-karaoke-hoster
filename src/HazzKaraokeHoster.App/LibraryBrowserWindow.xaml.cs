@@ -23,6 +23,9 @@ public partial class LibraryBrowserWindow : Window
     private LibraryBrowsePage? _currentPage;
     private Point _dragStart;
     private SongRecord? _dragSong;
+    private VirtualFolderNode? _selectedFolder;
+    private bool _loadingFolders;
+    private SongRecord[] _pendingFolderSongs = Array.Empty<SongRecord>();
 
     public event EventHandler<SongRecord>? AddToSingerRequested;
     public event EventHandler<LibraryBrowserDeckRequest>? AddToDeckRequested;
@@ -37,7 +40,11 @@ public partial class LibraryBrowserWindow : Window
             _offset = 0;
             await ReloadAsync();
         };
-        Loaded += async (_, _) => await ReloadAsync();
+        Loaded += async (_, _) =>
+        {
+            await ReloadFoldersAsync();
+            await ReloadAsync();
+        };
         Closed += (_, _) =>
         {
             _filterTimer.Stop();
@@ -73,8 +80,8 @@ public partial class LibraryBrowserWindow : Window
         AddDeck1Button.Visibility = karaoke ? Visibility.Collapsed : Visibility.Visible;
         AddDeck2Button.Visibility = karaoke ? Visibility.Collapsed : Visibility.Visible;
         BrowserHint.Text = karaoke
-            ? "Karaoke: drag a track onto a singer in the main window, or select a singer there and use ADD TO SELECTED SINGER."
-            : "Music: use ADD TO DECK 1 / DECK 2, or drag a track directly onto either music playlist in the main window.";
+            ? "Karaoke: drag onto a virtual folder or singer, or use the buttons below. Media files are never moved."
+            : "Music: drag onto a virtual folder or music deck, or use the buttons below. Media files are never moved.";
     }
 
     private void FilterBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -113,16 +120,19 @@ public partial class LibraryBrowserWindow : Window
         StatusText.Text = $"Loading {_mediaKind.ToLowerInvariant()} library...";
         try
         {
-            var page = await _library.BrowseAsync(_mediaKind, FilterBox.Text, SelectedSort(), DescendingCheck.IsChecked == true, _offset, PageSize, token);
+            var page = _selectedFolder is null
+                ? await _library.BrowseAsync(_mediaKind, FilterBox.Text, SelectedSort(), DescendingCheck.IsChecked == true, _offset, PageSize, token)
+                : await _library.BrowseVirtualFolderAsync(_selectedFolder.Id, _mediaKind, FilterBox.Text, SelectedSort(), DescendingCheck.IsChecked == true, _offset, PageSize, token);
             if (token.IsCancellationRequested) return;
             _currentPage = page;
             _offset = page.Offset;
             LibraryGrid.ItemsSource = page.Items;
             PageBox.Text = page.PageNumber.ToString();
             PageStatusText.Text = $"of {page.PageCount:N0} • {page.TotalCount:N0} tracks";
+            var location = _selectedFolder is null ? "the complete library" : $"virtual folder '{_selectedFolder.Name}'";
             StatusText.Text = page.TotalCount == 0
-                ? $"No {_mediaKind.ToLowerInvariant()} tracks match this filter."
-                : $"Showing {page.Offset + 1:N0}–{page.Offset + page.Items.Count:N0} of {page.TotalCount:N0}. Only {PageSize:N0} rows are held in memory.";
+                ? $"No {_mediaKind.ToLowerInvariant()} tracks match in {location}."
+                : $"Showing {page.Offset + 1:N0}–{page.Offset + page.Items.Count:N0} of {page.TotalCount:N0} in {location}. Only {PageSize:N0} rows are held in memory.";
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
@@ -189,7 +199,11 @@ public partial class LibraryBrowserWindow : Window
         if (Math.Abs(p.X - _dragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
             Math.Abs(p.Y - _dragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
         var song = _dragSong;
-        DragDrop.DoDragDrop(LibraryGrid, new DataObject(typeof(SongRecord), song), DragDropEffects.Copy);
+        var selected = LibraryGrid.SelectedItems.OfType<SongRecord>().ToArray();
+        if (!selected.Contains(song)) selected = new[] { song };
+        var data = new DataObject(typeof(SongRecord), song);
+        data.SetData(typeof(SongRecord[]), selected);
+        DragDrop.DoDragDrop(LibraryGrid, data, DragDropEffects.Copy);
         _dragSong = null;
     }
 
@@ -202,6 +216,187 @@ public partial class LibraryBrowserWindow : Window
         _ = ReloadAsync();
         e.Handled = true;
     }
+
+    private async Task ReloadFoldersAsync(long? selectFolderId = null)
+    {
+        var wanted = selectFolderId ?? _selectedFolder?.Id;
+        _loadingFolders = true;
+        try
+        {
+            var folders = await _library.GetVirtualFoldersAsync();
+            var nodes = folders.ToDictionary(x => x.Id, x => new VirtualFolderNode
+            {
+                Id = x.Id,
+                ParentId = x.ParentId,
+                Name = x.Name,
+                TrackCount = x.TrackCount,
+                IsSelected = x.Id == wanted
+            });
+            var roots = new List<VirtualFolderNode>();
+            foreach (var folder in folders)
+            {
+                var node = nodes[folder.Id];
+                if (folder.ParentId is long parentId && nodes.TryGetValue(parentId, out var parent)) parent.Children.Add(node);
+                else roots.Add(node);
+            }
+            FolderTree.ItemsSource = roots;
+            _selectedFolder = wanted is long id && nodes.TryGetValue(id, out var selected) ? selected : null;
+        }
+        catch (Exception ex)
+        {
+            FolderHint.Text = "Could not load virtual folders: " + ex.Message;
+        }
+        finally { _loadingFolders = false; }
+    }
+
+    private void AllLibrary_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedFolder is not null) _selectedFolder.IsSelected = false;
+        _selectedFolder = null;
+        _offset = 0;
+        FolderHint.Text = "Showing all library tracks. Drag tracks onto a folder to categorise them.";
+        _ = ReloadAsync();
+    }
+
+    private void FolderTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+    {
+        if (_loadingFolders || e.NewValue is not VirtualFolderNode folder) return;
+        _pendingFolderSongs = LibraryGrid.SelectedItems.OfType<SongRecord>().ToArray();
+        _selectedFolder = folder;
+        _offset = 0;
+        FolderHint.Text = $"Showing {folder.Name}. Drop tracks here to add links without moving files.";
+        _ = ReloadAsync();
+    }
+
+    private async void NewFolder_Click(object sender, RoutedEventArgs e)
+        => await CreateFolderAsync(null, "New Virtual Folder", "Folder name (for example: 80s, Rock or Jingles):");
+
+    private async void NewSubfolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedFolder is null)
+        {
+            MessageBox.Show(this, "Select a parent folder first.", "New Subfolder", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        await CreateFolderAsync(_selectedFolder.Id, "New Virtual Subfolder", $"New folder inside {_selectedFolder.Name}:");
+    }
+
+    private async Task CreateFolderAsync(long? parentId, string title, string prompt)
+    {
+        var dialog = new VirtualFolderNameDialog(title, prompt) { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+        try
+        {
+            var id = await _library.CreateVirtualFolderAsync(dialog.FolderName, parentId);
+            await ReloadFoldersAsync(id);
+            _offset = 0;
+            await ReloadAsync();
+            FolderHint.Text = $"Created virtual folder '{dialog.FolderName}'.";
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, title, MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+
+    private async void RenameFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedFolder is null) return;
+        var id = _selectedFolder.Id;
+        var dialog = new VirtualFolderNameDialog("Rename Virtual Folder", "New folder name:", _selectedFolder.Name) { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+        try
+        {
+            await _library.RenameVirtualFolderAsync(id, dialog.FolderName);
+            await ReloadFoldersAsync(id);
+            FolderHint.Text = $"Renamed folder to '{dialog.FolderName}'.";
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Rename Virtual Folder", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+
+    private async void EmptyFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedFolder is null) return;
+        if (MessageBox.Show(this, $"Remove every track link directly inside '{_selectedFolder.Name}'?\n\nNo media files will be deleted.",
+                "Empty Virtual Folder", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        await _library.EmptyVirtualFolderAsync(_selectedFolder.Id);
+        await ReloadFoldersAsync(_selectedFolder.Id);
+        _offset = 0;
+        await ReloadAsync();
+    }
+
+    private async void DeleteFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedFolder is null) return;
+        var name = _selectedFolder.Name;
+        if (MessageBox.Show(this, $"Delete virtual folder '{name}' and its subfolders?\n\nNo media files will be deleted.",
+                "Delete Virtual Folder", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        await _library.DeleteVirtualFolderAsync(_selectedFolder.Id);
+        _selectedFolder = null;
+        await ReloadFoldersAsync();
+        _offset = 0;
+        await ReloadAsync();
+        FolderHint.Text = $"Deleted virtual folder '{name}'. The media files were not changed.";
+    }
+
+    private async void AddSelectedToFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedFolder is null)
+        {
+            MessageBox.Show(this, "Select a virtual folder first.", "Add to Virtual Folder", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        var selected = LibraryGrid.SelectedItems.OfType<SongRecord>().ToArray();
+        if (selected.Length == 0 && LibraryGrid.SelectedItem is SongRecord one) selected = new[] { one };
+        if (selected.Length == 0) selected = _pendingFolderSongs;
+        if (selected.Length == 0) return;
+        foreach (var song in selected) await _library.AddSongToVirtualFolderAsync(_selectedFolder.Id, song.Id);
+        _pendingFolderSongs = Array.Empty<SongRecord>();
+        FolderHint.Text = $"Added {selected.Length:N0} track(s) to {_selectedFolder.Name}.";
+        await ReloadFoldersAsync(_selectedFolder.Id);
+        await ReloadAsync();
+    }
+
+    private async void RemoveFromFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedFolder is null)
+        {
+            MessageBox.Show(this, "Open a virtual folder before removing track links.", "Remove from Folder", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        var selected = LibraryGrid.SelectedItems.OfType<SongRecord>().ToArray();
+        if (selected.Length == 0 && LibraryGrid.SelectedItem is SongRecord one) selected = new[] { one };
+        foreach (var song in selected) await _library.RemoveSongFromVirtualFolderAsync(_selectedFolder.Id, song.Id);
+        FolderHint.Text = $"Removed {selected.Length:N0} track(s) from {_selectedFolder.Name}. Media files were not changed.";
+        await ReloadFoldersAsync(_selectedFolder.Id);
+        await ReloadAsync();
+    }
+
+    private void FolderTree_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = (e.Data.GetDataPresent(typeof(SongRecord)) || e.Data.GetDataPresent(typeof(SongRecord[]))) && FindFolderAt(e.OriginalSource as DependencyObject) is not null
+            ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private async void FolderTree_Drop(object sender, DragEventArgs e)
+    {
+        if (FindFolderAt(e.OriginalSource as DependencyObject) is not VirtualFolderNode folder) return;
+        var songs = e.Data.GetData(typeof(SongRecord[])) as SongRecord[];
+        if (songs is null || songs.Length == 0)
+            songs = e.Data.GetData(typeof(SongRecord)) is SongRecord one ? new[] { one } : Array.Empty<SongRecord>();
+        if (songs.Length == 0) return;
+        try
+        {
+            foreach (var song in songs) await _library.AddSongToVirtualFolderAsync(folder.Id, song.Id);
+            FolderHint.Text = songs.Length == 1
+                ? $"Added {songs[0].Artist} - {songs[0].Title} to {folder.Name}."
+                : $"Added {songs.Length:N0} tracks to {folder.Name}.";
+            await ReloadFoldersAsync(folder.Id);
+            if (_selectedFolder?.Id == folder.Id) await ReloadAsync();
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Add to Virtual Folder", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+
+    private static VirtualFolderNode? FindFolderAt(DependencyObject? source)
+        => FindVisualParent<TreeViewItem>(source)?.DataContext as VirtualFolderNode;
 
     private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
     {

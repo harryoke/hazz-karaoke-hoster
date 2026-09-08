@@ -225,6 +225,160 @@ LIMIT $limit OFFSET $offset;
         return new LibraryBrowsePage(items, total, offset, pageSize);
     }
 
+    public async Task<IReadOnlyList<VirtualFolder>> GetVirtualFoldersAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(database.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+SELECT f.id, f.parent_id, f.name, COUNT(fs.song_id)
+FROM virtual_folders f
+LEFT JOIN virtual_folder_songs fs ON fs.folder_id=f.id
+GROUP BY f.id, f.parent_id, f.name
+ORDER BY f.name COLLATE NOCASE, f.id;
+""";
+        var result = new List<VirtualFolder>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+            result.Add(new VirtualFolder(reader.GetInt64(0), reader.IsDBNull(1) ? null : reader.GetInt64(1), reader.GetString(2), reader.GetInt64(3)));
+        return result;
+    }
+
+    public async Task<long> CreateVirtualFolderAsync(string name, long? parentId = null, CancellationToken cancellationToken = default)
+    {
+        name = ValidateVirtualFolderName(name);
+        await using var connection = new SqliteConnection(database.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "INSERT INTO virtual_folders(parent_id,name) VALUES($parent,$name) RETURNING id;";
+        command.Parameters.AddWithValue("$parent", parentId ?? (object)DBNull.Value);
+        command.Parameters.AddWithValue("$name", name);
+        try { return Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken)); }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+        { throw new InvalidOperationException($"A folder named '{name}' already exists here.", ex); }
+    }
+
+    public async Task RenameVirtualFolderAsync(long folderId, string name, CancellationToken cancellationToken = default)
+    {
+        name = ValidateVirtualFolderName(name);
+        await using var connection = new SqliteConnection(database.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE virtual_folders SET name=$name WHERE id=$id;";
+        command.Parameters.AddWithValue("$id", folderId);
+        command.Parameters.AddWithValue("$name", name);
+        try
+        {
+            if (await command.ExecuteNonQueryAsync(cancellationToken) == 0)
+                throw new InvalidOperationException("The selected virtual folder no longer exists.");
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+        { throw new InvalidOperationException($"A folder named '{name}' already exists here.", ex); }
+    }
+
+    public async Task DeleteVirtualFolderAsync(long folderId, CancellationToken cancellationToken = default)
+        => await ExecuteFolderCommandAsync("DELETE FROM virtual_folders WHERE id=$id;", folderId, cancellationToken);
+
+    public async Task EmptyVirtualFolderAsync(long folderId, CancellationToken cancellationToken = default)
+        => await ExecuteFolderCommandAsync("DELETE FROM virtual_folder_songs WHERE folder_id=$id;", folderId, cancellationToken);
+
+    public async Task AddSongToVirtualFolderAsync(long folderId, long songId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(database.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "INSERT OR IGNORE INTO virtual_folder_songs(folder_id,song_id) VALUES($folder,$song);";
+        command.Parameters.AddWithValue("$folder", folderId);
+        command.Parameters.AddWithValue("$song", songId);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task RemoveSongFromVirtualFolderAsync(long folderId, long songId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(database.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM virtual_folder_songs WHERE folder_id=$folder AND song_id=$song;";
+        command.Parameters.AddWithValue("$folder", folderId);
+        command.Parameters.AddWithValue("$song", songId);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<LibraryBrowsePage> BrowseVirtualFolderAsync(
+        long folderId, string mediaKind, string? filter, string sortBy, bool descending,
+        int offset, int pageSize = 500, CancellationToken cancellationToken = default)
+    {
+        mediaKind = string.Equals(mediaKind, "Music", StringComparison.OrdinalIgnoreCase) ? "Music" : "Karaoke";
+        filter = (filter ?? string.Empty).Trim();
+        offset = Math.Max(0, offset);
+        pageSize = Math.Clamp(pageSize, 50, 1000);
+        var direction = descending ? "DESC" : "ASC";
+        var orderBy = (sortBy ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "title" => $"s.title COLLATE NOCASE {direction}, s.artist COLLATE NOCASE {direction}, s.id {direction}",
+            "manufacturer" => $"s.manufacturer COLLATE NOCASE {direction}, s.artist COLLATE NOCASE {direction}, s.title COLLATE NOCASE {direction}, s.id {direction}",
+            "dateadded" => $"s.date_added {direction}, s.id {direction}",
+            _ => $"s.artist COLLATE NOCASE {direction}, s.title COLLATE NOCASE {direction}, s.id {direction}"
+        };
+        var hasFilter = filter.Length > 0;
+        var fts = hasFilter
+            ? string.Join(" AND ", filter.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(t => t.Replace("\"", "\"\"") + "*"))
+            : string.Empty;
+        var fromAndWhere = hasFilter
+            ? "FROM songs_fts f JOIN songs s ON s.id=f.rowid JOIN virtual_folder_songs vf ON vf.song_id=s.id WHERE vf.folder_id=$folder AND songs_fts MATCH $filter AND s.media_kind=$kind"
+            : "FROM songs s JOIN virtual_folder_songs vf ON vf.song_id=s.id WHERE vf.folder_id=$folder AND s.media_kind=$kind";
+
+        await using var connection = new SqliteConnection(database.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        long total;
+        await using (var count = connection.CreateCommand())
+        {
+            count.CommandText = $"SELECT COUNT(*) {fromAndWhere};";
+            count.Parameters.AddWithValue("$folder", folderId);
+            count.Parameters.AddWithValue("$kind", mediaKind);
+            if (hasFilter) count.Parameters.AddWithValue("$filter", fts);
+            total = Convert.ToInt64(await count.ExecuteScalarAsync(cancellationToken));
+        }
+        if (total == 0) return new LibraryBrowsePage(Array.Empty<SongRecord>(), 0, 0, pageSize);
+        if (offset >= total) offset = (int)Math.Max(0, ((total - 1) / pageSize) * pageSize);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"""
+SELECT s.id, s.artist, s.title, s.manufacturer, s.disc_id, s.file_path, s.format,
+       s.file_size, s.date_added, s.cdg_sync_seconds, s.preferred_key, s.media_kind
+{fromAndWhere}
+ORDER BY {orderBy}
+LIMIT $limit OFFSET $offset;
+""";
+        command.Parameters.AddWithValue("$folder", folderId);
+        command.Parameters.AddWithValue("$kind", mediaKind);
+        if (hasFilter) command.Parameters.AddWithValue("$filter", fts);
+        command.Parameters.AddWithValue("$limit", pageSize);
+        command.Parameters.AddWithValue("$offset", offset);
+        var items = new List<SongRecord>(pageSize);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken)) items.Add(ReadSong(reader));
+        return new LibraryBrowsePage(items, total, offset, pageSize);
+    }
+
+    private async Task ExecuteFolderCommandAsync(string sql, long folderId, CancellationToken cancellationToken)
+    {
+        await using var connection = new SqliteConnection(database.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("$id", folderId);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static string ValidateVirtualFolderName(string name)
+    {
+        name = (name ?? string.Empty).Trim();
+        if (name.Length == 0) throw new ArgumentException("Folder name cannot be blank.", nameof(name));
+        if (name.Length > 80) throw new ArgumentException("Folder names can contain up to 80 characters.", nameof(name));
+        return name;
+    }
+
     public async Task<IReadOnlyList<SongRecord>> GetRandomCandidatesAsync(
         string mediaKind,
         int limit = 64,

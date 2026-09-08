@@ -1,0 +1,18 @@
+Hazz Karaoke Hoster v0.17.24
+
+BPM STUDIO-STYLE VIRTUAL FOLDERS
+
+- The Library Browser now has persistent named virtual folders for categories such as
+  80s, Rock, Party, Slow Songs or Jingles.
+- Virtual folders may contain subfolders.
+- Create, rename, empty and delete folders from the new folder panel.
+- Drag a library track onto a folder, or select several tracks and press ADD SELECTED.
+- One track may be linked to several virtual folders without creating duplicate media.
+- Selecting a folder shows its tracks through the existing fast paged library browser.
+- Search, sort, Karaoke/Music mode, add-to-singer and add-to-deck actions work within folders.
+- REMOVE FROM FOLDER removes only the virtual link.
+- Emptying or deleting a virtual folder never deletes or moves the underlying media files.
+- Folder names and memberships are kept in the Hazz database and survive restarts.
+- Database indexes keep large folder collections responsive.
+
+All v0.17.23 and earlier features, settings, libraries, queues and singer history remain compatible.
