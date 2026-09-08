@@ -1,4 +1,11 @@
-# Hazz Karaoke Hoster v0.17.25 — Visual Studio 2026
+# Hazz Karaoke Hoster v0.17.26 — Visual Studio 2026
+
+## v0.17.26 — Multi-track virtual-folder correction
+
+Select several tracks, press **ADD SELECTED TO FOLDER**, and choose the destination from the new
+folder picker. Nested destinations show their full path, and the complete library remains visible.
+
+See CHANGES_v0.17.26.txt.
 
 ## v0.17.25 — Library Browser contrast correction
 

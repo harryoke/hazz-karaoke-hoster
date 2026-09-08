@@ -111,7 +111,7 @@
      <Button Content="RENAME" Click="RenameFolder_Click"/>
      <Button Content="EMPTY" Click="EmptyFolder_Click" Background="#8A6519"/>
      <Button Content="DELETE" Click="DeleteFolder_Click" Background="#8D3434"/>
-     <Button Content="ADD SELECTED" Click="AddSelectedToFolder_Click" Background="#356F45"/>
+     <Button Content="ADD SELECTED TO FOLDER…" Click="AddSelectedToFolder_Click" Background="#356F45" FontSize="11"/>
     </UniformGrid>
     <TextBlock x:Name="FolderHint" Grid.Row="4" Margin="4,7,4,2" TextWrapping="Wrap" Foreground="#91A6B9"
                Text="Create folders such as 80s, Rock or Jingles. Drag tracks here; their files stay in their original location."/>

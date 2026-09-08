@@ -250,13 +250,14 @@ public partial class LibraryBrowserWindow : Window
         finally { _loadingFolders = false; }
     }
 
-    private void AllLibrary_Click(object sender, RoutedEventArgs e)
+    private async void AllLibrary_Click(object sender, RoutedEventArgs e)
     {
         if (_selectedFolder is not null) _selectedFolder.IsSelected = false;
         _selectedFolder = null;
         _offset = 0;
+        await ReloadFoldersAsync();
         FolderHint.Text = "Showing all library tracks. Drag tracks onto a folder to categorise them.";
-        _ = ReloadAsync();
+        await ReloadAsync();
     }
 
     private void FolderTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
@@ -339,19 +340,27 @@ public partial class LibraryBrowserWindow : Window
 
     private async void AddSelectedToFolder_Click(object sender, RoutedEventArgs e)
     {
-        if (_selectedFolder is null)
-        {
-            MessageBox.Show(this, "Select a virtual folder first.", "Add to Virtual Folder", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
         var selected = LibraryGrid.SelectedItems.OfType<SongRecord>().ToArray();
         if (selected.Length == 0 && LibraryGrid.SelectedItem is SongRecord one) selected = new[] { one };
         if (selected.Length == 0) selected = _pendingFolderSongs;
-        if (selected.Length == 0) return;
-        foreach (var song in selected) await _library.AddSongToVirtualFolderAsync(_selectedFolder.Id, song.Id);
+        if (selected.Length == 0)
+        {
+            MessageBox.Show(this, "Select one or more tracks first.", "Add to Virtual Folder", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        var folders = await _library.GetVirtualFoldersAsync();
+        if (folders.Count == 0)
+        {
+            MessageBox.Show(this, "Create a virtual folder first, then select the tracks you want to add.", "Add to Virtual Folder", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        var picker = new VirtualFolderPickerDialog(folders, _selectedFolder?.Id, selected.Length) { Owner = this };
+        if (picker.ShowDialog() != true || picker.SelectedFolderId is not long folderId) return;
+        foreach (var song in selected) await _library.AddSongToVirtualFolderAsync(folderId, song.Id);
         _pendingFolderSongs = Array.Empty<SongRecord>();
-        FolderHint.Text = $"Added {selected.Length:N0} track(s) to {_selectedFolder.Name}.";
-        await ReloadFoldersAsync(_selectedFolder.Id);
+        var folderName = folders.First(x => x.Id == folderId).Name;
+        FolderHint.Text = $"Added {selected.Length:N0} track(s) to {folderName}.";
+        await ReloadFoldersAsync(_selectedFolder?.Id);
         await ReloadAsync();
     }
 

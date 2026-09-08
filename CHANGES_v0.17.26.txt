@@ -1,0 +1,11 @@
+Hazz Karaoke Hoster v0.17.26
+
+MULTI-TRACK VIRTUAL FOLDER FIX
+
+- Select several library tracks, press ADD SELECTED TO FOLDER, then choose the destination folder.
+- The destination picker shows full nested paths such as 80s > Rock.
+- A folder no longer has to be opened before adding selected tracks.
+- Returning to ALL LIBRARY TRACKS now clears the previous folder selection and highlight.
+- Dragging one or several selected tracks directly onto a folder remains supported.
+
+All v0.17.25 readability improvements and v0.17.24 virtual-folder features remain intact.

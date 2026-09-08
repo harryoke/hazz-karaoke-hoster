@@ -11,7 +11,7 @@ Open **LIBRARY > Browse Library**. The left side of the Library Browser contains
 ## Add tracks
 
 - Drag a track from the library list onto a folder; or
-- select one or several tracks, select the destination folder, and press **ADD SELECTED**.
+- select one or several tracks, press **ADD SELECTED TO FOLDER**, then choose the destination.
 
 The same track can appear in several virtual folders. Hazz stores links to the library entry;
 it does not copy, rename or move the actual karaoke, music or video file.
