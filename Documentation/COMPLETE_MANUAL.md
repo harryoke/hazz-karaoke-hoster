@@ -1,5 +1,49 @@
-# Hazz Karaoke Hoster Complete Manual
+# Hazz Karaoke Hoster Complete Illustrated User Manual
 
+Every screen, button, workflow and live-show function for version 0.17.22.
+
+![Complete console map](Images/figure_console_overview.png)
+
+## Visual guides
+
+![Button colours](Images/diagram_button_colours.png)
+
+![Music deck controls](Images/figure_music_deck_controls.png)
+
+![Karaoke deck controls](Images/figure_karaoke_deck_controls.png)
+
+![Singer queue controls](Images/figure_singer_queue_controls.png)
+
+![Audience settings](Images/figure_audience_settings.png)
+
+![Search routing](Images/diagram_search_dragdrop.png)
+
+![Music modes](Images/diagram_music_modes.png)
+
+![VJ routing](Images/diagram_vj_display.png)
+
+![Smart import](Images/diagram_import_flow.png)
+
+![Recovery](Images/diagram_recovery.png)
+
+## Main control reference
+
+The Word and PDF editions contain the expanded control-by-control reference, workflows, troubleshooting guide, supporting-window descriptions and Visual Studio build instructions.
+
+### Live sequence
+
+1. Import and test the karaoke and music libraries.
+2. Open the audience display and send it to Display 2.
+3. Add a singer and drag a request onto their row.
+4. Press Load Next Singer and check the preview.
+5. Press Play.
+6. Press Fade Stop at the end so karaoke fades out and music fades in.
+
+### Safety
+
+Keep the host console on Display 1, keep media drives connected while Hazz is open, and shut down through the main window confirmation.
+
+## Detailed written reference
 Complete operating documentation for version 0.17.22.
 
 ## 1 Getting started

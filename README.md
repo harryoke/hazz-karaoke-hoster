@@ -7,6 +7,8 @@ Professional Windows live-show console for singer rotation, karaoke playback, in
 - [Dummy's Guide](https://harryoke.github.io/hazz-karaoke-hoster/quick-start.html)
 - [Complete Manual](https://harryoke.github.io/hazz-karaoke-hoster/manual.html)
 
+The downloadable Complete Manual is a 21-page illustrated guide with labelled control screenshots, workflow diagrams and a reference for every menu, button and supporting window.
+
 ## v0.17.22 — Dedicated side list and precise music controls
 
 - Single Deck mode now completely removes the Deck 2 player, LED, transport, timeline and volume controls.
