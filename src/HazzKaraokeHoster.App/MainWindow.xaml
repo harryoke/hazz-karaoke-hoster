@@ -327,7 +327,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="10.5" FontWeight="Bold" Foreground="#6EC1E4" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="#22303C" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v0.17.26" FontSize="11" FontWeight="Bold" Foreground="#D4DEE8"/>
+     <TextBlock Text="v0.80" FontSize="11" FontWeight="Bold" Foreground="#D4DEE8"/>
     </Border>
    </StackPanel>
 
@@ -399,6 +399,7 @@
      <ColumnDefinition Width="Auto"/>
      <ColumnDefinition Width="Auto"/>
      <ColumnDefinition Width="Auto"/>
+     <ColumnDefinition Width="Auto"/>
      <ColumnDefinition Width="*"/>
      <ColumnDefinition Width="Auto"/>
      <ColumnDefinition Width="Auto"/>
@@ -406,9 +407,10 @@
     <TextBlock Text="SEARCH" Grid.Column="0" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" Margin="7,0,10,0" Foreground="#C0CDD9"/>
     <Button x:Name="SearchKaraokeButton" Grid.Column="1" Content="KARAOKE" Style="{StaticResource LoadButtonStyle}" Click="SearchKaraokeMode_Click" ToolTip="CD+G, ZIP and video karaoke are searched together"/>
     <Button x:Name="SearchMusicButton" Grid.Column="2" Content="MUSIC" Style="{StaticResource SaveButtonStyle}" Click="SearchMusicMode_Click" ToolTip="Search ordinary background music"/>
-    <TextBox x:Name="SearchBox" Grid.Column="3" FontSize="16" TextChanged="SearchBox_TextChanged" ToolTip="Artist, title, manufacturer or disc ID" MinWidth="140"/>
-    <Button x:Name="CancelImportButton" Grid.Column="4" Content="CANCEL IMPORT" Style="{StaticResource StopButtonStyle}" Click="CancelImport_Click" Visibility="Collapsed"/>
-    <StackPanel Grid.Column="5" Margin="10,0,5,0" VerticalAlignment="Center" MinWidth="135">
+    <Button x:Name="SearchMusicVideoButton" Grid.Column="3" Content="MUSIC VIDEO" Style="{StaticResource SpecialButtonStyle}" Click="SearchMusicVideoMode_Click" ToolTip="Search only video files imported into the music library"/>
+    <TextBox x:Name="SearchBox" Grid.Column="4" FontSize="16" TextChanged="SearchBox_TextChanged" ToolTip="Artist, title, manufacturer or disc ID" MinWidth="140"/>
+    <Button x:Name="CancelImportButton" Grid.Column="5" Content="CANCEL IMPORT" Style="{StaticResource StopButtonStyle}" Click="CancelImport_Click" Visibility="Collapsed"/>
+    <StackPanel Grid.Column="6" Margin="10,0,5,0" VerticalAlignment="Center" MinWidth="135">
      <TextBlock x:Name="SearchStatus" Foreground="#B6C3D0" Text="Database starting..." TextTrimming="CharacterEllipsis"/>
      <TextBlock x:Name="LibraryCountText" Foreground="#899AAB" Text="Karaoke 0 • Music 0" FontSize="11.5"/>
     </StackPanel>

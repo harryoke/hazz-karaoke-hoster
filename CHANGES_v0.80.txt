@@ -1,0 +1,50 @@
+Hazz Karaoke Hoster v0.80
+
+LIVE SHOW AND INTERFACE
+
+- Professional steel interface with colour-coded controls and brighter active states.
+- Music-deck LED displays scroll the current state, artist and song title.
+- Automatic layout scaling keeps controls accessible across supported display sizes.
+- Music search supports Shift-click, Ctrl-click, Ctrl+A and multi-track drag and drop without covering Deck 1.
+- A dedicated Music Video search button finds only video files in the music library and supports the same multi-select, drag, deck and Space-bar actions.
+- Optional Single Deck and Side List mode replaces Deck 2 player controls with staging-list controls.
+- Music pause preserves the exact position, and draggable timelines provide precise seeking.
+- Karaoke Fade Stop fades karaoke down over 1.5 seconds before interval music fades in over 1.5 seconds.
+- Karaoke tracks can be dropped directly onto the Karaoke Deck without starting playback.
+- Playback failures are stored as broken media and colour-coded for the host.
+
+AUDIENCE DISPLAY AND VJ
+
+- Backgrounds support still images, animated GIFs and muted looping videos.
+- A chosen folder becomes a slideshow with a one-minute slot for every supported image, GIF or video.
+- GIF playback speed is adjustable, and backgrounds support Fit, Fill, Stretch and Centre modes.
+- The singer rotation scroller can appear at the top or bottom of the audience display.
+- Music videos played on Deck 1 or Deck 2 are mirrored to the singer display while deck audio remains active.
+- While a music video is visible, Hazz hides singer lists, scrollers, venue messages, backgrounds and the persistent logo so nothing covers the video.
+- One-click TV output is restricted to Display 2; the audience window can also use another explicitly chosen display.
+
+LIBRARY SINGERS AND IMPORTS
+
+- The previous-singer picker opens with about 100 recent singers and searches the full database asynchronously with debounce, cancellation and virtualised results.
+- Virtual folders and nested subfolders organise library links without moving or copying media files.
+- Multi-selected tracks can be assigned to a chosen virtual folder, and folders can be renamed, emptied or removed safely.
+- Smart Import recognises major karaoke and DJ databases, exports and playlists, including MediaMonkey, CompuHost, Lyrx, Karma, VirtualDJ, Rekordbox, Mixxx, iTunes and BPM Studio formats where readable data is available.
+- VirtualDJ My Lists, Rekordbox playlist trees and standard nested playlists retain their organisation as Hazz virtual folders.
+- Singer-history imports support common CSV, TSV, JSON, XML and database exports.
+
+BPM STUDIO LARGE IMPORT FIXES
+
+- Source files remain read-only.
+- Unchanged `.GRP` and `.PLG` files are skipped using their full path, size and modified time.
+- Duplicate `.GRP` or `.PLG` filenames import only the newest modified copy; equal dates prefer the larger copy.
+- Song insertion and full-text search indexing run in bounded batches with cancellation and visible progress.
+- Virtual-folder links are inserted in 5,000-track batches rather than one database command per track.
+- The final transaction avoids a blocking automatic WAL checkpoint and reports commit and finalisation separately.
+- Reimports reuse existing folders and track links instead of multiplying duplicates.
+
+BUILD AND DOCUMENTATION
+
+- Visual Studio 2026 Release x64 creates a self-contained single executable in RELEASE\HazzKaraokeHoster.
+- Complete Manual, Dummy Guide, Quick Reference, virtual-folder guide, import documentation and website are updated for v0.80.
+
+All features from v0.17.28 and earlier releases remain included.

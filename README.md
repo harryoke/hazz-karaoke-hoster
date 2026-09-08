@@ -1,4 +1,38 @@
-# Hazz Karaoke Hoster v0.17.26 — Visual Studio 2026
+# Hazz Karaoke Hoster v0.80 — Visual Studio 2026
+
+## v0.80 — Reliable large-library migration
+
+This release brings together the scalable previous-singer picker, professional steel interface,
+audience slideshow and VJ backgrounds, dependable live-show playback, virtual folders, and
+read-only migration from major karaoke and DJ applications.
+
+BPM Studio imports now skip unchanged group files, select only the newest copy when duplicate
+`.GRP` or `.PLG` filenames exist, batch song search indexing and virtual-folder links, and show
+the real final database stages instead of appearing frozen at 98% or 99%.
+
+See CHANGES_v0.80.txt.
+
+## v0.17.28 — Other-software virtual folders
+
+Smart Import now converts VirtualDJ My Lists and legacy playlists, Rekordbox XML playlist trees,
+and nested M3U/M3U8/PLS/XSPF/WPL exports into Hazz virtual folders. Imported tracks remain in
+their original locations, source data stays read-only, and repeat imports do not duplicate links.
+SQLite query-planner statistics are also refreshed safely once per application run for long-term use.
+
+See CHANGES_v0.17.28.txt.
+
+## v0.17.27 — Virtual-folder display scaling correction
+
+The Library Browser now opens maximized, adapts its folder-panel width on smaller displays, and
+uses full-width rows for long folder actions so every button remains visible at Windows scaling.
+
+See CHANGES_v0.17.27.txt.
+
+- BPM Studio `.GRP` and `.PLG` archive groups now import as nested Hazz virtual folders below **BPM Studio**. Source archives and media remain read-only and unmoved.
+- Repeat BPM imports skip unchanged `.GRP`/`.PLG` files using a path/size/modified-time cache, while changed group files are re-read.
+- Large imports batch full-text search indexing, keeping the final indexing stage responsive and cancellable.
+- BPM virtual-folder links are saved in 5,000-track batches, and duplicate `.GRP`/`.PLG` filenames use only the newest modified copy.
+- Complete Manual, Dummy's Guide, Quick Reference and Virtual Folders Guide now contain detailed folder workflows and troubleshooting.
 
 ## v0.17.26 — Multi-track virtual-folder correction
 
@@ -48,6 +82,7 @@ The downloadable Complete Manual is a 21-page illustrated guide with labelled co
 - Karaoke Fade Stop now uses a smooth 1.5-second fade down followed by a separate 1.5-second music fade in.
 - Karaoke search results and supported files from Windows Explorer can be dropped directly onto the Karaoke Deck to load them without starting playback.
 - VJ mode automatically mirrors video files played by Music Deck 1 or 2 to the singer display, muted and synchronized with play, pause, seek and stop.
+- The dedicated **Music Video** search button shows only video files from the music library. Singer lists, scrollers and other overlays automatically disappear while the video is on the audience display.
 - Use **Import Music / Video Folders…** to add folders containing music videos.
 
 See CHANGES_v0.17.22.txt.

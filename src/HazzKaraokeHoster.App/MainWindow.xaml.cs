@@ -78,6 +78,7 @@ public partial class MainWindow : Window
     private double _quickSearchFadeStartDeck2;
     private double _quickSearchTargetVolume = 0.85;
     private SongRecord? _quickSearchSong;
+    private bool _quickSearchMusicVideo;
     private DateTime _musicTransitionStartedUtc = DateTime.MinValue;
     private double _fadeOutStartDeck1;
     private double _fadeOutStartDeck2;
@@ -277,6 +278,9 @@ public partial class MainWindow : Window
             try
             {
                 await _library.InitializeAsync(_lifetime.Token);
+                var databaseBytes = _db.GetStorageSizeBytes();
+                if (databaseBytes >= 1024L * 1024 * 1024)
+                    App.WriteDiagnostic("DATABASE SIZE", $"Hazz database storage is {databaseBytes / (1024d * 1024 * 1024):0.00} GB. Back up and review repeated imports if growth is unexpected.");
                 TryRestoreLiveShowState();
                 await RefreshLibraryCountsAsync();
                 await RefreshSavedSingerNamesAsync();
@@ -838,10 +842,11 @@ public partial class MainWindow : Window
             MainRightSplitter.Visibility = Visibility.Collapsed;
             MusicAutomationPanel.Visibility = Visibility.Collapsed;
             SearchMusicButton.Visibility = Visibility.Collapsed;
+            SearchMusicVideoButton.Visibility = Visibility.Collapsed;
             Grid.SetColumn(KaraokeWorkspace, 0);
             Grid.SetColumnSpan(KaraokeWorkspace, 5);
 
-            if (_searchMediaKind == "Music")
+            if (_searchMediaKind is "Music" or "MusicVideo")
             {
                 _searchMediaKind = "Karaoke";
                 UpdateSearchModeUi();
@@ -863,6 +868,7 @@ public partial class MainWindow : Window
             MainRightSplitter.Visibility = Visibility.Visible;
             MusicAutomationPanel.Visibility = Visibility.Visible;
             SearchMusicButton.Visibility = Visibility.Visible;
+            SearchMusicVideoButton.Visibility = Visibility.Visible;
             Grid.SetColumn(KaraokeWorkspace, 2);
             Grid.SetColumnSpan(KaraokeWorkspace, 1);
             KaraokeDeckRow.Height = new GridLength(Math.Clamp(_fullModeKaraokeDeckHeight, 185, 700));
@@ -1258,17 +1264,27 @@ public partial class MainWindow : Window
         _ = RunSearchAsync();
     }
 
+    private void SearchMusicVideoMode_Click(object sender, RoutedEventArgs e)
+    {
+        _searchMediaKind = "MusicVideo";
+        UpdateSearchModeUi();
+        _ = RunSearchAsync();
+    }
+
+    private bool IsMusicSearchMode => _searchMediaKind is "Music" or "MusicVideo";
+
     private void UpdateSearchModeUi()
     {
-        if (SearchKaraokeButton is null || SearchMusicButton is null) return;
+        if (SearchKaraokeButton is null || SearchMusicButton is null || SearchMusicVideoButton is null) return;
         // Karaoke results leave the singer rotation visible as a drop target. Music
         // results move over the centre so both music playlists remain reachable.
-        Grid.SetColumn(SearchResultsOverlay, _searchMediaKind == "Music" ? 2 : 0);
+        Grid.SetColumn(SearchResultsOverlay, IsMusicSearchMode ? 2 : 0);
         SetButtonActive(SearchKaraokeButton, _searchMediaKind == "Karaoke");
         SetButtonActive(SearchMusicButton, _searchMediaKind == "Music");
-        SearchGrid.SelectionMode = _searchMediaKind == "Music" ? DataGridSelectionMode.Extended : DataGridSelectionMode.Single;
-        SearchSelectAllButton.Visibility = _searchMediaKind == "Music" ? Visibility.Visible : Visibility.Collapsed;
-        SearchResultsTitle.Text = _searchMediaKind.ToUpperInvariant() + " SEARCH RESULTS";
+        SetButtonActive(SearchMusicVideoButton, _searchMediaKind == "MusicVideo");
+        SearchGrid.SelectionMode = IsMusicSearchMode ? DataGridSelectionMode.Extended : DataGridSelectionMode.Single;
+        SearchSelectAllButton.Visibility = IsMusicSearchMode ? Visibility.Visible : Visibility.Collapsed;
+        SearchResultsTitle.Text = _searchMediaKind == "MusicVideo" ? "MUSIC VIDEO SEARCH RESULTS" : _searchMediaKind.ToUpperInvariant() + " SEARCH RESULTS";
         SearchDragHint.Text = _searchMediaKind == "Karaoke"
             ? "Drag a karaoke result onto a singer. CD+G, ZIP and video karaoke are all treated as KARAOKE."
             : "Shift-click selects a range; Ctrl-click selects individual tracks; Ctrl+A selects every result. Drag or add the selection to a deck.";
@@ -1311,7 +1327,7 @@ public partial class MainWindow : Window
     private async void SearchGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (SearchGrid.SelectedItem is not SongRecord song) return;
-        if (_searchMediaKind == "Music")
+        if (IsMusicSearchMode)
         {
             AddSearchSongToMusicDeck(song, DeckAPlaylist);
             SearchStatus.Text = $"Added {song.Title} to Deck 1";
@@ -1355,7 +1371,7 @@ public partial class MainWindow : Window
             Math.Abs(p.Y - _searchDragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
         var song = _searchDragSong;
         var data = new DataObject(typeof(SongRecord), song);
-        if (_searchMediaKind == "Music")
+        if (IsMusicSearchMode)
         {
             var songs = GetSelectedMusicSearchSongs();
             if (songs.Count > 0) data.SetData(SearchSongBatchDataFormat, songs.ToArray());
@@ -1366,7 +1382,7 @@ public partial class MainWindow : Window
 
     private void SearchGrid_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Space || _searchMediaKind != "Music") return;
+        if (e.Key != Key.Space || !IsMusicSearchMode) return;
         e.Handled = true;
 
         if (_quickSearchMusicActive || _quickSearchMusicFadeInActive)
@@ -1427,6 +1443,12 @@ public partial class MainWindow : Window
         QuickMusicMedia.Volume = (_quickSearchFadeStartDeck1 > 0.0001 || _quickSearchFadeStartDeck2 > 0.0001) ? 0.0 : _quickSearchTargetVolume;
         QuickMusicMedia.Play();
         _quickSearchMusicActive = true;
+        _quickSearchMusicVideo = MediaFileClassifier.Classify(song.FilePath) == HazzMediaKind.Video;
+        _audienceMusicVideoDeck = MusicDeckId.None;
+        if (_quickSearchMusicVideo)
+            _audience?.ShowMusicVideo(song.FilePath, TimeSpan.Zero, playing: true);
+        else
+            _audience?.ClearMusicVideo();
         MarkMusicTrackPlayedThisSession(song.FilePath);
         _ = RecordQuickSearchMusicPlaySafeAsync(song);
 
@@ -1467,6 +1489,8 @@ public partial class MainWindow : Window
         QuickMusicMedia.Source = null;
         QuickMusicMedia.Volume = 0.0;
         _quickSearchSong = null;
+        if (_quickSearchMusicVideo) _audience?.ClearMusicVideo();
+        _quickSearchMusicVideo = false;
 
         if (includeRegularDecks) ConsumePlayingRegularMusicDecks();
 
@@ -1482,6 +1506,8 @@ public partial class MainWindow : Window
         QuickMusicMedia.Source = null;
         QuickMusicMedia.Volume = 0.0;
         _quickSearchSong = null;
+        if (_quickSearchMusicVideo) _audience?.ClearMusicVideo();
+        _quickSearchMusicVideo = false;
         ConsumePlayingRegularMusicDecks();
         UpdateMusicAutomationStatus(status);
     }
@@ -1534,14 +1560,14 @@ public partial class MainWindow : Window
 
     private void SearchSelectAll_Click(object sender, RoutedEventArgs e)
     {
-        if (_searchMediaKind != "Music" || SearchGrid.Items.Count == 0) return;
+        if (!IsMusicSearchMode || SearchGrid.Items.Count == 0) return;
         SearchGrid.SelectAll();
         SearchStatus.Text = $"Selected {SearchGrid.SelectedItems.Count:N0} music results";
     }
 
     private IReadOnlyList<SongRecord> GetSelectedMusicSearchSongs()
     {
-        if (_searchMediaKind != "Music") return Array.Empty<SongRecord>();
+        if (!IsMusicSearchMode) return Array.Empty<SongRecord>();
         var selected = SearchGrid.SelectedItems.OfType<SongRecord>()
             .Where(song => string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase))
             .ToHashSet();
@@ -1585,7 +1611,7 @@ public partial class MainWindow : Window
 
     private void AddSearchSongToMusicDeck(SongRecord song, ListBox deck)
     {
-        if (_searchMediaKind != "Music" || !string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase))
+        if (!IsMusicSearchMode || !string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase))
         {
             MessageBox.Show("Switch search to MUSIC before adding a result to a music deck.", "Music Search");
             return;
@@ -3409,7 +3435,9 @@ public partial class MainWindow : Window
         UpdatePlayerTimeDisplays();
         UpdateDeckLedDisplays();
         UpdateIlluminatedButtons();
-        if (_audienceMusicVideoDeck != MusicDeckId.None && !_karaokePresentationActive && !IsDeckPaused(_audienceMusicVideoDeck))
+        if (_quickSearchMusicVideo && _quickSearchMusicActive && !_karaokePresentationActive)
+            _audience?.SyncMusicVideo(QuickMusicMedia.Position);
+        else if (_audienceMusicVideoDeck != MusicDeckId.None && !_karaokePresentationActive && !IsDeckPaused(_audienceMusicVideoDeck))
             _audience?.SyncMusicVideo(MediaFor(_audienceMusicVideoDeck).Position);
         if (_karaokeOnlyMode) return;
         if (_quickSearchMusicFadeInActive)
@@ -4384,7 +4412,7 @@ public partial class MainWindow : Window
         var dlg = new OpenFileDialog
         {
             Title = "Smart Import — select an application database, playlist or export",
-            Filter = "Smart Import files|*.xml;*.json;*.m3u;*.m3u8;*.pls;*.lst;*.kpl;*.wpl;*.xspf;*.asx;*.csv;*.tsv;*.txt;*.db;*.db3;*.sqlite;*.sqlite3;*.s3db;*.sqlitedb;*.musicdb;*.mdb;*.accdb;*.kdb|Database files|*.db;*.db3;*.sqlite;*.sqlite3;*.s3db;*.sqlitedb;*.musicdb;*.mdb;*.accdb;*.kdb|Exports and playlists|*.xml;*.json;*.csv;*.tsv;*.txt;*.m3u;*.m3u8;*.pls;*.lst;*.kpl;*.wpl;*.xspf;*.asx|All files|*.*",
+            Filter = "Smart Import files|*.xml;*.vdjfolder;*.json;*.m3u;*.m3u8;*.pls;*.lst;*.kpl;*.wpl;*.xspf;*.asx;*.csv;*.tsv;*.txt;*.db;*.db3;*.sqlite;*.sqlite3;*.s3db;*.sqlitedb;*.musicdb;*.mdb;*.accdb;*.kdb|Database files|*.db;*.db3;*.sqlite;*.sqlite3;*.s3db;*.sqlitedb;*.musicdb;*.mdb;*.accdb;*.kdb|Exports and playlists|*.xml;*.vdjfolder;*.json;*.csv;*.tsv;*.txt;*.m3u;*.m3u8;*.pls;*.lst;*.kpl;*.wpl;*.xspf;*.asx|All files|*.*",
             CheckFileExists = true
         };
         if (dlg.ShowDialog() != true) return;
@@ -4503,7 +4531,7 @@ public partial class MainWindow : Window
                 : string.Join("\n", result.WatchRoots.Select(x => $"{x.MediaKind}: {x.Path}"));
             var warnings = result.Warnings.Count == 0 ? string.Empty : $"\n\nNotes (first {Math.Min(12, result.Warnings.Count)}):\n{string.Join("\n", result.Warnings.Take(12))}";
             MessageBox.Show(
-                $"{result.DetectedSource} import complete.\n\nRows read: {result.RowsRead:N0}\nTracks indexed/updated: {result.RecordsImported:N0}\nKaraoke: {result.KaraokeImported:N0}\nMusic: {result.MusicImported:N0}\nPlaylists: {result.PlaylistsImported:N0}\nPlaylist items: {result.PlaylistItemsImported:N0}\nMissing paths: {result.MissingFiles:N0}\nErrors: {result.Errors:N0}\n\nWatched roots:\n{rootsText}{warnings}",
+                $"{result.DetectedSource} import complete.\n\nRows read: {result.RowsRead:N0}\nTracks indexed/updated: {result.RecordsImported:N0}\nKaraoke: {result.KaraokeImported:N0}\nMusic: {result.MusicImported:N0}\nPlaylists: {result.PlaylistsImported:N0}\nPlaylist items: {result.PlaylistItemsImported:N0}\nVirtual folders created: {result.VirtualFoldersImported:N0}\nVirtual-folder track links added: {result.VirtualFolderTrackLinksImported:N0}\nMissing paths: {result.MissingFiles:N0}\nErrors: {result.Errors:N0}\n\nWatched roots:\n{rootsText}{warnings}",
                 "Other Software Import", MessageBoxButton.OK,
                 result.Errors == 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
@@ -4569,7 +4597,7 @@ public partial class MainWindow : Window
         {
             var preview = await _bpmStudio.PreviewAsync(folder.FolderName, _lifetime.Token);
             var go = MessageBox.Show(
-                $"BPM Studio files found:\n\nPlaylists: {preview.PlaylistFiles:N0}\nHistory lists: {preview.HistoryFiles:N0}\nArchive group files detected: {preview.ArchiveGroupFiles:N0}\n\nImport playlists/history using FAST mode?\n\nFast mode does not crawl/check every music file and skips .GRP/.PLG archive groups. Use Hazz's normal Music Library scan later if you want those archive-group tracks indexed.\n\nBPM Studio files remain READ-ONLY.\n\nA progress window will remain visible during the import.",
+                $"BPM Studio files found:\n\nPlaylists: {preview.PlaylistFiles:N0}\nHistory lists: {preview.HistoryFiles:N0}\nArchive group files detected: {preview.ArchiveGroupFiles:N0}\n\nImport playlists, history and BPM virtual folders using FAST mode?\n\nThe import does not test every music file on disk. BPM .GRP/.PLG archive groups become Hazz virtual folders while their tracks stay in their original locations.\n\nBPM Studio files remain READ-ONLY.\n\nA progress window will remain visible during the import.",
                 "BPM Studio Import Preview", MessageBoxButton.YesNo, MessageBoxImage.Information);
             if (go != MessageBoxResult.Yes) return;
 
@@ -4594,7 +4622,7 @@ public partial class MainWindow : Window
 
                 var warningText = result.Warnings.Count == 0 ? string.Empty : $"\n\nWarnings (first {Math.Min(12, result.Warnings.Count)}):\n{string.Join("\n", result.Warnings.Take(12))}";
                 MessageBox.Show(
-                    $"BPM Studio fast import complete.\n\nPlaylists imported: {result.PlaylistsImported:N0}\nHistory lists imported: {result.HistoryListsImported:N0}\nPlaylist items: {result.PlaylistItemsImported:N0}\nHistory items: {result.HistoryItemsImported:N0}\nUnique referenced music paths indexed: {result.MusicTracksLinkedOrIndexed:N0}\nUnreadable/unsupported list files: {result.UnsupportedFiles:N0}{warningText}",
+                    $"BPM Studio fast import complete.\n\nPlaylists imported: {result.PlaylistsImported:N0}\nHistory lists imported: {result.HistoryListsImported:N0}\nPlaylist items: {result.PlaylistItemsImported:N0}\nHistory items: {result.HistoryItemsImported:N0}\nUnique referenced music paths indexed: {result.MusicTracksLinkedOrIndexed:N0}\nVirtual folders created: {result.VirtualFoldersImported:N0}\nVirtual-folder track links added: {result.VirtualFolderTrackLinksImported:N0}\nUnreadable/unsupported list/group files: {result.UnsupportedFiles:N0}{warningText}",
                     "BPM Studio Import", MessageBoxButton.OK, result.UnsupportedFiles == 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
             }
             catch (OperationCanceledException)

@@ -62,6 +62,8 @@ Simple steps for a first live show.
 - Press the green Play button on a deck.
 - Pause keeps the exact position; press Pause or Play to resume. Drag the timeline to seek.
 - Import a music-video folder through Import, Import Music / Video Folders. Video tracks automatically appear full-screen and muted on the singer display while deck audio plays normally.
+- Press Music Video at the top to search only the imported videos. Add or drag the result to a music deck, or press Space for quick play.
+- Singer lists, scrollers, venue text, backgrounds and the logo hide automatically while the music video is on the singer display.
 - Enable Auto Crossfade if you want the decks to alternate.
 - For one-player operation, choose Show, Single Deck + Side List Mode. The right panel becomes a proper side list with Add, Load, Save, Select, Move, Send to Deck 1, Shuffle, Remove and Clear controls.
 - Starting karaoke pauses the music plan; Play Music resumes the next scheduled track.
@@ -96,3 +98,55 @@ Simple steps for a first live show.
 - Close Hazz from the main window.
 - Answer Yes to the shutdown question.
 - Wait until Hazz closes before disconnecting a library drive or shutting down Windows.
+
+
+# Virtual Folders — Beginner Walkthrough
+
+
+## Virtual folders in plain English
+
+A virtual folder is a list of shortcuts to your songs. It helps you group songs without moving or copying the actual files. Deleting a virtual folder does not delete your music or karaoke files.
+
+![Virtual folder controls](Images/figure_virtual_folders.png)
+
+## Make an 80s / Rock folder
+
+1. Open **Library > Browse Library**.
+2. Press **New Folder**, type `80s`, and create it.
+3. Click **80s** in the left panel.
+4. Press **New Subfolder**, type `Rock`, and create it.
+5. Click **All Library Tracks**.
+6. Choose **Music** and find the songs you want.
+7. Hold **Ctrl** while clicking separate songs, or use **Shift** to select a range.
+8. Press **Add Selected to Folder…**.
+9. Choose **80s / Rock**, then press **Add Tracks**.
+10. Click **Rock** in the left tree to see your collection.
+
+## Bring folders over from BPM Studio
+
+1. Close BPM Studio.
+2. Choose **Import > Import BPM Studio** in Hazz.
+3. Select the BPM Studio data/archive folder.
+4. Confirm the import.
+5. When it finishes, open **Library > Browse Library** and expand **BPM Studio**.
+
+The source is read-only. Hazz creates links to the tracks and leaves every original file alone.
+
+If several `.GRP` files have the same name, Hazz uses only the newest copy. Repeat imports skip files that have not changed. On a large library, let the progress window finish the **Linking**, **Saving** and **Finalizing** stages before starting another import.
+
+## The safe buttons
+
+- **Rename** changes the folder's label.
+- **Remove from Folder** removes selected shortcuts from the open folder.
+- **Empty** removes all direct shortcuts from the folder.
+- **Delete Selected Folder** removes the folder and its child folders.
+
+All four actions leave the physical song files and main Hazz library untouched.
+
+## If it does not look right
+
+- Click **All Library Tracks** to reset the view.
+- Clear the search box.
+- Check whether **Karaoke** or **Music** is selected.
+- Open the child folder; the parent does not automatically show all child tracks.
+- Maximise the Library Browser if a button is clipped.

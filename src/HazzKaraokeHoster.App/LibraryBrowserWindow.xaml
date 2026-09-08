@@ -2,8 +2,8 @@
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:local="clr-namespace:HazzKaraokeHoster.App"
- Title="Hazz Library Browser and Virtual Folders" Width="1380" Height="780" MinWidth="980" MinHeight="560"
- Background="#0B0F14" Foreground="#F4F7FA" WindowStartupLocation="CenterOwner">
+ Title="Hazz Library Browser and Virtual Folders" Width="1380" Height="780" MinWidth="760" MinHeight="500"
+ Background="#0B0F14" Foreground="#F4F7FA" WindowStartupLocation="CenterOwner" WindowState="Maximized">
  <Window.Resources>
   <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#285F82"/>
   <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
@@ -95,7 +95,7 @@
   </Style>
  </Window.Resources>
  <Grid Margin="10">
-  <Grid.ColumnDefinitions><ColumnDefinition Width="250"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+  <Grid.ColumnDefinitions><ColumnDefinition x:Name="FolderPanelColumn" Width="280" MinWidth="220"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
   <Border Grid.Column="0" Background="#111820" BorderBrush="#40505F" BorderThickness="1" CornerRadius="5" Padding="7">
    <Grid>
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -105,14 +105,16 @@
               BorderBrush="#34404D" SelectedItemChanged="FolderTree_SelectedItemChanged"
               AllowDrop="True" DragOver="FolderTree_DragOver" Drop="FolderTree_Drop"
               VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"/>
-    <UniformGrid Grid.Row="3" Columns="2">
-     <Button Content="NEW FOLDER" Click="NewFolder_Click" Background="#286A9B"/>
-     <Button Content="NEW SUBFOLDER" Click="NewSubfolder_Click"/>
-     <Button Content="RENAME" Click="RenameFolder_Click"/>
-     <Button Content="EMPTY" Click="EmptyFolder_Click" Background="#8A6519"/>
-     <Button Content="DELETE" Click="DeleteFolder_Click" Background="#8D3434"/>
-     <Button Content="ADD SELECTED TO FOLDER…" Click="AddSelectedToFolder_Click" Background="#356F45" FontSize="11"/>
-    </UniformGrid>
+    <Grid Grid.Row="3">
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+     <Button Grid.Row="0" Grid.Column="0" Content="NEW FOLDER" Click="NewFolder_Click" Background="#286A9B" Padding="4,6" FontSize="11"/>
+     <Button Grid.Row="0" Grid.Column="1" Content="NEW SUBFOLDER" Click="NewSubfolder_Click" Padding="4,6" FontSize="10.5"/>
+     <Button Grid.Row="1" Grid.Column="0" Content="RENAME" Click="RenameFolder_Click" Padding="4,6" FontSize="11"/>
+     <Button Grid.Row="1" Grid.Column="1" Content="EMPTY" Click="EmptyFolder_Click" Background="#8A6519" Padding="4,6" FontSize="11"/>
+     <Button Grid.Row="2" Grid.ColumnSpan="2" Content="ADD SELECTED TO FOLDER…" Click="AddSelectedToFolder_Click" Background="#356F45" Padding="5,7" FontSize="11"/>
+     <Button Grid.Row="3" Grid.ColumnSpan="2" Content="DELETE SELECTED FOLDER" Click="DeleteFolder_Click" Background="#8D3434" Padding="5,7" FontSize="11"/>
+    </Grid>
     <TextBlock x:Name="FolderHint" Grid.Row="4" Margin="4,7,4,2" TextWrapping="Wrap" Foreground="#91A6B9"
                Text="Create folders such as 80s, Rock or Jingles. Drag tracks here; their files stay in their original location."/>
    </Grid>

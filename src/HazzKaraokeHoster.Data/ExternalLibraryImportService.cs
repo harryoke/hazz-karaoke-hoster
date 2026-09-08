@@ -33,7 +33,7 @@ public sealed class ExternalLibraryImportService(HazzDatabase database) : IExter
     private sealed record LegacyMediaMonkeySong(long Id, string Path);
 
     private static readonly HashSet<string> SmartSourceExtensions = new(StringComparer.OrdinalIgnoreCase)
-    { ".xml", ".json", ".m3u", ".m3u8", ".pls", ".lst", ".kpl", ".wpl", ".xspf", ".asx", ".csv", ".tsv", ".txt", ".db", ".db3", ".sqlite", ".sqlite3", ".s3db", ".sqlitedb", ".musicdb", ".mdb", ".accdb", ".kdb" };
+    { ".xml", ".vdjfolder", ".json", ".m3u", ".m3u8", ".pls", ".lst", ".kpl", ".wpl", ".xspf", ".asx", ".csv", ".tsv", ".txt", ".db", ".db3", ".sqlite", ".sqlite3", ".s3db", ".sqlitedb", ".musicdb", ".mdb", ".accdb", ".kdb" };
 
     public async Task<ExternalImportPreview> PreviewAsync(string sourcePath, CancellationToken cancellationToken = default)
     {
@@ -43,7 +43,7 @@ public sealed class ExternalLibraryImportService(HazzDatabase database) : IExter
 
         var ext = Path.GetExtension(sourcePath).ToLowerInvariant();
         ExternalImportPreview preview;
-        if (ext is ".xml" or ".kpl" or ".wpl" or ".xspf" or ".asx") preview = await PreviewXmlAsync(sourcePath, cancellationToken);
+        if (ext is ".xml" or ".vdjfolder" or ".kpl" or ".wpl" or ".xspf" or ".asx") preview = await PreviewXmlAsync(sourcePath, cancellationToken);
         else if (ext == ".json") preview = await PreviewJsonAsync(sourcePath, cancellationToken);
         else if (ext is ".m3u" or ".m3u8" or ".pls" or ".lst") preview = await PreviewPlaylistAsync(sourcePath, cancellationToken);
         else if (ext is ".csv" or ".tsv" or ".txt") preview = await PreviewDelimitedAsync(sourcePath, cancellationToken);
@@ -62,6 +62,7 @@ public sealed class ExternalLibraryImportService(HazzDatabase database) : IExter
         IProgress<ExternalImportProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        var requestedSourcePath = Path.GetFullPath(sourcePath);
         var smart = await ResolveSmartSourceAsync(sourcePath, cancellationToken);
         sourcePath = smart.Path;
         await database.InitializeAsync(cancellationToken);
@@ -136,7 +137,7 @@ public sealed class ExternalLibraryImportService(HazzDatabase database) : IExter
                 progress?.Report(new ExternalImportProgress(rowsRead, imported, playlistsImported, missing, errors, row.FilePath));
         }
 
-        if (ext is ".xml" or ".kpl" or ".wpl" or ".xspf" or ".asx")
+        if (ext is ".xml" or ".vdjfolder" or ".kpl" or ".wpl" or ".xspf" or ".asx")
         {
             await foreach (var row in EnumerateXmlRowsAsync(sourcePath, cancellationToken)) await ProcessRowAsync(row);
         }
@@ -177,11 +178,16 @@ public sealed class ExternalLibraryImportService(HazzDatabase database) : IExter
             foreach (var row in EnumerateOleDbRows(sourcePath, cancellationToken)) await ProcessRowAsync(row);
         }
 
+        var virtualFolderResult = await ExternalVirtualFolderImport.ImportAsync(target, transaction,
+            requestedSourcePath, sourcePath, detectedSource,
+            mediaKindMode == ExternalMediaKindMode.Karaoke ? "Karaoke" : "Music", cancellationToken);
+        warnings.AddRange(virtualFolderResult.Warnings);
+
         transaction.Commit();
         progress?.Report(new ExternalImportProgress(rowsRead, imported, playlistsImported, missing, errors, string.Empty));
         var collapsed = CollapseWatchRoots(watchRoots);
         return new ExternalImportResult(detectedSource, rowsRead, imported, karaoke, music, playlistsImported, playlistItemsImported,
-            missing, errors, collapsed, warnings);
+            virtualFolderResult.FoldersCreated, virtualFolderResult.TrackLinksAdded, missing, errors, collapsed, warnings);
     }
 
     private async Task<SmartSource> ResolveSmartSourceAsync(string sourcePath, CancellationToken token)
@@ -219,7 +225,7 @@ public sealed class ExternalLibraryImportService(HazzDatabase database) : IExter
         {
             ".db" or ".db3" or ".sqlite" or ".sqlite3" or ".s3db" or ".sqlitedb" or ".musicdb" => 35,
             ".mdb" or ".accdb" or ".kdb" => 34,
-            ".xml" or ".json" or ".wpl" or ".xspf" or ".asx" => 28,
+            ".xml" or ".vdjfolder" or ".json" or ".wpl" or ".xspf" or ".asx" => 28,
             ".m3u" or ".m3u8" or ".pls" or ".kpl" => 20,
             _ => 10
         };
@@ -254,7 +260,7 @@ public sealed class ExternalLibraryImportService(HazzDatabase database) : IExter
         Match("Serato", "serato"); Match("Mixxx", "mixxx"); Match("djay Pro", "djay pro", "algoriddim");
 
         var ext = Path.GetExtension(path).ToLowerInvariant();
-        if (app is null && ext is ".xml" or ".json" or ".csv" or ".tsv" or ".txt")
+        if (app is null && ext is ".xml" or ".vdjfolder" or ".json" or ".csv" or ".tsv" or ".txt")
         {
             try
             {
@@ -285,7 +291,7 @@ public sealed class ExternalLibraryImportService(HazzDatabase database) : IExter
             ".csv" or ".tsv" or ".txt" => "Delimited library export (application not identified)",
             ".db" or ".db3" or ".sqlite" or ".sqlite3" or ".s3db" or ".sqlitedb" or ".musicdb" => "SQLite media application (application not identified)",
             ".mdb" or ".accdb" or ".kdb" => "Access/KDB media application (application not identified)",
-            ".xml" or ".kpl" or ".wpl" or ".xspf" or ".asx" => "XML karaoke/media application (application not identified)",
+            ".xml" or ".vdjfolder" or ".kpl" or ".wpl" or ".xspf" or ".asx" => "XML karaoke/media application (application not identified)",
             ".json" => "JSON media application (application not identified)",
             _ => "External media application"
         };

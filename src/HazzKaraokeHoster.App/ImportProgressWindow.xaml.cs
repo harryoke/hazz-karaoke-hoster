@@ -30,7 +30,9 @@ public partial class ImportProgressWindow : Window
             ImportProgressBar.IsIndeterminate = false;
             ImportProgressBar.Value = value.Percent;
             FilesText.Text = $"{value.FilesProcessed:N0} / {value.TotalFiles:N0}";
-            PercentText.Text = $"{value.Percent:0}%";
+            PercentText.Text = value.Percent >= 100
+                ? "100%"
+                : $"{Math.Floor(value.Percent):0}%";
         }
         else
         {

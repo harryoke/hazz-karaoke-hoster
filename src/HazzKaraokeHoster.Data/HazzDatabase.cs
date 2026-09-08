@@ -4,6 +4,7 @@ namespace HazzKaraokeHoster.Data;
 
 public sealed class HazzDatabase
 {
+    private int _optimizedThisRun;
     public string DatabasePath { get; }
     public string ConnectionString { get; }
 
@@ -189,6 +190,17 @@ CREATE TABLE IF NOT EXISTS virtual_folder_songs (
     PRIMARY KEY(folder_id, song_id)
 );
 CREATE INDEX IF NOT EXISTS ix_virtual_folder_songs_song ON virtual_folder_songs(song_id, folder_id);
+
+CREATE TABLE IF NOT EXISTS bpm_virtual_folder_sources (
+    source_path TEXT PRIMARY KEY COLLATE NOCASE,
+    file_size INTEGER NOT NULL,
+    last_write_utc TEXT NOT NULL,
+    folder_path TEXT NOT NULL,
+    track_count INTEGER NOT NULL DEFAULT 0,
+    imported_utc TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS ix_bpm_virtual_folder_sources_stamp
+    ON bpm_virtual_folder_sources(file_size, last_write_utc);
 """;
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -212,6 +224,100 @@ CREATE INDEX IF NOT EXISTS ix_songs_kind_manufacturer ON songs(media_kind, manuf
 CREATE INDEX IF NOT EXISTS ix_songs_kind_date_added ON songs(media_kind, date_added, id);
 """;
         await indexes.ExecuteNonQueryAsync(cancellationToken);
+
+        // Refresh planner statistics once per application run. PRAGMA optimize is deliberately
+        // bounded by SQLite and avoids a full VACUUM, so startup remains safe for large show data.
+        if (Interlocked.Exchange(ref _optimizedThisRun, 1) == 0)
+        {
+            await using var optimize = connection.CreateCommand();
+            optimize.CommandText = "PRAGMA optimize;";
+            await optimize.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await MergeDuplicateVirtualFoldersAsync(connection, cancellationToken);
+    }
+
+    public long GetStorageSizeBytes()
+    {
+        long total = 0;
+        foreach (var path in new[] { DatabasePath, DatabasePath + "-wal", DatabasePath + "-shm" })
+        {
+            try { if (File.Exists(path)) total += new FileInfo(path).Length; } catch { }
+        }
+        return total;
+    }
+
+    private static async Task MergeDuplicateVirtualFoldersAsync(SqliteConnection connection, CancellationToken token)
+    {
+        // Older test builds could create the same imported folder more than once. Consolidate
+        // sibling folders by name on startup, moving child folders and links into one survivor.
+        while (true)
+        {
+            var duplicate = new List<(long Keep, long Duplicate)>();
+            var groups = new Dictionary<(long Parent, string Name), List<long>>();
+            await using (var rows = connection.CreateCommand())
+            {
+                rows.CommandText = "SELECT id,COALESCE(parent_id,0),name FROM virtual_folders ORDER BY id";
+                await using var all = await rows.ExecuteReaderAsync(token);
+                while (await all.ReadAsync(token))
+                {
+                    var key = (all.GetInt64(1), all.GetString(2).Trim().ToUpperInvariant());
+                    if (!groups.TryGetValue(key, out var ids)) groups[key] = ids = new();
+                    ids.Add(all.GetInt64(0));
+                }
+            }
+            foreach (var ids in groups.Values.Where(x => x.Count > 1))
+                duplicate.AddRange(ids.Skip(1).Select(id => (ids[0], id)));
+            if (duplicate.Count == 0) return;
+            foreach (var pair in duplicate)
+            {
+                token.ThrowIfCancellationRequested();
+                await MergeFolderAsync(connection, pair.Keep, pair.Duplicate, token);
+            }
+        }
+    }
+
+    private static async Task MergeFolderAsync(SqliteConnection c, long keepId, long duplicateId, CancellationToken token)
+    {
+        var children = new List<(long Id, string Name)>();
+        await using (var getChildren = c.CreateCommand())
+        {
+            getChildren.CommandText = "SELECT id,name FROM virtual_folders WHERE parent_id=$parent";
+            getChildren.Parameters.AddWithValue("$parent", duplicateId);
+            await using var reader = await getChildren.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token)) children.Add((reader.GetInt64(0), reader.GetString(1)));
+        }
+        foreach (var child in children)
+        {
+            long? matching = null;
+            await using (var find = c.CreateCommand())
+            {
+                find.CommandText = "SELECT id FROM virtual_folders WHERE parent_id=$parent AND name=$name COLLATE NOCASE LIMIT 1";
+                find.Parameters.AddWithValue("$parent", keepId);
+                find.Parameters.AddWithValue("$name", child.Name);
+                var value = await find.ExecuteScalarAsync(token);
+                if (value is not null && value is not DBNull) matching = Convert.ToInt64(value);
+            }
+            if (matching is long existing) await MergeFolderAsync(c, existing, child.Id, token);
+            else
+            {
+                await using var move = c.CreateCommand();
+                move.CommandText = "UPDATE virtual_folders SET parent_id=$parent WHERE id=$id";
+                move.Parameters.AddWithValue("$parent", keepId); move.Parameters.AddWithValue("$id", child.Id);
+                await move.ExecuteNonQueryAsync(token);
+            }
+        }
+        await using (var links = c.CreateCommand())
+        {
+            links.CommandText = """
+INSERT OR IGNORE INTO virtual_folder_songs(folder_id,song_id)
+SELECT $keep,song_id FROM virtual_folder_songs WHERE folder_id=$duplicate;
+DELETE FROM virtual_folder_songs WHERE folder_id=$duplicate;
+DELETE FROM virtual_folders WHERE id=$duplicate;
+""";
+            links.Parameters.AddWithValue("$keep", keepId); links.Parameters.AddWithValue("$duplicate", duplicateId);
+            await links.ExecuteNonQueryAsync(token);
+        }
     }
 
     private static async Task EnsureColumnAsync(

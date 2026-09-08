@@ -1,0 +1,18 @@
+Hazz Karaoke Hoster v0.17.28
+
+OTHER-SOFTWARE VIRTUAL FOLDER IMPORT
+
+- Smart Import now preserves VirtualDJ 2024 My Lists (.vdjfolder/XML) as Hazz virtual folders.
+- Older VirtualDJ M3U/PLS playlist trees and physical subfolders are preserved.
+- Rekordbox XML playlist folders and playlists are imported as a nested Hazz folder tree.
+- Standard nested M3U, M3U8, PLS, XSPF and WPL exports from other DJ/karaoke programs become virtual folders.
+- Imported folder trees sit below the detected application name and contain links to indexed tracks.
+- Source databases, lists and media remain read-only and in their original locations.
+- Reimporting reuses existing folders and links rather than creating duplicates.
+- Unchanged BPM Studio `.GRP`/`.PLG` files are skipped on repeat imports using a read-only cache keyed by full path, file size and modified time; changed groups are scanned again.
+- Large BPM imports now batch full-text search indexing as well as song inserts, so the 98% stage continues to report progress instead of waiting on one trigger operation.
+- Virtual-folder track links are inserted in 5,000-row batches with visible progress, and the final database checkpoint no longer blocks the transaction commit.
+- When several `.GRP` or `.PLG` files have the same filename, only the newest modified copy is imported; ties prefer the larger copy.
+- SQLite query statistics are refreshed safely once per run, and unusually large database storage is noted in diagnostics.
+
+All v0.17.27 display-scaling, BPM Studio virtual-folder import and earlier features remain intact.

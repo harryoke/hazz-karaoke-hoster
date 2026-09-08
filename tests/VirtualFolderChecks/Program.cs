@@ -13,6 +13,11 @@ var karaoke = new SongRecord(0, "Bon Jovi", "Livin On A Prayer", "Sunfly", "SF00
 var rockId = await repo.UpsertSongAsync(rockSong);
 var jingleId = await repo.UpsertSongAsync(jingle);
 var karaokeId = await repo.UpsertSongAsync(karaoke);
+var videoSearch = await repo.SearchByKindAsync("Queen", "MusicVideo", 100);
+if (videoSearch.Count != 1 || videoSearch[0].Id != rockId)
+    throw new Exception("Music Video search did not return the matching music-library video.");
+if ((await repo.SearchByKindAsync("Station", "MusicVideo", 100)).Count != 0)
+    throw new Exception("Music Video search included an audio-only track.");
 
 var eighties = await repo.CreateVirtualFolderAsync("80s");
 var rock = await repo.CreateVirtualFolderAsync("Rock", eighties);
@@ -45,4 +50,46 @@ connection.Open();
 using var count = connection.CreateCommand();
 count.CommandText = "SELECT COUNT(*) FROM songs";
 if (Convert.ToInt32(count.ExecuteScalar()) != 3) throw new Exception("Virtual folder changes affected library songs.");
-Console.WriteLine("PASS: create, nesting, rename, multi-folder links, duplicate protection, browse, search, media filtering, remove, empty, cascade delete and media preservation.");
+
+var bpmRoot = Path.Combine(AppContext.BaseDirectory, "bpm-" + Guid.NewGuid());
+var bpmGroupDir = Path.Combine(bpmRoot, "FileArchive");
+Directory.CreateDirectory(bpmGroupDir);
+var newestGroup = Path.Combine(bpmGroupDir, "80s.grp");
+var bulkGroupPaths = Enumerable.Range(0, 5102).Select(i => $@"C:\BpmBulk\Artist {i:D4} - Track {i:D4}.mp3").ToArray();
+await File.WriteAllLinesAsync(newestGroup, bulkGroupPaths);
+var oldGroupDir = Path.Combine(bpmRoot, "OldBackup");
+Directory.CreateDirectory(oldGroupDir);
+var oldGroup = Path.Combine(oldGroupDir, "80s.grp");
+await File.WriteAllTextAsync(oldGroup, "C:\\Music\\Should Not Import.mp3\r\n");
+File.SetLastWriteTimeUtc(oldGroup, DateTime.UtcNow.AddDays(-2));
+File.SetLastWriteTimeUtc(newestGroup, DateTime.UtcNow);
+var bpmResult = await new BpmStudioImportService(db).ImportAsync(bpmRoot);
+if (bpmResult.VirtualFoldersImported != 3 || bpmResult.VirtualFolderTrackLinksImported != bulkGroupPaths.Length)
+    throw new Exception("BPM virtual-folder import counts failed.");
+folders = await repo.GetVirtualFoldersAsync();
+var bpmFolder = folders.Single(x => x.Name == "BPM Studio");
+var archiveFolder = folders.Single(x => x.Name == "FileArchive" && x.ParentId == bpmFolder.Id);
+var importedEighties = folders.Single(x => x.Name == "80s" && x.ParentId == archiveFolder.Id);
+if (folders.Any(x => x.Name == "OldBackup" && x.ParentId == bpmFolder.Id))
+    throw new Exception("Older duplicate BPM group was imported.");
+if ((await repo.BrowseVirtualFolderAsync(importedEighties.Id, "Music", "", "Artist", false, 0, 500)).TotalCount != bulkGroupPaths.Length)
+    throw new Exception("BPM virtual-folder track links failed.");
+using (var ftsCount = connection.CreateCommand())
+{
+    ftsCount.CommandText = "SELECT COUNT(*) FROM songs_fts";
+    var ftsRows = Convert.ToInt32(ftsCount.ExecuteScalar());
+    if (ftsRows != 3 + bulkGroupPaths.Length) throw new Exception($"BPM bulk full-text index was not populated (rows={ftsRows}).");
+}
+using (var triggerCheck = connection.CreateCommand())
+{
+    triggerCheck.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name='songs_ai'";
+    if (Convert.ToInt32(triggerCheck.ExecuteScalar()) != 1) throw new Exception("BPM bulk import did not restore the songs search trigger.");
+}
+var repeatProgress = new List<BpmStudioImportProgress>();
+var bpmRepeat = await new BpmStudioImportService(db).ImportAsync(bpmRoot, new Progress<BpmStudioImportProgress>(p => repeatProgress.Add(p)));
+if (bpmRepeat.VirtualFoldersImported != 0 || bpmRepeat.VirtualFolderTrackLinksImported != 0)
+    throw new Exception("Repeated BPM virtual-folder import created duplicates.");
+if (!repeatProgress.Any(p => p.Phase.Contains("Skipping unchanged BPM virtual folder", StringComparison.OrdinalIgnoreCase)))
+    throw new Exception("Repeated BPM virtual-folder import did not use the unchanged-source cache.");
+
+Console.WriteLine("PASS: create, nesting, rename, multi-folder links, duplicate protection, browse, search, media filtering, remove, empty, cascade delete, media preservation and BPM Studio group import.");

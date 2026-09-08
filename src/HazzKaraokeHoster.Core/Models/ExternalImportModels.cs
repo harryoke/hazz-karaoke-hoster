@@ -42,6 +42,8 @@ public sealed record ExternalImportResult(
     long MusicImported,
     long PlaylistsImported,
     long PlaylistItemsImported,
+    int VirtualFoldersImported,
+    long VirtualFolderTrackLinksImported,
     long MissingFiles,
     long Errors,
     IReadOnlyList<ExternalWatchRoot> WatchRoots,

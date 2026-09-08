@@ -1,0 +1,15 @@
+Hazz Karaoke Hoster v0.17.27
+
+VIRTUAL FOLDER DISPLAY SCALING FIX
+
+- The Library Browser now opens maximized so it automatically fits the available display.
+- Its minimum safe size has been reduced for displays using high Windows scaling.
+- The virtual-folder panel changes width responsively as the window becomes narrower.
+- NEW SUBFOLDER uses compact spacing so its full label remains visible.
+- ADD SELECTED TO FOLDER and DELETE SELECTED FOLDER now use full-width rows.
+- All folder buttons remain readable without manually changing Windows display scaling.
+- BPM Studio .GRP and .PLG archive groups import as nested Hazz virtual folders below BPM Studio.
+- BPM virtual-folder import is read-only, keeps media in place, reuses duplicate links and reports unsupported group files.
+- The Complete Manual, Dummy's Guide, Quick Reference and dedicated Virtual Folders Guide now include detailed illustrated instructions.
+
+All v0.17.26 multi-track assignment, v0.17.25 contrast fixes and earlier features remain intact.

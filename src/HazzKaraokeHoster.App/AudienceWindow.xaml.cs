@@ -305,31 +305,32 @@ public partial class AudienceWindow : Window
 
     private void UpdateOverlayLayerVisibility()
     {
-        SingerBackgroundGif.Visibility = !_karaokeActive && _backgroundImageEnabled && _backgroundGifPath.Length > 0
+        var musicVideoVisible = !_karaokeActive && MusicVideoMedia.Source is not null;
+        SingerBackgroundGif.Visibility = !musicVideoVisible && !_karaokeActive && _backgroundImageEnabled && _backgroundGifPath.Length > 0
             ? Visibility.Visible : Visibility.Collapsed;
-        SingerBackgroundVideo.Visibility = !_karaokeActive && _backgroundImageEnabled && SingerBackgroundVideo.Source is not null
+        SingerBackgroundVideo.Visibility = !musicVideoVisible && !_karaokeActive && _backgroundImageEnabled && SingerBackgroundVideo.Source is not null
             ? Visibility.Visible : Visibility.Collapsed;
-        MusicVideoMedia.Visibility = !_karaokeActive && MusicVideoMedia.Source is not null
+        MusicVideoMedia.Visibility = musicVideoVisible
             ? Visibility.Visible : Visibility.Collapsed;
         // Singer-view artwork and informational overlays are deliberately hidden during karaoke.
         // The logo is different: if enabled it remains above CD+G/video for the whole show.
-        SingerBackgroundImage.Visibility = !_karaokeActive && _backgroundImageEnabled && SingerBackgroundImage.Source is not null
+        SingerBackgroundImage.Visibility = !musicVideoVisible && !_karaokeActive && _backgroundImageEnabled && SingerBackgroundImage.Source is not null
             ? Visibility.Visible
             : Visibility.Collapsed;
-        AudienceLogoImage.Visibility = _logoEnabled && AudienceLogoImage.Source is not null
+        AudienceLogoImage.Visibility = !musicVideoVisible && _logoEnabled && AudienceLogoImage.Source is not null
             ? Visibility.Visible
             : Visibility.Collapsed;
 
-        KamikazePanel.Visibility = !_karaokeActive && _kamikazeVisible
+        KamikazePanel.Visibility = !musicVideoVisible && !_karaokeActive && _kamikazeVisible
             ? Visibility.Visible
             : Visibility.Collapsed;
 
         // Kamikaze mode intentionally replaces the ordinary singer/rotation information so
         // the random selection remains a surprise until the karaoke track actually starts.
-        NextSingerPanel.Visibility = !_karaokeActive && !_kamikazeVisible && _showNextSinger && _hasNextSinger
+        NextSingerPanel.Visibility = !musicVideoVisible && !_karaokeActive && !_kamikazeVisible && _showNextSinger && _hasNextSinger
             ? Visibility.Visible
             : Visibility.Collapsed;
-        ScrollerPanel.Visibility = !_karaokeActive && !_kamikazeVisible && _scrollerEnabled ? Visibility.Visible : Visibility.Collapsed;
+        ScrollerPanel.Visibility = !musicVideoVisible && !_karaokeActive && !_kamikazeVisible && _scrollerEnabled ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private static Brush BrushFromHex(string? value, Brush fallback)

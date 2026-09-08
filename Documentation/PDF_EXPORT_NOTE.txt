@@ -1,0 +1,3 @@
+The v0.80 Markdown, DOCX and PDF manuals contain the current live-show, virtual-folder and other-software import instructions.
+
+The PDF editions were generated from the matching v0.80 manual content and visually checked before release.

@@ -46,12 +46,21 @@ public sealed class BpmStudioImportService(HazzDatabase database) : IBpmStudioIm
 
         await database.InitializeAsync(cancellationToken).ConfigureAwait(false);
 
-        // Fast playlist/history migration deliberately ignores BPM Studio .GRP/.PLG archive-group
-        // containers. Those files can be huge and often repeat the same tracks already referenced
-        // by the actual .LST/.M3U/.PLS lists. Importing them made a large BPM archive take hours.
         var allCandidates = EnumerateCandidateFiles(sourcePath).ToArray();
         var files = allCandidates.Where(IsFastImportListFile).ToArray();
-        var archiveGroupsSkipped = allCandidates.Length - files.Length;
+        var allArchiveGroupFiles = allCandidates.Where(IsArchiveGroupFile)
+            .Select(Path.GetFullPath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var archiveGroupFiles = allArchiveGroupFiles
+            .GroupBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group
+                .OrderByDescending(SafeLastWriteTimeUtc)
+                .ThenByDescending(SafeFileLength)
+                .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .First())
+            .ToArray();
+        var duplicateArchiveGroupCopiesSkipped = allArchiveGroupFiles.Length - archiveGroupFiles.Length;
 
         // BPM Studio can leave several physical snapshots/copies of the same dated daily play list.
         // Keep only the most complete copy for each explicit calendar date. This makes a BPM day
@@ -80,8 +89,9 @@ public sealed class BpmStudioImportService(HazzDatabase database) : IBpmStudioIm
         }
 
         var warnings = new List<string>();
-        int playlists = 0, historyLists = 0, unsupported = 0;
+        int playlists = 0, historyLists = 0, unsupported = 0, virtualFoldersImported = 0;
         long playlistItems = 0, historyItems = 0;
+        long virtualFolderTrackLinksImported = 0;
         long itemsProcessed = 0;
         var logicalSignatures = new HashSet<string>(StringComparer.Ordinal);
         var duplicateListsSkipped = 0;
@@ -92,6 +102,13 @@ public sealed class BpmStudioImportService(HazzDatabase database) : IBpmStudioIm
 
         await using var connection = new SqliteConnection(database.ConnectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using (var importPragmas = connection.CreateCommand())
+        {
+            // Do not make the final commit checkpoint a very large WAL file on the worker thread.
+            // A bounded passive checkpoint is run after the transaction has committed.
+            importPragmas.CommandText = "PRAGMA wal_autocheckpoint=0;";
+            await importPragmas.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
         await using var tx = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
 
         // One cleanup for the selected BPM root replaces thousands of per-source DELETE commands.
@@ -111,6 +128,12 @@ CREATE TEMP TABLE IF NOT EXISTS temp_bpm_tracks(
     format TEXT NOT NULL
 );
 DELETE FROM temp_bpm_tracks;
+CREATE TEMP TABLE IF NOT EXISTS temp_bpm_virtual_links(
+    folder_path TEXT NOT NULL COLLATE NOCASE,
+    file_path TEXT NOT NULL COLLATE NOCASE,
+    PRIMARY KEY(folder_path,file_path)
+);
+DELETE FROM temp_bpm_virtual_links;
 """;
             await temp.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -126,6 +149,38 @@ VALUES($path,$artist,$title,$format);
         var ttTitle = tempTrackCmd.Parameters.Add("$title", SqliteType.Text);
         var ttFormat = tempTrackCmd.Parameters.Add("$format", SqliteType.Text);
         tempTrackCmd.Prepare();
+
+        await using var virtualLinkCmd = connection.CreateCommand();
+        virtualLinkCmd.Transaction = (SqliteTransaction)tx;
+        virtualLinkCmd.CommandText = "INSERT OR IGNORE INTO temp_bpm_virtual_links(folder_path,file_path) VALUES($folder,$path);";
+        var vlFolder = virtualLinkCmd.Parameters.Add("$folder", SqliteType.Text);
+        var vlPath = virtualLinkCmd.Parameters.Add("$path", SqliteType.Text);
+        virtualLinkCmd.Prepare();
+
+        var processedBpmGroups = new Dictionary<string, (long Size, string LastWriteUtc, string FolderPath, long TrackCount)>(StringComparer.OrdinalIgnoreCase);
+        await using (var cachedGroups = connection.CreateCommand())
+        {
+            cachedGroups.Transaction = (SqliteTransaction)tx;
+            cachedGroups.CommandText = "SELECT source_path,file_size,last_write_utc,folder_path,track_count FROM bpm_virtual_folder_sources;";
+            await using var cachedReader = await cachedGroups.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await cachedReader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                processedBpmGroups[cachedReader.GetString(0)] = (cachedReader.GetInt64(1), cachedReader.GetString(2), cachedReader.GetString(3), cachedReader.GetInt64(4));
+        }
+
+        await using var cacheGroupCmd = connection.CreateCommand();
+        cacheGroupCmd.Transaction = (SqliteTransaction)tx;
+        cacheGroupCmd.CommandText = """
+INSERT INTO bpm_virtual_folder_sources(source_path,file_size,last_write_utc,folder_path,track_count,imported_utc)
+VALUES($source,$size,$write,$folder,$tracks,CURRENT_TIMESTAMP)
+ON CONFLICT(source_path) DO UPDATE SET file_size=excluded.file_size,last_write_utc=excluded.last_write_utc,
+folder_path=excluded.folder_path,track_count=excluded.track_count,imported_utc=CURRENT_TIMESTAMP;
+""";
+        cacheGroupCmd.Parameters.Add("$source", SqliteType.Text);
+        cacheGroupCmd.Parameters.Add("$size", SqliteType.Integer);
+        cacheGroupCmd.Parameters.Add("$write", SqliteType.Text);
+        cacheGroupCmd.Parameters.Add("$folder", SqliteType.Text);
+        cacheGroupCmd.Parameters.Add("$tracks", SqliteType.Integer);
+        cacheGroupCmd.Prepare();
 
         await using var playlistItemCmd = connection.CreateCommand();
         playlistItemCmd.Transaction = (SqliteTransaction)tx;
@@ -275,12 +330,116 @@ VALUES($list,$pos,NULL,$path,$artist,$title,$played,$source);
                 itemsProcessed, 0, unsupported));
         }
 
+        // BPM Studio stores file-archive groups in .GRP files and playlist groups in .PLG files.
+        // Read only their recoverable media paths. This avoids disk probing while retaining the
+        // BPM organisation as Hazz virtual folders.
+        for (var groupIndex = 0; groupIndex < archiveGroupFiles.Length; groupIndex++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var groupFile = archiveGroupFiles[groupIndex];
+            FileInfo groupInfo;
+            try
+            {
+                groupInfo = new FileInfo(groupFile);
+                if (!groupInfo.Exists) continue;
+            }
+            catch (Exception ex)
+            {
+                unsupported++;
+                if (warnings.Count < 100) warnings.Add($"{groupFile}: {ex.Message}");
+                continue;
+            }
+            var groupStamp = groupInfo.LastWriteTimeUtc.ToString("O");
+            var expectedFolderPath = BuildVirtualFolderPath(sourcePath, groupFile);
+            if (processedBpmGroups.TryGetValue(groupFile, out var cached)
+                && cached.Size == groupInfo.Length
+                && string.Equals(cached.LastWriteUtc, groupStamp, StringComparison.Ordinal)
+                && string.Equals(cached.FolderPath, expectedFolderPath, StringComparison.OrdinalIgnoreCase)
+                && cached.TrackCount > 0)
+            {
+                progress?.Report(new BpmStudioImportProgress(
+                    "Skipping unchanged BPM virtual folder…", files.Length, files.Length,
+                    Path.GetFileName(groupFile), itemsProcessed, 0, unsupported,
+                    90 + (archiveGroupFiles.Length == 0 ? 0 : groupIndex * 7.0 / archiveGroupFiles.Length)));
+                continue;
+            }
+            IReadOnlyList<string> groupPaths;
+            try { groupPaths = ExtractTrackPaths(groupFile); }
+            catch (Exception ex)
+            {
+                unsupported++;
+                if (warnings.Count < 100) warnings.Add($"{groupFile}: {ex.Message}");
+                continue;
+            }
+
+            if (groupPaths.Count == 0)
+            {
+                unsupported++;
+                if (warnings.Count < 100) warnings.Add($"No track paths could be recovered from BPM group {Path.GetFileName(groupFile)}.");
+                continue;
+            }
+
+            var folderPath = expectedFolderPath;
+            var importedGroupTracks = 0L;
+            foreach (var raw in groupPaths)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var resolved = ResolveTrackPath(groupFile, raw);
+                if (string.IsNullOrWhiteSpace(resolved)) continue;
+                var parsed = LibraryImportService.ParseName(resolved);
+                ttPath.Value = resolved;
+                ttArtist.Value = parsed.Artist;
+                ttTitle.Value = parsed.Title;
+                ttFormat.Value = Path.GetExtension(resolved).TrimStart('.').ToUpperInvariant();
+                await tempTrackCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                vlFolder.Value = folderPath;
+                vlPath.Value = resolved;
+                await virtualLinkCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                importedGroupTracks++;
+            }
+
+            cacheGroupCmd.Parameters["$source"].Value = groupFile;
+            cacheGroupCmd.Parameters["$size"].Value = groupInfo.Length;
+            cacheGroupCmd.Parameters["$write"].Value = groupStamp;
+            cacheGroupCmd.Parameters["$folder"].Value = folderPath;
+            cacheGroupCmd.Parameters["$tracks"].Value = importedGroupTracks;
+            await cacheGroupCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+            progress?.Report(new BpmStudioImportProgress(
+                "Reading BPM virtual folders…", files.Length, files.Length,
+                Path.GetFileName(groupFile), itemsProcessed, 0, unsupported,
+                90 + (archiveGroupFiles.Length == 0 ? 0 : groupIndex * 7.0 / archiveGroupFiles.Length)));
+        }
+
+        // The FTS trigger runs for every new song. A single INSERT can therefore look frozen for
+        // a large BPM archive. Keep the transaction, but commit the work in bounded SQL batches so
+        // the UI receives progress and cancellation remains responsive.
+        long uniqueTrackCandidates;
+        await using (var countCandidates = connection.CreateCommand())
+        {
+            countCandidates.Transaction = (SqliteTransaction)tx;
+            countCandidates.CommandText = "SELECT COUNT(*) FROM temp_bpm_tracks";
+            uniqueTrackCandidates = Convert.ToInt64(await countCandidates.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
+        }
+
         progress?.Report(new BpmStudioImportProgress(
             "Indexing unique referenced music tracks…", files.Length, files.Length,
-            string.Empty, itemsProcessed, 0, unsupported, 98));
+            uniqueTrackCandidates == 0 ? string.Empty : $"0 / {uniqueTrackCandidates:N0}",
+            itemsProcessed, 0, unsupported, 90));
 
-        // One database-native bulk insert indexes each unique referenced path once. It performs no
-        // HDD/network probe. Existing Hazz library metadata is left untouched.
+        const int indexBatchSize = 1000;
+        long indexedCandidates = 0;
+        long lastRowId = 0;
+        // A row-by-row songs_ai trigger turns a 100k+ import into a long apparent freeze.
+        // Temporarily defer that trigger and write missing FTS rows in the same bounded batches.
+        // DDL is transactional here: cancellation rolls back and leaves the original trigger.
+        await using (var dropFtsTrigger = connection.CreateCommand())
+        {
+            dropFtsTrigger.Transaction = (SqliteTransaction)tx;
+            dropFtsTrigger.CommandText = "DROP TRIGGER IF EXISTS songs_ai;";
+            await dropFtsTrigger.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         await using (var bulkSongs = connection.CreateCommand())
         {
             bulkSongs.Transaction = (SqliteTransaction)tx;
@@ -288,10 +447,75 @@ VALUES($list,$pos,NULL,$path,$artist,$title,$played,$source);
 INSERT INTO songs(artist,title,manufacturer,disc_id,file_path,format,file_size,date_added,cdg_sync_seconds,preferred_key,last_seen_utc,media_kind)
 SELECT artist,title,'','',file_path,format,0,NULL,0,0,CURRENT_TIMESTAMP,'Music'
 FROM temp_bpm_tracks
-WHERE 1
+WHERE rowid > $after
+ORDER BY rowid
+LIMIT $batch
 ON CONFLICT(file_path) DO NOTHING;
 """;
-            await bulkSongs.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            bulkSongs.Parameters.Add("$after", SqliteType.Integer);
+            bulkSongs.Parameters.Add("$batch", SqliteType.Integer);
+
+            await using var bulkFts = connection.CreateCommand();
+            bulkFts.Transaction = (SqliteTransaction)tx;
+            bulkFts.CommandText = """
+INSERT INTO songs_fts(rowid,artist,title,manufacturer,disc_id,file_path)
+SELECT s.id,s.artist,s.title,s.manufacturer,s.disc_id,s.file_path
+FROM songs s
+JOIN temp_bpm_tracks t ON t.file_path=s.file_path COLLATE NOCASE
+WHERE t.rowid > $after AND t.rowid <= $through
+  AND NOT EXISTS (SELECT 1 FROM songs_fts f WHERE f.rowid=s.id);
+""";
+            bulkFts.Parameters.Add("$after", SqliteType.Integer);
+            bulkFts.Parameters.Add("$through", SqliteType.Integer);
+
+            while (indexedCandidates < uniqueTrackCandidates)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                bulkSongs.Parameters["$after"].Value = lastRowId;
+                bulkSongs.Parameters["$batch"].Value = indexBatchSize;
+                var inserted = await bulkSongs.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+                // Advance by the candidate rows, not inserted rows: existing library songs are
+                // intentionally skipped but must not cause the loop to repeat forever.
+                await using var last = connection.CreateCommand();
+                last.Transaction = (SqliteTransaction)tx;
+                last.CommandText = "SELECT COALESCE(MAX(rowid),$after) FROM (SELECT rowid FROM temp_bpm_tracks WHERE rowid > $after ORDER BY rowid LIMIT $batch);";
+                last.Parameters.AddWithValue("$after", lastRowId);
+                last.Parameters.AddWithValue("$batch", indexBatchSize);
+                var nextRowId = Convert.ToInt64(await last.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
+                if (nextRowId <= lastRowId) break;
+
+                bulkFts.Parameters["$after"].Value = lastRowId;
+                bulkFts.Parameters["$through"].Value = nextRowId;
+                await bulkFts.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+                lastRowId = nextRowId;
+                indexedCandidates = Math.Min(uniqueTrackCandidates, indexedCandidates + indexBatchSize);
+                var percent = 90 + (uniqueTrackCandidates == 0 ? 7 : 7 * indexedCandidates / (double)uniqueTrackCandidates);
+                progress?.Report(new BpmStudioImportProgress(
+                    "Indexing unique referenced music tracks…", files.Length, files.Length,
+                    $"{indexedCandidates:N0} / {uniqueTrackCandidates:N0}", itemsProcessed,
+                indexedCandidates, unsupported, percent));
+            }
+        }
+
+        await using (var restoreFtsTrigger = connection.CreateCommand())
+        {
+            restoreFtsTrigger.Transaction = (SqliteTransaction)tx;
+            restoreFtsTrigger.CommandText = """
+CREATE TRIGGER IF NOT EXISTS songs_ai AFTER INSERT ON songs BEGIN
+  INSERT INTO songs_fts(rowid, artist, title, manufacturer, disc_id, file_path)
+  VALUES (new.id, new.artist, new.title, new.manufacturer, new.disc_id, new.file_path);
+END;
+""";
+            await restoreFtsTrigger.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (archiveGroupFiles.Length > 0)
+        {
+            (virtualFoldersImported, virtualFolderTrackLinksImported) =
+                await ImportVirtualFoldersAsync(connection, (SqliteTransaction)tx, progress, files.Length,
+                    itemsProcessed, uniqueTrackCandidates, unsupported, cancellationToken).ConfigureAwait(false);
         }
 
         long uniqueReferencedTracks;
@@ -304,24 +528,217 @@ ON CONFLICT(file_path) DO NOTHING;
 
         progress?.Report(new BpmStudioImportProgress(
             "Saving imported BPM Studio data…", files.Length, files.Length,
-            string.Empty, itemsProcessed, uniqueReferencedTracks, unsupported, 99));
+            "Committing database transaction", itemsProcessed, uniqueReferencedTracks, unsupported, 99.2));
 
         await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+        progress?.Report(new BpmStudioImportProgress(
+            "Finalizing database…", files.Length, files.Length,
+            "Completing background database checkpoint", itemsProcessed, uniqueReferencedTracks, unsupported, 99.7));
+
+        await using (var finishPragmas = connection.CreateCommand())
+        {
+            finishPragmas.CommandText = "PRAGMA wal_checkpoint(PASSIVE); PRAGMA wal_autocheckpoint=1000;";
+            await finishPragmas.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         progress?.Report(new BpmStudioImportProgress(
             "Import complete", files.Length, files.Length,
             string.Empty, itemsProcessed, uniqueReferencedTracks, unsupported, 100));
 
-        if (archiveGroupsSkipped > 0)
-            warnings.Add($"Fast import skipped {archiveGroupsSkipped:N0} BPM .GRP/.PLG archive-group file(s). Playlist/history .LST/.M3U/.PLS files were imported; use Hazz's normal Music Library scan if you also want to index every archive-group track.");
+        if (archiveGroupFiles.Length > 0)
+            warnings.Add($"Imported {virtualFoldersImported:N0} BPM Studio virtual folder(s) with {virtualFolderTrackLinksImported:N0} unique track link(s). Source files were read-only.");
         if (datedHistoryCopiesSkipped > 0)
             warnings.Add($"Collapsed {datedHistoryCopiesSkipped:N0} extra physical BPM daily-history copy file(s) by calendar date. The most complete copy for each day was retained.");
         if (duplicateListsSkipped > 0)
             warnings.Add($"Collapsed {duplicateListsSkipped:N0} duplicate BPM Studio playlist/history copy file(s). Only one logical copy was retained.");
+        if (duplicateArchiveGroupCopiesSkipped > 0)
+            warnings.Add($"Skipped {duplicateArchiveGroupCopiesSkipped:N0} older BPM Studio .GRP/.PLG copy file(s) with duplicate names. The newest modified copy was imported.");
         warnings.Add("BPM dated played-song lists are imported as both Music History rows and loadable 'BPM Daily History' lists, preserving their play order.");
         warnings.Add("Fast BPM import does not probe every referenced music file on disk. Missing/moved files remain visible in imported lists and can be checked later by a library rescan.");
 
-        return new BpmStudioImportResult(playlists, historyLists, playlistItems, historyItems, uniqueReferencedTracks, unsupported, warnings);
+        return new BpmStudioImportResult(playlists, historyLists, playlistItems, historyItems, uniqueReferencedTracks,
+            virtualFoldersImported, virtualFolderTrackLinksImported, unsupported, warnings);
+    }
+
+    private static bool IsArchiveGroupFile(string file)
+    {
+        var ext = Path.GetExtension(file);
+        return ext.Equals(".grp", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".plg", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static DateTime SafeLastWriteTimeUtc(string path)
+    {
+        try { return File.GetLastWriteTimeUtc(path); }
+        catch { return DateTime.MinValue; }
+    }
+
+    private static long SafeFileLength(string path)
+    {
+        try { return new FileInfo(path).Length; }
+        catch { return -1; }
+    }
+
+    private static string BuildVirtualFolderPath(string selectedSource, string groupFile)
+    {
+        var parts = new List<string> { "BPM Studio" };
+        if (Directory.Exists(selectedSource))
+        {
+            var relative = Path.GetRelativePath(Path.GetFullPath(selectedSource), Path.GetDirectoryName(groupFile) ?? selectedSource);
+            if (relative != ".")
+                parts.AddRange(relative.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        }
+        var groupName = Path.GetFileNameWithoutExtension(groupFile).Trim();
+        if (groupName.Length > 0 && !parts.Last().Equals(groupName, StringComparison.OrdinalIgnoreCase)) parts.Add(groupName);
+        return string.Join("/", parts.Select(SanitizeVirtualFolderName));
+    }
+
+    private static string SanitizeVirtualFolderName(string value)
+    {
+        value = Regex.Replace(value.Trim(), @"[\x00-\x1F]", " ");
+        return value.Length == 0 ? "Imported" : value[..Math.Min(80, value.Length)];
+    }
+
+    private static async Task<(int Folders, long Links)> ImportVirtualFoldersAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        IProgress<BpmStudioImportProgress>? progress,
+        int fileCount,
+        long itemsProcessed,
+        long indexedTracks,
+        int unsupported,
+        CancellationToken token)
+    {
+        var folderIds = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        var created = 0;
+        long links = 0;
+
+        await using var read = connection.CreateCommand();
+        read.Transaction = transaction;
+        read.CommandText = "SELECT DISTINCT folder_path FROM temp_bpm_virtual_links ORDER BY folder_path COLLATE NOCASE;";
+        await using var reader = await read.ExecuteReaderAsync(token).ConfigureAwait(false);
+        var folderPaths = new List<string>();
+        while (await reader.ReadAsync(token).ConfigureAwait(false)) folderPaths.Add(reader.GetString(0));
+        await reader.DisposeAsync();
+
+        await using var findFolder = connection.CreateCommand();
+        findFolder.Transaction = transaction;
+        findFolder.CommandText = "SELECT id FROM virtual_folders WHERE COALESCE(parent_id,0)=COALESCE($parent,0) AND name=$name COLLATE NOCASE LIMIT 1;";
+        var ffParent = findFolder.Parameters.Add("$parent", SqliteType.Integer);
+        var ffName = findFolder.Parameters.Add("$name", SqliteType.Text);
+
+        await using var createFolder = connection.CreateCommand();
+        createFolder.Transaction = transaction;
+        createFolder.CommandText = "INSERT INTO virtual_folders(parent_id,name) VALUES($parent,$name) RETURNING id;";
+        var cfParent = createFolder.Parameters.Add("$parent", SqliteType.Integer);
+        var cfName = createFolder.Parameters.Add("$name", SqliteType.Text);
+
+        await using (var tempMap = connection.CreateCommand())
+        {
+            tempMap.Transaction = transaction;
+            tempMap.CommandText = """
+CREATE TEMP TABLE IF NOT EXISTS temp_bpm_folder_ids(
+    folder_path TEXT PRIMARY KEY COLLATE NOCASE,
+    folder_id INTEGER NOT NULL
+);
+DELETE FROM temp_bpm_folder_ids;
+""";
+            await tempMap.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }
+
+        await using var mapFolder = connection.CreateCommand();
+        mapFolder.Transaction = transaction;
+        mapFolder.CommandText = "INSERT OR REPLACE INTO temp_bpm_folder_ids(folder_path,folder_id) VALUES($path,$id);";
+        var mfPath = mapFolder.Parameters.Add("$path", SqliteType.Text);
+        var mfId = mapFolder.Parameters.Add("$id", SqliteType.Integer);
+        mapFolder.Prepare();
+
+        foreach (var folderPath in folderPaths)
+        {
+            token.ThrowIfCancellationRequested();
+            long? parent = null;
+            var accumulated = "";
+            foreach (var part in folderPath.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                accumulated = accumulated.Length == 0 ? part : accumulated + "/" + part;
+                if (folderIds.TryGetValue(accumulated, out var cached)) { parent = cached; continue; }
+                ffParent.Value = parent ?? (object)DBNull.Value; ffName.Value = part;
+                var found = await findFolder.ExecuteScalarAsync(token).ConfigureAwait(false);
+                long id;
+                if (found is not null && found is not DBNull) id = Convert.ToInt64(found);
+                else
+                {
+                    cfParent.Value = parent ?? (object)DBNull.Value; cfName.Value = part;
+                    id = Convert.ToInt64(await createFolder.ExecuteScalarAsync(token).ConfigureAwait(false));
+                    created++;
+                }
+                folderIds[accumulated] = id; parent = id;
+            }
+            if (parent is null) continue;
+            mfPath.Value = folderPath;
+            mfId.Value = parent.Value;
+            await mapFolder.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }
+
+        long totalLinkCandidates;
+        await using (var countLinks = connection.CreateCommand())
+        {
+            countLinks.Transaction = transaction;
+            countLinks.CommandText = "SELECT COUNT(*) FROM temp_bpm_virtual_links;";
+            totalLinkCandidates = Convert.ToInt64(await countLinks.ExecuteScalarAsync(token).ConfigureAwait(false));
+        }
+
+        progress?.Report(new BpmStudioImportProgress(
+            "Linking BPM virtual folders…", fileCount, fileCount,
+            totalLinkCandidates == 0 ? string.Empty : $"0 / {totalLinkCandidates:N0} track links",
+            itemsProcessed, indexedTracks, unsupported, 97));
+
+        const int linkBatchSize = 5000;
+        long linkedCandidates = 0;
+        long lastLinkRowId = 0;
+        await using var bulkLinks = connection.CreateCommand();
+        bulkLinks.Transaction = transaction;
+        bulkLinks.CommandText = """
+INSERT OR IGNORE INTO virtual_folder_songs(folder_id,song_id)
+SELECT m.folder_id,s.id
+FROM (
+    SELECT rowid,folder_path,file_path
+    FROM temp_bpm_virtual_links
+    WHERE rowid > $after
+    ORDER BY rowid
+    LIMIT $batch
+) l
+JOIN temp_bpm_folder_ids m ON m.folder_path=l.folder_path COLLATE NOCASE
+JOIN songs s ON s.file_path=l.file_path COLLATE NOCASE;
+""";
+        bulkLinks.Parameters.Add("$after", SqliteType.Integer);
+        bulkLinks.Parameters.Add("$batch", SqliteType.Integer);
+
+        while (linkedCandidates < totalLinkCandidates)
+        {
+            token.ThrowIfCancellationRequested();
+            bulkLinks.Parameters["$after"].Value = lastLinkRowId;
+            bulkLinks.Parameters["$batch"].Value = linkBatchSize;
+            links += await bulkLinks.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+
+            await using var last = connection.CreateCommand();
+            last.Transaction = transaction;
+            last.CommandText = "SELECT COALESCE(MAX(rowid),$after) FROM (SELECT rowid FROM temp_bpm_virtual_links WHERE rowid > $after ORDER BY rowid LIMIT $batch);";
+            last.Parameters.AddWithValue("$after", lastLinkRowId);
+            last.Parameters.AddWithValue("$batch", linkBatchSize);
+            var nextRowId = Convert.ToInt64(await last.ExecuteScalarAsync(token).ConfigureAwait(false));
+            if (nextRowId <= lastLinkRowId) break;
+            lastLinkRowId = nextRowId;
+            linkedCandidates = Math.Min(totalLinkCandidates, linkedCandidates + linkBatchSize);
+            var percent = 97 + (totalLinkCandidates == 0 ? 2 : 2 * linkedCandidates / (double)totalLinkCandidates);
+            progress?.Report(new BpmStudioImportProgress(
+                "Linking BPM virtual folders…", fileCount, fileCount,
+                $"{linkedCandidates:N0} / {totalLinkCandidates:N0} track links",
+                itemsProcessed, indexedTracks, unsupported, percent));
+        }
+        return (created, links);
     }
 
     private static bool IsFastImportListFile(string file)
@@ -405,7 +822,10 @@ WHERE source_type IN ('BPM Studio','BPM Daily History')
             .Count();
         var undatedHistory = historyCandidates.Count(x => !TryGetHistoryDateFromName(x, out _));
         var history = datedHistoryDays + undatedHistory;
-        var groups = allFiles.Count(x => Path.GetExtension(x).Equals(".grp", StringComparison.OrdinalIgnoreCase) || Path.GetExtension(x).Equals(".plg", StringComparison.OrdinalIgnoreCase));
+        var groups = allFiles.Where(IsArchiveGroupFile)
+            .Select(Path.GetFileName)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
         var playlists = fastFiles.Count(x => !IsHistoryList(x));
         return new BpmStudioImportPreview(sourcePath, playlists, history, groups, fastFiles.Take(12).Select(Path.GetFileName).ToArray()!);
     }

@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -53,6 +54,12 @@ internal static class Check
             "VJ music-video output is not silent and screen-fitted.");
         foreach (var method in new[] { "ShowMusicVideo", "PauseMusicVideo", "ResumeMusicVideo", "SyncMusicVideo", "ClearMusicVideo" })
             Require(typeof(AudienceWindow).GetMethod(method) is not null, $"Audience VJ method is missing: {method}");
+        audience.SetSingerRotation(new[] { new AudienceSingerDisplayItem { Position = 1, SingerName = "Test Singer", SongText = "Test Song" } }, true);
+        audience.Apply(new AudienceOverlaySettings { ShowNextSinger = true, ScrollerEnabled = true });
+        audience.ShowMusicVideo(Path.Combine(Path.GetTempPath(), "hazz-vj-overlay-check.mp4"), TimeSpan.Zero, playing: false);
+        Require(musicVideo.Visibility == Visibility.Visible && next.Visibility == Visibility.Collapsed && scroller.Visibility == Visibility.Collapsed,
+            "Singer lists or scroller still cover the audience music-video layer.");
+        audience.ClearMusicVideo();
         audience.Close();
 
         var main = new MainWindow();
@@ -94,6 +101,10 @@ internal static class Check
         kind.SetValue(main, "Music");
         update.Invoke(main, null);
         Require(Grid.GetColumn(overlay) == 2, "Music search still covers Deck 1.");
+        kind.SetValue(main, "MusicVideo");
+        update.Invoke(main, null);
+        Require(Grid.GetColumn(overlay) == 2 && ((Button)main.FindName("SearchMusicVideoButton")).Tag?.ToString() == "Active",
+            "Music Video search mode is missing or does not keep both music decks available.");
         kind.SetValue(main, "Karaoke");
         update.Invoke(main, null);
         Require(Grid.GetColumn(overlay) == 0, "Karaoke search does not leave the singer rotation available.");
@@ -129,7 +140,7 @@ internal static class Check
                 typeof(MainWindow).GetMethod("ApplyCurrentMusicVideoToAudience", BindingFlags.Instance | BindingFlags.NonPublic) is not null,
             "Music-deck VJ routing is not wired to the audience display.");
 
-        Console.WriteLine("PASS: colours, dropdowns, audience layout, VJ video routing, search placement, dedicated side-list controls, seek sliders, Karaoke Deck drop target, pause/resume state and 1.5-second handoff.");
+        Console.WriteLine("PASS: colours, dropdowns, audience layout, unobstructed VJ video, Music Video search, search placement, side-list controls, seek sliders, Karaoke Deck drop target, pause/resume and 1.5-second handoff.");
         application.Shutdown();
     }
 

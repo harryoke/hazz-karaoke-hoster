@@ -31,7 +31,16 @@ SELECT s.id, s.artist, s.title, s.manufacturer, s.disc_id, s.file_path, s.format
 FROM songs_fts f
 JOIN songs s ON s.id = f.rowid
 WHERE songs_fts MATCH $q
-  AND ($kind IS NULL OR s.media_kind = $kind)
+  AND ($kind IS NULL
+       OR lower(s.media_kind) = lower($kind)
+       OR ($kind = 'MusicVideo' AND lower(s.media_kind) = 'music' AND (
+           lower(s.file_path) LIKE '%.mp4' OR lower(s.file_path) LIKE '%.m4v' OR
+           lower(s.file_path) LIKE '%.mkv' OR lower(s.file_path) LIKE '%.avi' OR
+           lower(s.file_path) LIKE '%.wmv' OR lower(s.file_path) LIKE '%.mov' OR
+           lower(s.file_path) LIKE '%.mpeg' OR lower(s.file_path) LIKE '%.mpg' OR
+           lower(s.file_path) LIKE '%.vob' OR lower(s.file_path) LIKE '%.ts' OR
+           lower(s.file_path) LIKE '%.m2ts' OR lower(s.file_path) LIKE '%.webm' OR
+           lower(s.file_path) LIKE '%.divx')))
 ORDER BY bm25(songs_fts), s.artist, s.title
 LIMIT $limit;
 """;
@@ -41,6 +50,35 @@ LIMIT $limit;
         var result = new List<SongRecord>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken)) result.Add(ReadSong(reader));
+        // Older databases can have songs written before the FTS triggers were created.
+        // Keep search useful for those libraries by falling back to indexed columns when
+        // FTS has no matching row.
+        if (result.Count == 0)
+        {
+            await using var fallback = connection.CreateCommand();
+            var kindFilter = mediaKind is null
+                ? "1=1"
+                : mediaKind.Equals("MusicVideo", StringComparison.OrdinalIgnoreCase)
+                    ? "lower(s.media_kind)='music' AND (lower(s.file_path) LIKE '%.mp4' OR lower(s.file_path) LIKE '%.m4v' OR lower(s.file_path) LIKE '%.mkv' OR lower(s.file_path) LIKE '%.avi' OR lower(s.file_path) LIKE '%.wmv' OR lower(s.file_path) LIKE '%.mov' OR lower(s.file_path) LIKE '%.mpeg' OR lower(s.file_path) LIKE '%.mpg' OR lower(s.file_path) LIKE '%.vob' OR lower(s.file_path) LIKE '%.ts' OR lower(s.file_path) LIKE '%.m2ts' OR lower(s.file_path) LIKE '%.webm' OR lower(s.file_path) LIKE '%.divx')"
+                    : "lower(s.media_kind)=lower($kind)";
+            fallback.CommandText = $"""
+SELECT s.id, s.artist, s.title, s.manufacturer, s.disc_id, s.file_path, s.format,
+       s.file_size, s.date_added, s.cdg_sync_seconds, s.preferred_key, s.media_kind
+FROM songs s
+WHERE {kindFilter}
+  AND (s.artist LIKE $text COLLATE NOCASE OR s.title LIKE $text COLLATE NOCASE
+       OR s.manufacturer LIKE $text COLLATE NOCASE OR s.disc_id LIKE $text COLLATE NOCASE
+       OR s.file_path LIKE $text COLLATE NOCASE)
+ORDER BY s.artist COLLATE NOCASE, s.title COLLATE NOCASE
+LIMIT $limit;
+""";
+            fallback.Parameters.AddWithValue("$text", $"%{query}%");
+            fallback.Parameters.AddWithValue("$limit", limit);
+            if (mediaKind is not null && !mediaKind.Equals("MusicVideo", StringComparison.OrdinalIgnoreCase))
+                fallback.Parameters.AddWithValue("$kind", mediaKind);
+            await using var fallbackReader = await fallback.ExecuteReaderAsync(cancellationToken);
+            while (await fallbackReader.ReadAsync(cancellationToken)) result.Add(ReadSong(fallbackReader));
+        }
         return result;
     }
 

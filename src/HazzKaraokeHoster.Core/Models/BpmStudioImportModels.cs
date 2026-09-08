@@ -28,6 +28,8 @@ public sealed record BpmStudioImportResult(
     long PlaylistItemsImported,
     long HistoryItemsImported,
     long MusicTracksLinkedOrIndexed,
+    int VirtualFoldersImported,
+    long VirtualFolderTrackLinksImported,
     int UnsupportedFiles,
     IReadOnlyList<string> Warnings);
 

@@ -1,4 +1,4 @@
-# Visual Studio 2026 build — Hazz Karaoke Hoster v0.6
+# Visual Studio 2026 build — Hazz Karaoke Hoster v0.80
 
 1. Install Visual Studio 2026 with **.NET Desktop Development**.
 2. Ensure the .NET 10 SDK is installed.

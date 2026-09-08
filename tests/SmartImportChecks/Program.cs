@@ -130,9 +130,35 @@ INSERT INTO songs(artist,title,file_path,format,media_kind) VALUES('ABBA','Water
     await File.WriteAllTextAsync(json, $$"""{"tracks":[{"filePath":"{{media.Replace("\\", "\\\\")}}","artist":"ABBA","title":"Waterloo"}]}""");
     Require((await importer.PreviewAsync(json)).DetectedSource == "KaraFun", "KaraFun JSON detection/mapping");
 
-    var xml = Path.Combine(root.FullName, "database.xml");
+    var vdjHome = Directory.CreateDirectory(Path.Combine(root.FullName, "VirtualDJ"));
+    var xml = Path.Combine(vdjHome.FullName, "database.xml");
     await File.WriteAllTextAsync(xml, $"<VirtualDJ><Song FilePath=\"{System.Security.SecurityElement.Escape(media)}\" Author=\"ABBA\" Title=\"Waterloo\" /></VirtualDJ>");
     Require((await importer.PreviewAsync(xml)).DetectedSource == "VirtualDJ", "VirtualDJ XML detection/mapping");
+    var myLists = Directory.CreateDirectory(Path.Combine(vdjHome.FullName, "MyLists", "Events"));
+    var vdjFolder = Path.Combine(myLists.FullName, "Wedding.vdjfolder");
+    await File.WriteAllTextAsync(vdjFolder, $"<VirtualFolder ordered=\"yes\"><song path=\"{System.Security.SecurityElement.Escape(media)}\" artist=\"ABBA\" title=\"Waterloo\" /></VirtualFolder>");
+    var virtualDjResult = await importer.ImportAsync(vdjHome.FullName, ExternalMediaKindMode.Auto, false);
+    Require(virtualDjResult.VirtualFoldersImported >= 3 && virtualDjResult.VirtualFolderTrackLinksImported == 1,
+        "VirtualDJ MyLists nested virtual-folder import");
+    var virtualRepo = new LibraryRepository(target);
+    var importedFolders = await virtualRepo.GetVirtualFoldersAsync();
+    var vdjRoot = importedFolders.Single(x => x.Name == "VirtualDJ" && x.ParentId is null);
+    var eventsFolder = importedFolders.Single(x => x.Name == "Events" && x.ParentId == vdjRoot.Id);
+    var weddingFolder = importedFolders.Single(x => x.Name == "Wedding" && x.ParentId == eventsFolder.Id);
+    Require((await virtualRepo.BrowseVirtualFolderAsync(weddingFolder.Id, "Karaoke", "", "Artist", false, 0)).TotalCount == 1,
+        "VirtualDJ virtual folder contains imported track");
+    var virtualDjRepeat = await importer.ImportAsync(vdjHome.FullName, ExternalMediaKindMode.Auto, false);
+    Require(virtualDjRepeat.VirtualFoldersImported == 0 && virtualDjRepeat.VirtualFolderTrackLinksImported == 0,
+        "VirtualDJ virtual-folder reimport is idempotent");
+
+    var rekordbox = Path.Combine(root.FullName, "rekordbox.xml");
+    await File.WriteAllTextAsync(rekordbox, $"""
+<DJ_PLAYLISTS><COLLECTION><TRACK TrackID="1" Name="Waterloo" Artist="ABBA" Location="{System.Security.SecurityElement.Escape(new Uri(media).AbsoluteUri)}" /></COLLECTION>
+<PLAYLISTS><NODE Type="0" Name="Events"><NODE Type="1" Name="Party"><TRACK Key="1" /></NODE></NODE></PLAYLISTS></DJ_PLAYLISTS>
+""");
+    var rekordboxResult = await importer.ImportAsync(rekordbox, ExternalMediaKindMode.Auto, false);
+    Require(rekordboxResult.DetectedSource == "rekordbox" && rekordboxResult.VirtualFoldersImported >= 3
+        && rekordboxResult.VirtualFolderTrackLinksImported == 1, "rekordbox nested playlist-folder import");
 
     var itunes = Path.Combine(root.FullName, "iTunes Music Library.xml");
     await File.WriteAllTextAsync(itunes, $"<?xml version=\"1.0\"?><plist version=\"1.0\"><dict><key>Major Version</key><integer>1</integer><key>Application Version</key><string>iTunes 12</string><key>Tracks</key><dict><key>1</key><dict><key>Name</key><string>Waterloo</string><key>Artist</key><string>ABBA</string><key>Location</key><string>{System.Security.SecurityElement.Escape(new Uri(media).AbsoluteUri)}</string></dict></dict></dict></plist>");
@@ -148,7 +174,7 @@ INSERT INTO songs(artist,title,file_path,format,media_kind) VALUES('ABBA','Water
     var xspfPreview = await importer.PreviewAsync(xspf);
     Require(xspfPreview.DetectedSource == "Mixxx" && xspfPreview.SampleRows.Count == 1, "Mixxx XSPF detection/mapping");
 
-    Console.WriteLine("PASS: smart folder/file detection, MediaMonkey SQLite, CompuHost CSV, Lyrx database, KaraFun JSON, VirtualDJ XML, iTunes plist, Mixxx XSPF, generic playlist, read-only source and Hazz import.");
+    Console.WriteLine("PASS: smart folder/file detection, MediaMonkey SQLite, CompuHost CSV, Lyrx database, KaraFun JSON, VirtualDJ XML/MyLists virtual folders, rekordbox playlist folders, iTunes plist, Mixxx XSPF, generic playlist, read-only source and Hazz import.");
 }
 finally
 {

@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster Complete Illustrated User Manual
 
-Every screen, button, workflow and live-show function for version 0.17.22.
+Every screen, button, workflow and live-show function for version 0.80.
 
 ![Complete console map](Images/figure_console_overview.png)
 
@@ -44,7 +44,51 @@ The Word and PDF editions contain the expanded control-by-control reference, wor
 Keep the host console on Display 1, keep media drives connected while Hazz is open, and shut down through the main window confirmation.
 
 ## Detailed written reference
-Complete operating documentation for version 0.17.22.
+Every screen, button, workflow and live-show function for version 0.80.
+
+![Complete console map](Images/figure_console_overview.png)
+
+## Visual guides
+
+![Button colours](Images/diagram_button_colours.png)
+
+![Music deck controls](Images/figure_music_deck_controls.png)
+
+![Karaoke deck controls](Images/figure_karaoke_deck_controls.png)
+
+![Singer queue controls](Images/figure_singer_queue_controls.png)
+
+![Audience settings](Images/figure_audience_settings.png)
+
+![Search routing](Images/diagram_search_dragdrop.png)
+
+![Music modes](Images/diagram_music_modes.png)
+
+![VJ routing](Images/diagram_vj_display.png)
+
+![Smart import](Images/diagram_import_flow.png)
+
+![Recovery](Images/diagram_recovery.png)
+
+## Main control reference
+
+The Word and PDF editions contain the expanded control-by-control reference, workflows, troubleshooting guide, supporting-window descriptions and Visual Studio build instructions.
+
+### Live sequence
+
+1. Import and test the karaoke and music libraries.
+2. Open the audience display and send it to Display 2.
+3. Add a singer and drag a request onto their row.
+4. Press Load Next Singer and check the preview.
+5. Press Play.
+6. Press Fade Stop at the end so karaoke fades out and music fades in.
+
+### Safety
+
+Keep the host console on Display 1, keep media drives connected while Hazz is open, and shut down through the main window confirmation.
+
+## Detailed written reference
+Complete operating documentation for version 0.80.
 
 ## 1 Getting started
 
@@ -129,6 +173,10 @@ Press Karaoke beside the Search box, then type part of an artist, title, manufac
 
 Press Music and enter an artist, title or folder name. Music results appear over the centre so both deck playlists remain visible. Shift-click selects a range and Ctrl-click selects individual tracks. Ctrl+A or Select All selects the complete visible result set. Drag the selection to a deck or press Add to Deck 1 or Add to Deck 2. Tracks are added in displayed order; missing files are marked as broken and skipped.
 
+### Music Video search
+
+Press Music Video beside Karaoke and Music to show only imported video files from the music library. Type part of the artist or title, then use Shift-click, Ctrl-click, Ctrl+A, drag and drop, or the deck buttons in the same way as Music search. Space-bar quick play also sends a selected music video to the audience display.
+
 ### Space-bar quick play
 
 In Music search, highlight a result and press Space to play it immediately without adding it to a deck. If music is already playing, Hazz fades into the selected result. Press Space again to stop quick play. Hazz then waits for Play Music or the next karaoke song.
@@ -212,6 +260,8 @@ Choose Show, Single Deck + Side List Mode to use Deck 1 as the only player. The 
 
 Choose Import, Import Music / Video Folders to add video folders. When Deck 1 or Deck 2 plays a video file, Hazz mirrors the picture full-screen to the singer display while keeping that audience copy muted. Play, pause, resume, seek and stop remain synchronized. Karaoke automatically takes priority, and the music video returns when interval music resumes.
 
+While a music video is shown, Hazz hides the next-singer list, full rotation scroller, venue message, background media and persistent logo. The audience sees only the fitted video, with no singer information covering it. The configured overlays return automatically when the music video ends.
+
 ## 9 Audience display
 
 ### Open safely
@@ -294,7 +344,7 @@ Maximise Hazz, hide the karaoke preview, drag the splitters, or enable Karaoke O
 
 ### An import is slow
 
-For very large third-party catalogues, leave file verification off and allow the database import to finish. MediaMonkey and BPM Studio use optimised bulk paths. Cancel only from the displayed import control.
+For very large third-party catalogues, leave file verification off and allow the database import to finish. MediaMonkey and BPM Studio use optimised bulk paths. During a large BPM import, the progress window separately reports song indexing, virtual-folder linking, transaction commit and database finalisation. Cancel only from the displayed import control.
 
 ## 13 Visual Studio 2026 build
 
@@ -330,3 +380,107 @@ Confirm Release and x64 are selected, restore NuGet packages, close any running 
 - Avoid disconnecting library drives.
 - Use coloured broken-file warnings instead of repeatedly retrying a failed track.
 - Let Hazz complete normal shutdown after the final song.
+
+## Detailed virtual-folder instructions
+
+Virtual folders let you organise tracks into named collections such as **80s**, **Rock**, **Jingles**, **Floor Fillers** or **Requests**. They contain links to songs already indexed by Hazz. Your audio, video, ZIP and CDG files remain in their original Windows folders.
+
+![Virtual folder controls](Images/figure_virtual_folders.png)
+
+## Open the Library Browser
+
+1. Choose **Library > Browse Library**.
+2. The browser opens maximised. The **Virtual Folders** panel is on the left.
+3. Select **All Library Tracks** whenever you want to return to the full library.
+4. Choose **Karaoke** or **Music**, then search or sort the list as needed.
+
+## Create a folder
+
+1. Press **New Folder**.
+2. Enter a name, for example `80s`.
+3. Press **Create**. The new folder appears in the left tree.
+
+## Create a nested folder
+
+1. Select the parent folder, for example **80s**.
+2. Press **New Subfolder**.
+3. Enter a name such as `Rock`.
+4. The new path is **80s / Rock**.
+
+A parent shows tracks linked directly to that parent. It does not automatically combine all tracks from its children. Select the child folder to see the child's tracks.
+
+## Add one or several tracks
+
+1. Select **All Library Tracks** or another source folder.
+2. Choose the **Karaoke** or **Music** tab.
+3. Select tracks:
+   - click once for one track;
+   - hold **Ctrl** and click to select separate tracks;
+   - click the first track, hold **Shift**, and click the last track for a continuous range;
+   - press **Ctrl+A** to select every visible result on the current page.
+4. Press **Add Selected to Folder…**.
+5. In the destination picker, select the full folder path and press **Add Tracks**.
+
+You can also drag the selected rows directly onto a folder in the left tree. Adding the same song to the same folder again is harmless; Hazz keeps one link.
+
+## Put one track in several folders
+
+Repeat **Add Selected to Folder…** for each destination. A track can appear in **80s / Rock**, **Party / Floor Fillers**, and another folder at the same time. All entries point to the same library song and physical file.
+
+## Use a folder during a show
+
+1. Select the folder in the left tree.
+2. Use the search box to narrow that folder.
+3. In **Music**, add selected tracks to Deck 1, Deck 2 or the Single Deck side list.
+4. In **Karaoke**, add the selected song to the highlighted singer.
+5. Select **All Library Tracks** to leave the folder and browse everything again.
+
+## Rename, empty, remove and delete
+
+- **Rename** changes the selected folder name. Its tracks and children stay linked.
+- **Remove from Folder** removes only the selected track links from the open folder.
+- **Empty** removes all direct track links from the selected folder. Its subfolders remain.
+- **Delete Selected Folder** removes the selected folder, its subfolders and their virtual links.
+
+None of these actions deletes a song from the Hazz library or removes a file from disk.
+
+## Import folders from BPM Studio
+
+1. Close BPM Studio.
+2. In Hazz choose **Import > Import BPM Studio**.
+3. Select the BPM Studio data or archive folder.
+4. Check the preview counts and confirm the read-only fast import.
+5. Hazz imports BPM playlists and daily history and reads recoverable `.GRP` and `.PLG` archive-group files.
+6. Open **Library > Browse Library** and expand **BPM Studio**.
+
+BPM archive filenames become Hazz folder names. Physical directories below the selected BPM folder become nested Hazz folders. Track files stay where they are. If a proprietary group contains no recoverable media paths, Hazz reports it as unreadable or unsupported at the end instead of inventing links.
+
+If the selected source contains several `.GRP` or `.PLG` files with the same filename, Hazz imports only the newest modified copy. If their dates match, the larger copy wins. Repeat imports skip unchanged group files and re-read changed files. Large libraries are indexed and linked in batches, so the progress window remains responsive through the final database stages.
+
+## Import folders from VirtualDJ and other software
+
+1. Close the other DJ or karaoke program so its files are stable.
+2. Choose **Import > Smart Import > Detect from Application Folder**.
+3. Select the program's main data/export folder. For VirtualDJ, select its home folder containing `database.xml` and **MyLists** or **Playlists**.
+4. Check the detected program and sample tracks, then start the read-only import.
+5. Open **Library > Browse Library** and expand the folder named after the detected application.
+
+Supported organisation includes VirtualDJ 2024 **My Lists** (`.vdjfolder` or XML), older VirtualDJ M3U/PLS playlist trees, Rekordbox XML playlist folders, and nested M3U, M3U8, PLS, XSPF or WPL exports from other programs. Each list becomes a Hazz virtual folder; directories around the list become parent folders. Unsupported proprietary crates are reported and left untouched.
+
+## Examples
+
+- **80s / Rock** — decade first, then genre.
+- **Jingles / Station IDs** — show elements separated from background music.
+- **Party / Floor Fillers** — reliable dance choices for quick loading.
+- **BPM Studio / FileArchive / 80s** — example of an imported BPM archive group.
+
+## Troubleshooting
+
+- **“Choose a virtual folder first.”** Use **Add Selected to Folder…**, then select the destination in the picker. If none exists, create one first.
+- **The folder looks empty.** Clear the search, check Karaoke versus Music, and confirm you selected the correct parent or child.
+- **The count and visible rows differ.** The folder count covers direct links; the active Karaoke/Music filter and search can show fewer rows.
+- **A button is clipped.** Maximise the Library Browser. v0.80 adjusts the folder panel to the available width.
+- **BPM import appears to pause near completion.** Read the phase above the progress bar. Hazz now reports indexing, virtual-folder linking, transaction commit and database finalisation separately. Do not start a second import while the first is finishing.
+- **BPM folder missing.** Confirm the selected location contains `.GRP` or `.PLG` files and read the completion report.
+- **VirtualDJ folders missing.** Select the whole VirtualDJ home folder rather than only `database.xml`, so Hazz can also see **MyLists**, **Playlists** and **Folders**.
+- **A file is missing or broken.** Virtual folders do not copy media. Reconnect the original drive or restore the indexed file path.

@@ -34,6 +34,7 @@ public partial class LibraryBrowserWindow : Window
     {
         InitializeComponent();
         _library = library;
+        SizeChanged += (_, _) => UpdateResponsiveFolderPanel();
         _filterTimer.Tick += async (_, _) =>
         {
             _filterTimer.Stop();
@@ -52,6 +53,12 @@ public partial class LibraryBrowserWindow : Window
             _loadCts?.Cancel();
             _loadCts?.Dispose();
         };
+    }
+
+    private void UpdateResponsiveFolderPanel()
+    {
+        var width = ActualWidth > 0 ? ActualWidth : Width;
+        FolderPanelColumn.Width = new GridLength(width < 1000 ? 225 : width < 1250 ? 250 : 280);
     }
 
     private void KaraokeMode_Click(object sender, RoutedEventArgs e)
