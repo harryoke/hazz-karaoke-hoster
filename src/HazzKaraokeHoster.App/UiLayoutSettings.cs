@@ -4,6 +4,11 @@ namespace HazzKaraokeHoster.App;
 
 internal sealed class UiLayoutSettings
 {
+    public bool MusicVideoShowLogo { get; set; } = false;
+    public bool MusicVideoShowScroller { get; set; } = false;
+    public bool MusicVideoShowSingers { get; set; } = false;
+    public bool MusicVideoShowKamikaze { get; set; } = false;
+
     public double LeftColumnWeight { get; set; } = 0.93;
     public double CenterColumnWeight { get; set; } = 1.24;
     public double RightColumnWeight { get; set; } = 0.93;

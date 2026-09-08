@@ -460,3 +460,16 @@ NuGet restore requires:
 
 ## Test-build note
 The source has been statically validated in the generation environment, but the Windows .NET 10/WPF SDK is not installed here. Visual Studio 2026 on your PC remains the authoritative compiler/runtime test.
+
+
+Hazz Karaoke Hoster v0.90
+
+Audience Display Settings now includes SHOW DURING MUSIC VIDEOS with independent options for:
+- Permanent logo
+- Rotation / venue scroller
+- Next singers
+- Kamikaze message
+
+Check an option to retain that overlay during music videos. Its normal display settings must also be enabled. Leave all options unchecked for an unobstructed video, matching v0.80 behaviour. Changes apply live and are saved for the next launch. Background artwork remains hidden behind music videos.
+
+All v0.80 features and fixes remain included.

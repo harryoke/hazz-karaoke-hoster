@@ -1,9 +1,15 @@
 namespace HazzKaraokeHoster.Core.Models;
 
-public enum OverlayPosition { TopLeft, TopCenter, TopRight, BottomLeft, BottomCenter, BottomRight }
+public enum OverlayPosition {
+ TopLeft, TopCenter, TopRight, BottomLeft, BottomCenter, BottomRight }
 
 public sealed class AudienceOverlaySettings
 {
+    public bool MusicVideoShowLogo { get; set; } = false;
+    public bool MusicVideoShowScroller { get; set; } = false;
+    public bool MusicVideoShowSingers { get; set; } = false;
+    public bool MusicVideoShowKamikaze { get; set; } = false;
+
     public bool ShowNextSinger { get; set; } = true;
     public bool ShowNextSong { get; set; } = true;
     public string NextSingerFontFamily { get; set; } = "Segoe UI";

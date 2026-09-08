@@ -203,6 +203,11 @@ public partial class AudienceWindow : Window
 
         _backgroundImageEnabled = s.BackgroundImageEnabled;
         _logoEnabled = s.LogoEnabled;
+        _musicVideoShowLogo = s.MusicVideoShowLogo;
+        _musicVideoShowScroller = s.MusicVideoShowScroller;
+        _musicVideoShowSingers = s.MusicVideoShowSingers;
+        _musicVideoShowKamikaze = s.MusicVideoShowKamikaze;
+
         ConfigureBackgroundSlideshow(s);
         SetCachedImage(AudienceLogoImage, s.LogoImagePath, ref _logoImagePath);
         PositionLogo(s.LogoPosition, s.LogoWidth);
@@ -303,6 +308,10 @@ public partial class AudienceWindow : Window
         ResetScroller();
     }
 
+    private bool _musicVideoShowLogo;
+    private bool _musicVideoShowScroller;
+    private bool _musicVideoShowSingers;
+    private bool _musicVideoShowKamikaze;
     private void UpdateOverlayLayerVisibility()
     {
         var musicVideoVisible = !_karaokeActive && MusicVideoMedia.Source is not null;
@@ -317,20 +326,20 @@ public partial class AudienceWindow : Window
         SingerBackgroundImage.Visibility = !musicVideoVisible && !_karaokeActive && _backgroundImageEnabled && SingerBackgroundImage.Source is not null
             ? Visibility.Visible
             : Visibility.Collapsed;
-        AudienceLogoImage.Visibility = !musicVideoVisible && _logoEnabled && AudienceLogoImage.Source is not null
+        AudienceLogoImage.Visibility = (!musicVideoVisible || _musicVideoShowLogo) && _logoEnabled && AudienceLogoImage.Source is not null
             ? Visibility.Visible
             : Visibility.Collapsed;
 
-        KamikazePanel.Visibility = !musicVideoVisible && !_karaokeActive && _kamikazeVisible
+        KamikazePanel.Visibility = (!musicVideoVisible || _musicVideoShowKamikaze) && !_karaokeActive && _kamikazeVisible
             ? Visibility.Visible
             : Visibility.Collapsed;
 
         // Kamikaze mode intentionally replaces the ordinary singer/rotation information so
         // the random selection remains a surprise until the karaoke track actually starts.
-        NextSingerPanel.Visibility = !musicVideoVisible && !_karaokeActive && !_kamikazeVisible && _showNextSinger && _hasNextSinger
+        NextSingerPanel.Visibility = (!musicVideoVisible || _musicVideoShowSingers) && !_karaokeActive && !_kamikazeVisible && _showNextSinger && _hasNextSinger
             ? Visibility.Visible
             : Visibility.Collapsed;
-        ScrollerPanel.Visibility = !musicVideoVisible && !_karaokeActive && !_kamikazeVisible && _scrollerEnabled ? Visibility.Visible : Visibility.Collapsed;
+        ScrollerPanel.Visibility = (!musicVideoVisible || _musicVideoShowScroller) && !_karaokeActive && !_kamikazeVisible && _scrollerEnabled ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private static Brush BrushFromHex(string? value, Brush fallback)

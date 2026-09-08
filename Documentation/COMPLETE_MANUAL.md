@@ -484,3 +484,16 @@ Supported organisation includes VirtualDJ 2024 **My Lists** (`.vdjfolder` or XML
 - **BPM folder missing.** Confirm the selected location contains `.GRP` or `.PLG` files and read the completion report.
 - **VirtualDJ folders missing.** Select the whole VirtualDJ home folder rather than only `database.xml`, so Hazz can also see **MyLists**, **Playlists** and **Folders**.
 - **A file is missing or broken.** Virtual folders do not copy media. Reconnect the original drive or restore the indexed file path.
+
+
+Hazz Karaoke Hoster v0.90
+
+Audience Display Settings now includes SHOW DURING MUSIC VIDEOS with independent options for:
+- Permanent logo
+- Rotation / venue scroller
+- Next singers
+- Kamikaze message
+
+Check an option to retain that overlay during music videos. Its normal display settings must also be enabled. Leave all options unchecked for an unobstructed video, matching v0.80 behaviour. Changes apply live and are saved for the next launch. Background artwork remains hidden behind music videos.
+
+All v0.80 features and fixes remain included.

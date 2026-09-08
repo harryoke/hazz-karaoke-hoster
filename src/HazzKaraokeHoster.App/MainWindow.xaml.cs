@@ -496,6 +496,10 @@ public partial class MainWindow : Window
         _audienceBackgroundImagePath = settings.AudienceBackgroundImagePath ?? string.Empty;
         _audienceLogoImagePath = settings.AudienceLogoImagePath ?? string.Empty;
         AudienceBackgroundEnabledCheck.IsChecked = settings.AudienceBackgroundEnabled && (!string.IsNullOrWhiteSpace(_audienceBackgroundImagePath) || !string.IsNullOrWhiteSpace(_audienceBackgroundFolderPath));
+        MusicVideoShowLogoCheck.IsChecked = settings.MusicVideoShowLogo;
+        MusicVideoShowScrollerCheck.IsChecked = settings.MusicVideoShowScroller;
+        MusicVideoShowSingersCheck.IsChecked = settings.MusicVideoShowSingers;
+        MusicVideoShowKamikazeCheck.IsChecked = settings.MusicVideoShowKamikaze;
         AudienceLogoEnabledCheck.IsChecked = settings.AudienceLogoEnabled && !string.IsNullOrWhiteSpace(_audienceLogoImagePath);
         SelectComboItemByContent(LogoPositionCombo, settings.AudienceLogoPosition, "TopRight");
         LogoWidthSlider.Value = Math.Clamp(settings.AudienceLogoWidth, 60, 800);
@@ -558,6 +562,10 @@ public partial class MainWindow : Window
             AudienceBackgroundStretchMode = SelectedBackgroundStretch(),
             AudienceBackgroundFolderPath = _audienceBackgroundFolderPath,
             AudienceBackgroundImagePath = _audienceBackgroundImagePath,
+            MusicVideoShowLogo = MusicVideoShowLogoCheck.IsChecked == true,
+            MusicVideoShowScroller = MusicVideoShowScrollerCheck.IsChecked == true,
+            MusicVideoShowSingers = MusicVideoShowSingersCheck.IsChecked == true,
+            MusicVideoShowKamikaze = MusicVideoShowKamikazeCheck.IsChecked == true,
             AudienceLogoEnabled = AudienceLogoEnabledCheck.IsChecked == true,
             AudienceLogoImagePath = _audienceLogoImagePath,
             AudienceLogoPosition = (LogoPositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "TopRight",
@@ -2216,6 +2224,10 @@ public partial class MainWindow : Window
             BackgroundStretchMode = SelectedBackgroundStretch(),
             BackgroundFolderPath = _audienceBackgroundFolderPath,
             BackgroundImagePath = _audienceBackgroundImagePath,
+            MusicVideoShowLogo = MusicVideoShowLogoCheck.IsChecked == true,
+            MusicVideoShowScroller = MusicVideoShowScrollerCheck.IsChecked == true,
+            MusicVideoShowSingers = MusicVideoShowSingersCheck.IsChecked == true,
+            MusicVideoShowKamikaze = MusicVideoShowKamikazeCheck.IsChecked == true,
             LogoEnabled = AudienceLogoEnabledCheck.IsChecked == true && !string.IsNullOrWhiteSpace(_audienceLogoImagePath),
             LogoImagePath = _audienceLogoImagePath,
             LogoPosition = Enum.TryParse<OverlayPosition>((LogoPositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var logoPos) ? logoPos : OverlayPosition.TopRight,
