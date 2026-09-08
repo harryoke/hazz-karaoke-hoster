@@ -1735,16 +1735,42 @@ public partial class MainWindow : Window
     private async void AddSinger_Click(object sender, RoutedEventArgs e)
     {
         var singerName = SingerNameBox.Text.Trim();
-        if (singerName.Length == 0) return;
-        var singer = await GetOrCreateQueueSingerAsync(singerName);
         var manual = ManualSongBox.Text.Trim();
-        if (manual.Length > 0)
-            singer.Songs.Add(new SingerSongEntry { SongTitle = manual });
-        SingerNameBox.Text = string.Empty;
-        ManualSongBox.Clear();
-        QueueList.SelectedItem = singer;
-        await RefreshSavedSingerNamesAsync();
-        UpdateAudienceNext();
+
+        // The old unlabelled layout made the wider song field look like the singer-name field.
+        // Accept a name entered there on its own so ADD SINGER always does what the host expects.
+        if (singerName.Length == 0 && manual.Length > 0)
+        {
+            singerName = manual;
+            manual = string.Empty;
+        }
+
+        if (singerName.Length == 0)
+        {
+            QueueDragHint.Text = "Enter a singer name, then press ADD SINGER";
+            SingerNameBox.Focus();
+            return;
+        }
+
+        try
+        {
+            var singer = await GetOrCreateQueueSingerAsync(singerName);
+            if (manual.Length > 0)
+                singer.Songs.Add(new SingerSongEntry { SongTitle = manual });
+            SingerNameBox.Text = string.Empty;
+            ManualSongBox.Clear();
+            QueueList.SelectedItem = singer;
+            QueueList.ScrollIntoView(singer);
+            QueueDragHint.Text = $"Added {singer.SingerName} to the singers list";
+            await RefreshSavedSingerNamesAsync();
+            UpdateAudienceNext();
+        }
+        catch (Exception ex)
+        {
+            QueueDragHint.Text = "Singer could not be added";
+            MessageBox.Show(this, $"Hazz could not add {singerName}.\n\n{ex.Message}",
+                "Add Singer", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private async Task<SingerQueueEntry> GetOrCreateQueueSingerAsync(string singerName)

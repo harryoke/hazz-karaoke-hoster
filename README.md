@@ -1,4 +1,12 @@
-# Hazz Karaoke Hoster v0.17.22 — Visual Studio 2026
+# Hazz Karaoke Hoster v0.17.23 — Visual Studio 2026
+
+## v0.17.23 — Singer entry correction
+
+The singer-name and optional-song fields are now permanently labelled. ADD SINGER also accepts
+a singer name typed into the formerly unlabelled wide field when the singer-name field is empty,
+and it reports success or any database error visibly.
+
+See CHANGES_v0.17.23.txt.
 
 Professional Windows live-show console for singer rotation, karaoke playback, interval music and a dedicated audience display.
 

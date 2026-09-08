@@ -327,7 +327,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="10.5" FontWeight="Bold" Foreground="#6EC1E4" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="#22303C" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v0.17.22" FontSize="11" FontWeight="Bold" Foreground="#D4DEE8"/>
+     <TextBlock Text="v0.17.23" FontSize="11" FontWeight="Bold" Foreground="#D4DEE8"/>
     </Border>
    </StackPanel>
 
@@ -638,15 +638,18 @@
         <Button x:Name="PreviewToggleButton" Content="HIDE PREVIEW" Style="{StaticResource CompactHeaderButtonStyle}" Background="#67428B" BorderBrush="#B58AE0" HorizontalAlignment="Right" VerticalAlignment="Center" Click="TogglePreview_Click" ToolTip="Show or hide the host karaoke preview and give the singer list more space."/>
        </Grid>
       </Border>
-      <Grid Grid.Row="1" Margin="7,7,7,3">
+     <Grid Grid.Row="1" Margin="7,5,7,3">
+       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
        <Grid.ColumnDefinitions><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-       <ComboBox x:Name="SingerNameBox" Grid.Column="0" ToolTip="Type to search all saved singers. Shows up to 100, most recently used first." FontSize="15" IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+       <TextBlock Grid.Row="0" Grid.Column="0" Text="SINGER NAME" Foreground="#AFC3D5" FontSize="10" FontWeight="Bold" Margin="2,0,5,2"/>
+       <TextBlock Grid.Row="0" Grid.Column="1" Text="OPTIONAL SONG TITLE" Foreground="#AFC3D5" FontSize="10" FontWeight="Bold" Margin="2,0,5,2"/>
+       <ComboBox x:Name="SingerNameBox" Grid.Row="1" Grid.Column="0" ToolTip="Enter a new singer or type to search all saved singers. Shows up to 100, most recently used first." FontSize="15" IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
                  MaxDropDownHeight="320" DropDownOpened="SingerPicker_Opened" DropDownClosed="SingerPicker_Closed" TextBoxBase.TextChanged="SingerPicker_TextChanged"
                  VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True">
         <ComboBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ComboBox.ItemsPanel>
        </ComboBox>
-       <TextBox x:Name="ManualSongBox" Grid.Column="1" ToolTip="Optional manual song title" FontSize="15"/>
-       <Button Grid.Column="2" Content="ADD SINGER" Style="{StaticResource LoadButtonStyle}" Click="AddSinger_Click"/>
+       <TextBox x:Name="ManualSongBox" Grid.Row="1" Grid.Column="1" ToolTip="Optional song title. If used alone, its text is treated as the singer name." FontSize="15"/>
+       <Button Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" Content="ADD SINGER" Style="{StaticResource LoadButtonStyle}" Click="AddSinger_Click"/>
       </Grid>
       <DataGrid x:Name="QueueList" Grid.Row="2" Margin="7,3" AutoGenerateColumns="False" IsReadOnly="True" FontSize="14"
                 AllowDrop="True"

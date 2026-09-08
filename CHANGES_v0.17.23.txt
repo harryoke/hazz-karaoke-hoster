@@ -1,0 +1,13 @@
+Hazz Karaoke Hoster v0.17.23
+
+SINGER ENTRY FIX
+
+- The singer-entry fields now have permanent SINGER NAME and OPTIONAL SONG TITLE labels.
+- ADD SINGER reliably accepts a singer name entered in the singer field.
+- For compatibility with the previously unlabelled layout, text entered in the wider
+  optional-song box by itself is treated as the singer name.
+- A successfully added singer is selected, scrolled into view and confirmed in the status line.
+- Empty input now displays a clear instruction, and database failures display an error instead
+  of making the button appear to do nothing.
+
+All v0.17.22 features, settings, libraries, queues and singer history remain compatible.
