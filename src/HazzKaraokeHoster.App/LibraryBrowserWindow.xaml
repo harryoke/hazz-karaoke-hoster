@@ -5,6 +5,10 @@
  Title="Hazz Library Browser and Virtual Folders" Width="1380" Height="780" MinWidth="980" MinHeight="560"
  Background="#0B0F14" Foreground="#F4F7FA" WindowStartupLocation="CenterOwner">
  <Window.Resources>
+  <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#285F82"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#23465F"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#FFFFFF"/>
   <Style TargetType="Button">
    <Setter Property="Foreground" Value="White"/><Setter Property="Background" Value="#26313D"/>
    <Setter Property="BorderBrush" Value="#4A5968"/><Setter Property="Padding" Value="10,6"/>
@@ -17,7 +21,52 @@
   </Style>
   <Style TargetType="ComboBox">
    <Setter Property="Foreground" Value="White"/><Setter Property="Background" Value="#202A35"/>
-   <Setter Property="BorderBrush" Value="#44515F"/><Setter Property="Padding" Value="5,3"/><Setter Property="Margin" Value="3"/>
+   <Setter Property="BorderBrush" Value="#657585"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="5,3"/><Setter Property="Margin" Value="3"/><Setter Property="MinHeight" Value="31"/>
+   <Setter Property="Template">
+    <Setter.Value>
+     <ControlTemplate TargetType="ComboBox">
+      <Grid>
+       <Border x:Name="ComboChrome" Background="#18232D" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2"/>
+       <ContentPresenter x:Name="SelectionPresenter" Margin="9,2,30,2" VerticalAlignment="Center" HorizontalAlignment="Left"
+                         Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                         ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" TextElement.Foreground="White" IsHitTestVisible="False"/>
+       <ToggleButton x:Name="DropDownToggle" HorizontalAlignment="Right" Width="28" Focusable="False" ClickMode="Press"
+                     IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+        <ToggleButton.Template>
+         <ControlTemplate TargetType="ToggleButton">
+          <Border x:Name="ArrowChrome" Background="#2D3B47" BorderBrush="#657585" BorderThickness="1,0,0,0" CornerRadius="0,2,2,0">
+           <Path Width="8" Height="5" Fill="White" Stretch="Fill" Data="M 0 0 L 8 0 L 4 5 Z" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+           <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ArrowChrome" Property="Background" Value="#356B8F"/></Trigger>
+           <Trigger Property="IsChecked" Value="True"><Setter TargetName="ArrowChrome" Property="Background" Value="#285577"/></Trigger>
+          </ControlTemplate.Triggers>
+         </ControlTemplate>
+        </ToggleButton.Template>
+       </ToggleButton>
+       <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+        <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="360" Background="#111A22" BorderBrush="#8294A4" BorderThickness="1" Padding="2">
+         <ScrollViewer VerticalScrollBarVisibility="Auto" CanContentScroll="True"><ItemsPresenter/></ScrollViewer>
+        </Border>
+       </Popup>
+      </Grid>
+      <ControlTemplate.Triggers>
+       <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="ComboChrome" Property="BorderBrush" Value="#7EDCFF"/></Trigger>
+       <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ComboChrome" Property="Background" Value="#25303A"/><Setter Property="Foreground" Value="#C5D0DA"/></Trigger>
+      </ControlTemplate.Triggers>
+     </ControlTemplate>
+    </Setter.Value>
+   </Setter>
+  </Style>
+  <Style TargetType="ComboBoxItem">
+   <Setter Property="Foreground" Value="#F7FAFC"/><Setter Property="Background" Value="#18222D"/><Setter Property="Padding" Value="8,6"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+   <Style.Triggers>
+    <Trigger Property="IsHighlighted" Value="True"><Setter Property="Background" Value="#356B8F"/><Setter Property="Foreground" Value="White"/></Trigger>
+    <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#285577"/><Setter Property="Foreground" Value="White"/></Trigger>
+   </Style.Triggers>
+  </Style>
+  <Style TargetType="CheckBox">
+   <Setter Property="Foreground" Value="#F4F7FA"/><Setter Property="Margin" Value="8,0"/><Setter Property="VerticalAlignment" Value="Center"/>
   </Style>
   <Style TargetType="DataGrid">
    <Setter Property="Background" Value="#0E141B"/><Setter Property="Foreground" Value="White"/>
@@ -37,6 +86,12 @@
    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
    <Setter Property="Padding" Value="2"/>
+   <Setter Property="Foreground" Value="#EAF4FC"/>
+   <Setter Property="Background" Value="#0D131A"/>
+   <Style.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#263D50"/><Setter Property="Foreground" Value="White"/></Trigger>
+    <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#285F82"/><Setter Property="Foreground" Value="White"/></Trigger>
+   </Style.Triggers>
   </Style>
  </Window.Resources>
  <Grid Margin="10">
@@ -76,7 +131,7 @@
    <ComboBox x:Name="SortCombo" Grid.Column="3" Width="145" SelectionChanged="SortChanged">
     <ComboBoxItem Content="Artist" IsSelected="True"/><ComboBoxItem Content="Title"/><ComboBoxItem Content="Manufacturer"/><ComboBoxItem Content="Date Added"/>
    </ComboBox>
-   <CheckBox x:Name="DescendingCheck" Grid.Column="4" Content="Descending" Margin="8,0" VerticalAlignment="Center" Checked="SortChanged" Unchecked="SortChanged"/>
+    <CheckBox x:Name="DescendingCheck" Grid.Column="4" Content="Descending" FontWeight="SemiBold" Checked="SortChanged" Unchecked="SortChanged"/>
   </Grid>
 
   <TextBlock x:Name="BrowserHint" Grid.Row="1" Margin="5,4,5,7" Foreground="#8FA0B2"

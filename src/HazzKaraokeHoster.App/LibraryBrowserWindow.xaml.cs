@@ -42,6 +42,7 @@ public partial class LibraryBrowserWindow : Window
         };
         Loaded += async (_, _) =>
         {
+            UpdateModeUi();
             await ReloadFoldersAsync();
             await ReloadAsync();
         };

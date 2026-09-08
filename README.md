@@ -1,4 +1,11 @@
-# Hazz Karaoke Hoster v0.17.24 — Visual Studio 2026
+# Hazz Karaoke Hoster v0.17.25 — Visual Studio 2026
+
+## v0.17.25 — Library Browser contrast correction
+
+Selected virtual folders, the sort dropdown and the Descending control now remain clear and
+readable against the dark Library Browser interface.
+
+See CHANGES_v0.17.25.txt.
 
 ## v0.17.24 — BPM Studio-style virtual folders
 

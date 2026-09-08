@@ -1,0 +1,11 @@
+Hazz Karaoke Hoster v0.17.25
+
+LIBRARY BROWSER CONTRAST FIX
+
+- Selected virtual folders now use a dark blue highlight with bright white text.
+- Hovered folders use a separate visible highlight.
+- The sort dropdown now uses the same dark high-contrast control and menu styling as the main console.
+- The Descending option now has bright text on the dark background.
+- The correct virtual-folder help text is applied as soon as the Library Browser opens.
+
+All v0.17.24 virtual-folder features and earlier Hazz functionality remain intact.
