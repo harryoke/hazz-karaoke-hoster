@@ -1,0 +1,15 @@
+Live Show Confidence preview
+
+Top-right SOUND DEVICES (beside LIBRARY): choose a saved Windows audio endpoint separately for Deck 1, Deck 2, Space-bar quick-play and Karaoke. Stop players before changing outputs; reload karaoke after changing its device. Windows default remains available. Test each output before a show.
+
+Next-track status appears below the music automation controls. With automatic progression enabled, the next scheduled track is opened muted in a separate standby player, paused at the beginning and handed to the selected deck when playback starts. Reordering changes the candidate. In single-deck mode the next Deck 1 track is prepared. Missing, empty or decoder-rejected files are marked broken. A timeout is unverified, not proof that the file is broken. A successful open is not a full-file corruption scan. Playback can still fail if a device/drive disappears or later parts of a file are corrupt.
+
+SHOW > Pre-show Health Check checks access to queued music and singer files and reports connected displays. Perform a short physical speaker/output test separately.
+
+One automatic database backup per day is kept under AutomaticBackups alongside copies of JSON settings. Fourteen database backups are retained. Open Automatic Backups from LIBRARY. These local backups do not protect against failure of the same disk; copy them elsewhere. The existing manual Backup Database command remains available.
+
+Recovery checkpoints are saved every 15 seconds and include current music tracks and positions as well as the existing singer recovery information. Recovery never starts sound automatically; use Resume.
+
+Validation: Release compilation and existing audience/interface regressions passed. Repeated missing-endpoint checks passed without fallback to the default output. Multi-hour audio playback, physical multi-device routing, hot-unplug, and codec-specific handoffs still need live-machine testing. This preview is not published on GitHub.
+
+NORMALIZE AUDIO (top menu): enable Normalize All Audio and choose a target from -24 to -12 dB RMS; -18 is recommended. Settings apply live and save when the window closes. The processor uses gradual RMS levelling, a silence gate, bounded gain and a linked-channel per-player peak limit. This is not integrated LUFS analysis. Original files are not rewritten; fades and deck volumes remain downstream of the processor. All music uses the routable audio engine, including Windows-default output. Karaoke requires the processed audio path when normalization is enabled. Physical listening and long-duration playback validation are still required before live-show use.

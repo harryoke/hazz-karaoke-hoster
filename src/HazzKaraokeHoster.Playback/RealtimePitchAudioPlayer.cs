@@ -11,7 +11,9 @@ namespace HazzKaraokeHoster.Playback;
 public sealed class RealtimePitchAudioPlayer : IDisposable
 {
     private MediaFoundationReader? _reader;
-    private WaveOutEvent? _output;
+    private IWavePlayer? _output;
+    public string? OutputDeviceId { get; set; }
+    private NAudio.CoreAudioApi.MMDevice? _device;
     private SmbPitchShiftingSampleProvider? _pitch;
     private VolumeSampleProvider? _volume;
     private int _semitones;
@@ -47,8 +49,15 @@ public sealed class RealtimePitchAudioPlayer : IDisposable
             _reader = new MediaFoundationReader(path);
             var source = _reader.ToSampleProvider();
             _pitch = new SmbPitchShiftingSampleProvider(source);
-            _volume = new VolumeSampleProvider(_pitch) { Volume = 0.9f };
-            _output = new WaveOutEvent { DesiredLatency = 120, NumberOfBuffers = 3 };
+            _volume = new VolumeSampleProvider(new NormalizingSampleProvider(_pitch)) { Volume = 0.9f };
+            if (string.IsNullOrWhiteSpace(OutputDeviceId)) _output = new WaveOutEvent { DesiredLatency = 120, NumberOfBuffers = 3 };
+            else
+            {
+                using var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+                _device = enumerator.GetDevice(OutputDeviceId);
+                if (_device.State != NAudio.CoreAudioApi.DeviceState.Active) throw new InvalidOperationException("Selected karaoke output is disconnected");
+                _output = new WasapiOut(_device, NAudio.CoreAudioApi.AudioClientShareMode.Shared, true, 120);
+            }
             _output.Init(_volume);
             SetSemitones(0);
             return true;
@@ -106,7 +115,7 @@ public sealed class RealtimePitchAudioPlayer : IDisposable
     {
         try { _output?.Stop(); } catch { }
         _output?.Dispose();
-        _output = null;
+        _output = null; _device?.Dispose(); _device = null;
         _reader?.Dispose();
         _reader = null;
         _pitch = null;

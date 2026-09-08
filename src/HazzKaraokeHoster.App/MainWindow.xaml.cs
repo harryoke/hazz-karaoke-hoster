@@ -149,7 +149,7 @@ public partial class MainWindow : Window
     private double _fullModeKaraokeDeckHeight = 250;
     private bool _layoutViewportUpdatePending;
     private readonly DispatcherTimer _musicQueueSaveTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
-    private readonly DispatcherTimer _recoveryCheckpointTimer = new() { Interval = TimeSpan.FromMinutes(2) };
+    private readonly DispatcherTimer _recoveryCheckpointTimer = new() { Interval = TimeSpan.FromSeconds(15) };
     private bool _restoringMusicDeckQueues;
     private bool _musicQueueStateDirty;
     private readonly LiveShowStateStore _liveShowStateStore = new();
@@ -224,12 +224,7 @@ public partial class MainWindow : Window
             SaveLiveShowStateNow(cleanShutdown: false);
         });
 
-        DeckAMedia.MediaEnded += (_, _) => HandleMusicDeckEnded(MusicDeckId.Deck1);
-        DeckBMedia.MediaEnded += (_, _) => HandleMusicDeckEnded(MusicDeckId.Deck2);
-        DeckAMedia.MediaOpened += (_, _) => UpdateOpenedMusicMetadata(MusicDeckId.Deck1);
-        DeckBMedia.MediaOpened += (_, _) => UpdateOpenedMusicMetadata(MusicDeckId.Deck2);
-        DeckAMedia.MediaFailed += (_, e) => HandleMusicDeckFailed(MusicDeckId.Deck1, e.ErrorException);
-        DeckBMedia.MediaFailed += (_, e) => HandleMusicDeckFailed(MusicDeckId.Deck2, e.ErrorException);
+        InitializeConfidence();
         QuickMusicMedia.MediaEnded += (_, _) => FinishQuickSearchMusic("Quick music finished • waiting for NEXT KARAOKE SONG or PLAY MUSIC");
         QuickMusicMedia.MediaFailed += (_, e) =>
         {
@@ -1659,7 +1654,7 @@ public partial class MainWindow : Window
         _liveShowStateSaveTimer.Stop();
         _liveShowStateDirty = false;
         if (_restoringLiveShowState) return;
-        if (_queue.Count == 0)
+        if (_queue.Count == 0 && CurrentMusicItemFor(MusicDeckId.Deck1) is null && CurrentMusicItemFor(MusicDeckId.Deck2) is null)
         {
             _liveShowStateStore.Clear();
             return;
@@ -1667,6 +1662,7 @@ public partial class MainWindow : Window
 
         var snapshot = new LiveShowSnapshot
         {
+            MusicDecks = CaptureMusicRecovery(),
             ShowStartedUtc = _showStartedUtc,
             SavedUtc = DateTimeOffset.UtcNow,
             CleanShutdown = cleanShutdown,
@@ -1695,7 +1691,7 @@ public partial class MainWindow : Window
     private void TryRestoreLiveShowState()
     {
         var snapshot = _liveShowStateStore.Load();
-        if (snapshot is null || snapshot.Singers.Count == 0)
+        if (snapshot is null || (snapshot.Singers.Count == 0 && snapshot.MusicDecks.Count == 0))
         {
             _showStartedUtc = DateTimeOffset.UtcNow;
             return;
@@ -1749,6 +1745,7 @@ public partial class MainWindow : Window
                 }
                 _queue.Add(singer);
             }
+            RestoreCurrentMusic(snapshot.MusicDecks);
             _showStartedUtc = snapshot.ShowStartedUtc == default ? DateTimeOffset.UtcNow : snapshot.ShowStartedUtc;
             var selected = snapshot.SelectedSingerQueueId is Guid selectedId
                 ? _queue.FirstOrDefault(x => x.Id == selectedId)
@@ -2560,7 +2557,9 @@ public partial class MainWindow : Window
         }
 
         var pitchReady = _pitchAudio.TryLoad(package.PlaybackPath, out var pitchError);
-        KaraokeMedia.IsMuted = pitchReady;
+        KaraokeMedia.IsMuted = pitchReady || AudioNormalization.Enabled || !string.IsNullOrWhiteSpace(_soundRoutes.Karaoke);
+        if (!pitchReady && (AudioNormalization.Enabled || !string.IsNullOrWhiteSpace(_soundRoutes.Karaoke)))
+            throw new InvalidOperationException("Selected karaoke output could not be prepared: " + pitchError);
         _pitchAudio.SetSemitones(_keyChange);
         if (!pitchReady && !string.IsNullOrWhiteSpace(pitchError))
             SearchStatus.Text = "Windows playback loaded; live key DSP unavailable for this file: " + pitchError;
@@ -3210,7 +3209,9 @@ public partial class MainWindow : Window
         if (list.Items[index] is not MusicQueueItem item || string.IsNullOrWhiteSpace(item.FilePath)) return false;
 
         var media = MediaFor(deck);
-        if (!TryLoadStandardMedia(media, item.FilePath)) return false;
+        media.OutputDeviceId = deck == MusicDeckId.Deck1 ? _soundRoutes.Deck1 : _soundRoutes.Deck2;
+        if (TakeReadyCue(deck, item.FilePath)) media = MediaFor(deck);
+        else if (!TryLoadStandardMedia(media, item.FilePath)) return false;
 
         list.SelectedIndex = index;
         SetCurrentMusicItem(deck, item);
@@ -3238,7 +3239,7 @@ public partial class MainWindow : Window
         return true;
     }
 
-    private static bool TryLoadStandardMedia(MediaElement media, string path)
+    private static bool TryLoadStandardMedia(RoutedMusicElement media, string path)
     {
         var kind = MediaFileClassifier.Classify(path);
         if (kind is HazzMediaKind.ZipKaraoke or HazzMediaKind.CdgGraphics)
@@ -3444,6 +3445,7 @@ public partial class MainWindow : Window
 
     private void MusicAutomationTimer_Tick()
     {
+        UpdateNextCue();
         UpdatePlayerTimeDisplays();
         UpdateDeckLedDisplays();
         UpdateIlluminatedButtons();
@@ -4145,7 +4147,7 @@ public partial class MainWindow : Window
     private string DeckName(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? "Deck 1" : deck == MusicDeckId.Deck2 ? (_singleDeckMode ? "Side List" : "Deck 2") : "Music";
 
     private ListBox PlaylistFor(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? DeckAPlaylist : DeckBPlaylist;
-    private MediaElement MediaFor(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? DeckAMedia : DeckBMedia;
+    private RoutedMusicElement MediaFor(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? DeckAMedia : DeckBMedia;
     private TextBlock TitleFor(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? DeckATitle : DeckBTitle;
 
     private void UpdateMusicAutomationStatus(string text)

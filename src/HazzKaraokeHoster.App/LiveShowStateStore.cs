@@ -60,7 +60,8 @@ internal sealed class LiveShowStateStore
 
 internal sealed class LiveShowSnapshot
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
+    public List<RecoveredMusicDeck> MusicDecks { get; set; } = new();
     public DateTimeOffset ShowStartedUtc { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset SavedUtc { get; set; } = DateTimeOffset.UtcNow;
     public bool CleanShutdown { get; set; }
@@ -86,4 +87,13 @@ internal sealed class LiveShowSongSnapshot
     public string FilePath { get; set; } = string.Empty;
     public int KeyChange { get; set; }
     public double CdgSyncSeconds { get; set; }
+}
+
+internal sealed class RecoveredMusicDeck
+{
+    public int Deck { get; set; }
+    public string Path { get; set; } = "";
+    public string Artist { get; set; } = "";
+    public string Title { get; set; } = "";
+    public double PositionSeconds { get; set; }
 }

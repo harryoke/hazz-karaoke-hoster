@@ -11,7 +11,35 @@ internal static class Check
     [STAThread]
     private static void Main()
     {
+        HazzKaraokeHoster.Playback.AudioNormalization.Enabled = true;
+        HazzKaraokeHoster.Playback.AudioNormalization.TargetDb = -18;
+        foreach (var inputGain in new[] { 0.08, 0.8 })
+        {
+            var tone = new NAudio.Wave.SampleProviders.SignalGenerator(48000, 2) { Gain = inputGain, Frequency = 440, Type = NAudio.Wave.SampleProviders.SignalGeneratorType.Sin };
+            var normalizer = new HazzKaraokeHoster.Playback.NormalizingSampleProvider(tone);
+            var samples = new float[9600];
+            for (var block = 0; block < 300; block++)
+            {
+                normalizer.Read(samples, 0, samples.Length);
+                Require(samples.All(v => float.IsFinite(v) && Math.Abs(v) <= 0.891252f), "Normalization peak limit failed");
+            }
+            var rms = Math.Sqrt(samples.Average(v => (double)v * v));
+            Require(Math.Abs(20 * Math.Log10(rms) + 18) < 0.5, "Normalization did not converge to target");
+        }
+        HazzKaraokeHoster.Playback.AudioNormalization.Enabled = false;
+        var bypass = new HazzKaraokeHoster.Playback.NormalizingSampleProvider(new NAudio.Wave.SampleProviders.SignalGenerator(48000, 2) { Gain = 0.25, Type = NAudio.Wave.SampleProviders.SignalGeneratorType.Sin });
+        var flat = new float[100]; bypass.Read(flat, 0, flat.Length);
+var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(48000, 2) { Gain = 0.25, Type = NAudio.Wave.SampleProviders.SignalGeneratorType.Sin }.Read(original, 0, original.Length); Require(flat.SequenceEqual(original), "Disabled normalization altered fresh stream");
         var application = new Application();
+        for (var i = 0; i < 25; i++)
+        {
+            var routed = new RoutedMusicElement { OutputDeviceId = "HAZZ-NONEXISTENT-TEST-ENDPOINT", Source = new Uri("C:/nonexistent-hazz-test.wav"), IsMuted = true };
+            var failed = false;
+            routed.RoutingFailed += _ => failed = true;
+            routed.Play();
+            Require(failed, "Missing output must report failure rather than play on default output");
+            routed.Close();
+        }
 
         var audience = new AudienceWindow { Opacity = 0, ShowActivated = false, ShowInTaskbar = false };
         audience.Show();
