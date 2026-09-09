@@ -1,6 +1,8 @@
 # Hazz Karaoke Hoster Complete Illustrated User Manual
 
-Every screen, button, workflow and live-show function for version 0.80.
+Core illustrated instructions from version 0.80, with current feature guides below.
+
+For v0.97 test, read [Venue Profiles and singer lists](VENUE_PROFILES.md), [Rotation Methods](ROTATION_METHODS.md), [Fair Rotation](FAIR_ROTATION.md), [CPU Improvements](CPU_IMPROVEMENTS.md), and [v0.95 audio and confidence features](WHATS_NEW_v0.95.md). Original manual rotation remains the default. The companion PDF/Word editions have not yet been consolidated for v1.0.
 
 ![Complete console map](Images/figure_console_overview.png)
 

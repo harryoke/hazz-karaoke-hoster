@@ -60,6 +60,15 @@ internal sealed class LiveShowStateStore
 
 internal sealed class LiveShowSnapshot
 {
+    public bool FairRotation { get; set; }
+    public RotationRoundState RotationRound { get; set; } = new();
+    public string NewcomerPlacement { get; set; } = "End of current round";
+    public int NewcomerSpacing { get; set; } = 2;
+    public string FairPrimary { get; set; } = "Fewest turns";
+    public string FairSecondary { get; set; } = "Longest waiting";
+    public bool FairAvoidConsecutive { get; set; }
+    public long FairSequence { get; set; }
+    public Dictionary<string, FairTurnRecord> FairTurns { get; set; } = new();
     public int Version { get; set; } = 2;
     public List<RecoveredMusicDeck> MusicDecks { get; set; } = new();
     public DateTimeOffset ShowStartedUtc { get; set; } = DateTimeOffset.UtcNow;

@@ -12,6 +12,7 @@ try {
 var doc=XDocument.Load(args[0]);XNamespace x="http://schemas.microsoft.com/winfx/2006/xaml";
 doc.Root!.Attribute(x+"Class")?.Remove();
 foreach(var el in doc.Descendants().ToList()) {
+if(el.Name.LocalName=="RoutedMusicElement") el.Name=el.Name.NamespaceName.Contains("clr-namespace") ? XName.Get("MediaElement","http://schemas.microsoft.com/winfx/2006/xaml/presentation") : el.Name;
 if(el.Name.LocalName=="EventSetter"){el.Remove();continue;}
 var t=typeof(Control).Assembly.GetType("System.Windows.Controls."+el.Name.LocalName) ?? typeof(Window).Assembly.GetType("System.Windows."+el.Name.LocalName);
 foreach(var a in el.Attributes().ToList()) {

@@ -1,3 +1,7 @@
+# Hazz Karaoke Hoster v1.0
+
+See [v1.0 release notes](Documentation/RELEASE_v1.0.md) for current changes and download guidance. The revised illustrated manual will follow separately; older manuals and historical notes below do not cover every v1.0 control.
+
 # Hazz Karaoke Hoster v0.80 — Visual Studio 2026
 
 ## v0.80 — Reliable large-library migration

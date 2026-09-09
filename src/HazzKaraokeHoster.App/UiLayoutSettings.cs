@@ -4,6 +4,16 @@ namespace HazzKaraokeHoster.App;
 
 internal sealed class UiLayoutSettings
 {
+    public bool AutomaticRotation { get; set; }
+    public string NewcomerPlacement { get; set; } = "End of current round";
+    public int NewcomerSpacing { get; set; } = 2;
+    public string RotationPrimary { get; set; } = "Fewest turns";
+    public string RotationSecondary { get; set; } = "Longest waiting";
+    public bool RotationAvoidConsecutive { get; set; }
+    public double DefaultDeck1Volume { get; set; } = 0.85;
+    public double DefaultDeck2Volume { get; set; } = 0.85;
+    public bool DefaultAutoCrossfade { get; set; } = true;
+    public double DefaultCrossfadeSeconds { get; set; } = 4;
     public bool MusicVideoShowLogo { get; set; } = false;
     public bool MusicVideoShowScroller { get; set; } = false;
     public bool MusicVideoShowSingers { get; set; } = false;

@@ -1,5 +1,11 @@
 # Hazz Karaoke Hoster Quick Reference
 
+## Venue singers (v0.97 test)
+
+**Show > Venue Profiles**: SAVE CURRENT / APPLY for settings; SAVE SINGER LIST / LOAD SINGER LIST for names, queue and history. Untick history for a fresh history. START BLANK SINGER LIST clears current singers; KEEP SELECTED SINGERS retains regulars. CLEAR HISTORY ONLY retains names. RESTORE SINGER BACKUP recovers singer snapshots. Active venue singers save automatically when requested, before venue changes and at shutdown; no-venue history still saves normally. See [full instructions](VENUE_PROFILES.md).
+
+**Show > Rotation Settings**: manual by default; explicitly enable software-managed rotation to use the selectable methods. **Sound Devices** and **Normalize Audio** have their own top buttons.
+
 ## Main sequence
 
 1. Add singer.
@@ -37,3 +43,5 @@ Close the main window and answer Yes. Wait for Hazz to close before removing med
 6. **Import > Import BPM Studio** imports recoverable `.GRP`/`.PLG` groups below **BPM Studio**.
 7. Duplicate BPM group filenames use only the newest copy; unchanged groups are skipped on repeat import.
 8. Wait for **Import complete** after the Linking, Saving and Finalizing stages.
+
+

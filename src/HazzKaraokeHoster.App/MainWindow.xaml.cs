@@ -280,6 +280,7 @@ public partial class MainWindow : Window
                 await RefreshLibraryCountsAsync();
                 await RefreshSavedSingerNamesAsync();
                 await RefreshLibraryAutoWatchAsync();
+                InitializeVenueAutosave();
                 SearchStatus.Text = "Database ready • library auto-watch ON";
             }
             catch (Exception ex)
@@ -356,8 +357,11 @@ public partial class MainWindow : Window
         }
     }
 
-    private void MainWindow_Closing(object? sender, CancelEventArgs e)
+    private async void MainWindow_Closing(object? sender, CancelEventArgs e)
     {
+        if (_venueCloseReady) return;
+        e.Cancel = true;
+        if (_venueClosing || _venueDialogOpen) return;
         var result = MessageBox.Show(
             "Close Hazz Karaoke Hoster?\n\nAny karaoke or music playback will stop.",
             "Confirm Hazz Shutdown",
@@ -365,7 +369,25 @@ public partial class MainWindow : Window
             MessageBoxImage.Warning,
             MessageBoxResult.No);
 
-        if (result != MessageBoxResult.Yes) e.Cancel = true;
+        if (result != MessageBoxResult.Yes) return;
+        _venueClosing = true;
+        IsEnabled = false;
+        // A save can complete synchronously (especially with no active venue).
+        // Always leave the original Closing event before closing or showing an error.
+        await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+        try
+        {
+            await SaveActiveVenueAsync();
+            _venueCloseReady = true;
+            Close();
+        }
+        catch (Exception ex)
+        {
+            _venueCloseReady = false;
+            App.WriteDiagnostic("VENUE SHUTDOWN SAVE", ex.ToString());
+            MessageBox.Show(this, "Venue saving failed. Hazz has stayed open so you can retry. Your current singers remain in the main database.\n\n" + ex.Message, "Venue Save Failed");
+        }
+        finally { _venueClosing = false; IsEnabled = true; }
     }
 
     private async Task RefreshLibraryAutoWatchAsync()
@@ -469,6 +491,17 @@ public partial class MainWindow : Window
     private void RestoreMainLayout()
     {
         var settings = UiLayoutSettingsStore.Load();
+        _fairRotation = settings.AutomaticRotation;
+        _fairPrimary = settings.RotationPrimary;
+        _newcomerPlacement = settings.NewcomerPlacement;
+        _newcomerSpacing = settings.NewcomerSpacing;
+        _fairSecondary = settings.RotationSecondary;
+        _fairAvoidConsecutive = settings.RotationAvoidConsecutive;
+        FairRotationMenuItem.IsChecked = _fairRotation;
+        DeckAVolume.Value = Math.Clamp(settings.DefaultDeck1Volume, 0, 1);
+        DeckBVolume.Value = Math.Clamp(settings.DefaultDeck2Volume, 0, 1);
+        AutoCrossfadeCheck.IsChecked = settings.DefaultAutoCrossfade;
+        CrossfadeSecondsSlider.Value = Math.Clamp(settings.DefaultCrossfadeSeconds, 0.5, 12);
         // Restore against the host monitor work area, not the whole virtual desktop.
         // This prevents a large saved host window from being restored partly off a laptop
         // simply because an audience TV extends the Windows virtual desktop.
@@ -476,9 +509,9 @@ public partial class MainWindow : Window
         Width = Math.Clamp(settings.WindowWidth, MinWidth, Math.Max(MinWidth, work.Width));
         Height = Math.Clamp(settings.WindowHeight, MinHeight, Math.Max(MinHeight, work.Height));
         Dispatcher.BeginInvoke(() => WindowState = WindowState.Maximized, DispatcherPriority.Loaded);
-        MainLeftColumn.Width = new GridLength(0.93, GridUnitType.Star);
-        MainCenterColumn.Width = new GridLength(1.24, GridUnitType.Star);
-        MainRightColumn.Width = new GridLength(0.93, GridUnitType.Star);
+        MainLeftColumn.Width = new GridLength(Math.Clamp(settings.LeftColumnWeight, 0.05, 10), GridUnitType.Star);
+        MainCenterColumn.Width = new GridLength(Math.Clamp(settings.CenterColumnWeight, 0.05, 10), GridUnitType.Star);
+        MainRightColumn.Width = new GridLength(Math.Clamp(settings.RightColumnWeight, 0.05, 10), GridUnitType.Star);
         _lastPreviewHeight = 120;
         SetPreviewVisible(settings.PreviewVisible);
         SetKaraokeOnlyMode(settings.KaraokeOnlyMode, stopMusic: false, saveImmediately: false);
@@ -539,6 +572,16 @@ public partial class MainWindow : Window
         var totalWidth = Math.Max(1.0, MainLeftColumn.ActualWidth + MainCenterColumn.ActualWidth + MainRightColumn.ActualWidth);
         UiLayoutSettingsStore.Save(new UiLayoutSettings
         {
+            AutomaticRotation = _fairRotation,
+            RotationPrimary = _fairPrimary,
+            NewcomerPlacement = _newcomerPlacement,
+            NewcomerSpacing = _newcomerSpacing,
+            RotationSecondary = _fairSecondary,
+            RotationAvoidConsecutive = _fairAvoidConsecutive,
+            DefaultDeck1Volume = DeckAVolume.Value,
+            DefaultDeck2Volume = DeckBVolume.Value,
+            DefaultAutoCrossfade = AutoCrossfadeCheck.IsChecked == true,
+            DefaultCrossfadeSeconds = CrossfadeSecondsSlider.Value,
             LeftColumnWeight = Math.Max(0.05, MainLeftColumn.ActualWidth / totalWidth),
             CenterColumnWeight = Math.Max(0.05, MainCenterColumn.ActualWidth / totalWidth),
             RightColumnWeight = Math.Max(0.05, MainRightColumn.ActualWidth / totalWidth),
@@ -1154,6 +1197,7 @@ public partial class MainWindow : Window
 
     private void UpdatePlayerTimeDisplays(bool force = false)
     {
+        if (!force && WindowState == WindowState.Minimized) return;
         var now = DateTime.UtcNow;
         if (!force && (now - _lastTimelineUiUtc).TotalMilliseconds < 180) return;
         _lastTimelineUiUtc = now;
@@ -1662,6 +1706,15 @@ public partial class MainWindow : Window
 
         var snapshot = new LiveShowSnapshot
         {
+            FairRotation = _fairRotation,
+            FairPrimary = _fairPrimary,
+            RotationRound = _rotationRound,
+            NewcomerPlacement = _newcomerPlacement,
+            NewcomerSpacing = _newcomerSpacing,
+            FairSecondary = _fairSecondary,
+            FairAvoidConsecutive = _fairAvoidConsecutive,
+            FairSequence = _fairSequence,
+            FairTurns = new Dictionary<string, FairTurnRecord>(_fairTurns),
             MusicDecks = CaptureMusicRecovery(),
             ShowStartedUtc = _showStartedUtc,
             SavedUtc = DateTimeOffset.UtcNow,
@@ -1719,6 +1772,16 @@ public partial class MainWindow : Window
         _restoringLiveShowState = true;
         try
         {
+            _fairRotation = snapshot.FairRotation;
+            _fairPrimary = snapshot.FairPrimary;
+            _rotationRound = snapshot.RotationRound ?? new();
+            _newcomerPlacement = snapshot.NewcomerPlacement;
+            _newcomerSpacing = snapshot.NewcomerSpacing;
+            _fairSecondary = snapshot.FairSecondary;
+            _fairAvoidConsecutive = snapshot.FairAvoidConsecutive;
+            FairRotationMenuItem.IsChecked = _fairRotation;
+            _fairSequence = snapshot.FairSequence;
+            _fairTurns = snapshot.FairTurns ?? new();
             _queue.Clear();
             foreach (var savedSinger in snapshot.Singers)
             {
@@ -2265,6 +2328,7 @@ public partial class MainWindow : Window
 
     private void UpdateAudienceNext()
     {
+        ApplyFairRotation();
         MarkLiveShowStateDirty();
         if (_audience is null) return;
 
@@ -2313,6 +2377,7 @@ public partial class MainWindow : Window
         var song = _activeSingerSong;
         if (singer.Songs.Contains(song)) singer.Songs.Remove(song);
         _activeSingerSongCheckedOut = true;
+        RecordFairTurn(singer);
 
         // PLAY is the rotation handoff point: the singer who has just started moves
         // to the bottom immediately, so the next waiting singer becomes position #1.
@@ -3445,10 +3510,13 @@ public partial class MainWindow : Window
 
     private void MusicAutomationTimer_Tick()
     {
-        UpdateNextCue();
+        // Cue checks have their own one-second timer. Keep this fast timer for fades.
         UpdatePlayerTimeDisplays();
-        UpdateDeckLedDisplays();
-        UpdateIlluminatedButtons();
+        if (WindowState != WindowState.Minimized)
+        {
+            UpdateDeckLedDisplays();
+            UpdateIlluminatedButtons();
+        }
         if (_quickSearchMusicVideo && _quickSearchMusicActive && !_karaokePresentationActive)
             _audience?.SyncMusicVideo(QuickMusicMedia.Position);
         else if (_audienceMusicVideoDeck != MusicDeckId.None && !_karaokePresentationActive && !IsDeckPaused(_audienceMusicVideoDeck))
@@ -3502,6 +3570,7 @@ public partial class MainWindow : Window
         ref string previousMessage,
         double elapsed)
     {
+        if (!viewport.IsVisible) return;
         var item = CurrentMusicItemFor(deck);
         var deckNumber = deck == MusicDeckId.Deck1 ? 1 : 2;
         string message;
@@ -5161,6 +5230,9 @@ public partial class MainWindow : Window
             return;
         _queue.Clear();
         _showStartedUtc = DateTimeOffset.UtcNow;
+        _fairTurns.Clear();
+        _fairSequence = 0;
+        _rotationRound = new();
         _liveShowStateStore.Clear();
         _kamikazeSinger = null;
         _kamikazeAssignedSong = null;

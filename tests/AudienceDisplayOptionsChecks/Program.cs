@@ -11,6 +11,39 @@ internal static class Check
     [STAThread]
     private static void Main()
     {
+        var early = new SingerQueueEntry { SingerName = "Early" };
+        var newcomer = new SingerQueueEntry { SingerName = "New" };
+        var held = new SingerQueueEntry { SingerName = "Held", IsHeld = true };
+        var empty = new SingerQueueEntry { SingerName = "Empty" };
+        foreach (var singer in new[] { early, newcomer, held }) singer.Songs.Add(new SingerSongEntry());
+        var turns = new Dictionary<SingerQueueEntry, FairTurnRecord>
+        {
+            [early] = new() { Turns = 2, Arrived = 1, LastTurn = 5 },
+            [newcomer] = new() { Turns = 0, Arrived = 8 },
+            [held] = new() { Arrived = 2 },
+            [empty] = new() { Arrived = 3 }
+        };
+        Require(FairRotationPolicy.Order(new[] { held, early, empty, newcomer }, x => turns[x]).SequenceEqual(new[] { newcomer, early, empty, held }), "Fair rotation readiness/turn ordering failed");
+        turns[newcomer].Turns = 2; turns[newcomer].LastTurn = 9;
+        Require(FairRotationPolicy.Order(new[] { newcomer, early }, x => turns[x])[0] == early, "Longest waiting tie-break failed");
+        turns[newcomer].Turns = 0;
+        Require(FairRotationPolicy.Order(new[] { newcomer, early }, x => turns[x], "Arrival order")[0] == early, "Arrival priority failed");
+        Require(FairRotationPolicy.Order(new[] { newcomer, early }, x => turns[x], "Fewest turns", "Longest waiting", true, 9)[0] == early, "Consecutive turn protection failed");
+        Require(FairRotationPolicy.Order(new[] { newcomer }, x => turns[x], "Fewest turns", "Longest waiting", true, 9)[0] == newcomer, "Only ready singer must remain available");
+        var round = new RotationRoundState();
+        turns[early].LastRound = 1;
+        turns[newcomer].EligibleRound = 1;
+        Require(RotationMethods.Order(new[] { early, newcomer }, x => turns[x], round, "Round robin", "End of current round", 2, "Longest waiting", false, 0)[0] == newcomer && round.Round == 1, "Round robin repeated a served singer");
+        turns[newcomer].EligibleRound = 2;
+        turns[early].LastRound = 0;
+        Require(RotationMethods.Order(new[] { newcomer, early }, x => turns[x], round, "Closed rounds", "Next round", 2, "Longest waiting", false, 0)[0] == early && round.Round == 1, "Closed round admitted a deferred newcomer");
+        turns[early].LastRound = 1;
+        RotationMethods.Order(new[] { early, newcomer }, x => turns[x], round, "Closed rounds", "Next round", 2, "Longest waiting", false, 0);
+        Require(round.Round == 2, "Completed round did not advance");
+        turns[early].Group = turns[newcomer].Group = "Team";
+        turns[early].LastRound = 2;
+        RotationMethods.Order(new[] { early, newcomer }, x => turns[x], round, "Group rotation", "End of current round", 2, "Longest waiting", false, 0);
+        Require(round.Round == 3, "Group members received multiple slots in a round");
         HazzKaraokeHoster.Playback.AudioNormalization.Enabled = true;
         HazzKaraokeHoster.Playback.AudioNormalization.TargetDb = -18;
         foreach (var inputGain in new[] { 0.08, 0.8 })

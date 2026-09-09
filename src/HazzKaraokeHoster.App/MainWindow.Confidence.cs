@@ -127,17 +127,7 @@ public partial class MainWindow
     {
         try
         {
-            Directory.CreateDirectory(ConfidenceBackupDirectory);
-            var path = Path.Combine(ConfidenceBackupDirectory, "hazz-" + DateTime.Now.ToString("yyyy-MM-dd") + ".db");
-            if (File.Exists(path)) return;
-            var temporary = path + ".pending";
-            await _db.BackupAsync(temporary, _lifetime.Token);
-            File.Move(temporary, path, true);
-            var settingsDir = path + ".settings";
-            Directory.CreateDirectory(settingsDir);
-            foreach (var settings in Directory.GetFiles(Path.GetDirectoryName(_db.DatabasePath)!, "*.json"))
-                File.Copy(settings, Path.Combine(settingsDir, Path.GetFileName(settings)), true);
-            foreach (var backup in Directory.GetFiles(ConfidenceBackupDirectory, "hazz-????-??-??.db").OrderByDescending(x => x).Skip(14)) File.Delete(backup);
+            await HazzKaraokeHoster.Data.CompressedBackup.CreateAsync(_db, ConfidenceBackupDirectory, _lifetime.Token);
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) { App.WriteDiagnostic("AUTOMATIC BACKUP", ex.ToString()); NextCueStatus.Text = "Automatic backup failed — use Backup Database before the show"; }
