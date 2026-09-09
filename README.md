@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster v1.0
 
-See [v1.0 release notes](Documentation/RELEASE_v1.0.md) for current changes and download guidance. The revised illustrated manual will follow separately; older manuals and historical notes below do not cover every v1.0 control.
+See [v1.0 release notes](Documentation/RELEASE_v1.0.md) for current changes and download guidance. The [v1.0 step-by-step PDF manual](https://github.com/harryoke/hazz-karaoke-hoster/releases/download/v1.0/Hazz_Karaoke_Hoster_v1.0_User_Manual.pdf) and [online manual](https://harryoke.github.io/hazz-karaoke-hoster/manual.html) cover the current controls. Historical notes below describe earlier releases.
 
 # Hazz Karaoke Hoster v0.80 — Visual Studio 2026
 

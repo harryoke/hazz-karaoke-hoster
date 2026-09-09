@@ -16,7 +16,7 @@ Includes the existing separate sound outputs, audio normalization, music-video o
 
 Extract the portable ZIP and run Hazz Karaoke Hoster.exe. The source ZIP includes the self-contained executable under RELEASE and the Visual Studio 2026 solution.
 
-The fully revised illustrated manual is being completed separately. This release includes current feature guides; older website manual pages are labelled accordingly.
+The [29-page v1.0 step-by-step user manual](https://github.com/harryoke/hazz-karaoke-hoster/releases/download/v1.0/Hazz_Karaoke_Hoster_v1.0_User_Manual.pdf) is now available as a separate PDF download, with current interface pictures, workflow diagrams and instructions for venue lists, sound outputs, all eight rotation methods, virtual folders and backups. [Read the online manual](https://harryoke.github.io/hazz-karaoke-hoster/manual.html). The app ZIPs are unchanged; download the PDF separately.
 
 ## Validation and limits
 
