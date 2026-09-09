@@ -1,5 +1,9 @@
 # Hazz Karaoke Hoster v1.0
 
+## Copyright and licence
+
+Copyright (c) 2026 Hazz Karaoke. Free use includes paid shows and business use. Unchanged copies may be shared free with all branding and notices intact. Redistribution of renamed, rebranded or modified versions requires written permission. Third-party licences and statutory rights remain unaffected. See [full licence terms](LICENSE.txt). This is source-available software, not an open-source licence.
+
 See [v1.0 release notes](Documentation/RELEASE_v1.0.md) for current changes and download guidance. The [v1.0 step-by-step PDF manual](https://github.com/harryoke/hazz-karaoke-hoster/releases/download/v1.0/Hazz_Karaoke_Hoster_v1.0_User_Manual.pdf) and [online manual](https://harryoke.github.io/hazz-karaoke-hoster/manual.html) cover the current controls. Historical notes below describe earlier releases.
 
 # Hazz Karaoke Hoster v0.80 — Visual Studio 2026
