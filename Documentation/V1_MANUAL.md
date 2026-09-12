@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster User Manual
 
-Version 1.0. This guide explains how to set up a show, use each main feature and keep your singers and music organised. Follow the numbered steps in the section you need. Buttons are written as they appear in the app.
+Version 1.1. This guide explains how to set up a show, use each main feature and keep your singers and music organised. Follow the numbered steps in the section you need. Buttons are written as they appear in the app. Existing illustrations show the v1.0 layout; the new DISPLAY menu options are described in the video-engine, CD+G picture and text-size sections below.
 
 ## 1 Find your way around
 

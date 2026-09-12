@@ -1,4 +1,16 @@
-# Hazz Karaoke Hoster v1.0
+# Hazz Karaoke Hoster v1.1
+
+Download the complete portable ZIP from the [v1.1 release](https://github.com/harryoke/hazz-karaoke-hoster/releases/tag/v1.1).
+Extract all files and keep the `libvlc` folder and DLLs beside the EXE.
+
+New in v1.1: saved main-console text sizes (100–150%), selectable Windows or
+VLC audience video playback with Windows fallback, corrected CD+G transparency,
+and smooth/crisp CD+G scaling. Windows remains the default video engine.
+
+Read the [v1.1 instructions and release notes](Documentation/RELEASE_v1.1.md)
+and the [updated complete user guide](Documentation/V1_MANUAL.md).
+The v1.0 PDFs and older release notes below are historical documents and do not
+cover these additions. The updated guide linked above is the current reference.
 
 ## Copyright and licence
 
