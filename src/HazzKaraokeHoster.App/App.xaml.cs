@@ -8,12 +8,12 @@ public partial class App : System.Windows.Application
     private static readonly object LogGate = new();
     private static readonly string LogDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Hazz Karaoke Hoster", "Logs");
+        "Hazz Karaoke Hoster LibVLC Test", "Logs");
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        _ = BrokenMediaRegistry.InitializeAsync(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hazz Karaoke Hoster", "broken-media.json"));
+        _ = BrokenMediaRegistry.InitializeAsync(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hazz Karaoke Hoster LibVLC Test", "broken-media.json"));
         DispatcherUnhandledException += App_DispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
         TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
@@ -38,7 +38,7 @@ public partial class App : System.Windows.Application
             MessageBox.Show(
                 "Hazz caught a user-interface error and kept the show running where possible.\n\n" +
                 "The details were written to the Hazz Karaoke Hoster Logs folder.\n\n" + e.Exception.Message,
-                "Hazz Karaoke Hoster",
+                "Hazz Karaoke Hoster LibVLC Test",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             e.Handled = true;

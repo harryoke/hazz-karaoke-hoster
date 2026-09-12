@@ -9,7 +9,7 @@ internal sealed class LiveShowStateStore
 
     public LiveShowStateStore()
     {
-        var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hazz Karaoke Hoster");
+        var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hazz Karaoke Hoster LibVLC Test");
         Directory.CreateDirectory(appData);
         _path = Path.Combine(appData, "live-show-state.json");
     }

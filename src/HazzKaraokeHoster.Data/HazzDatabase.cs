@@ -10,7 +10,7 @@ public sealed class HazzDatabase
 
     public HazzDatabase(string? databasePath = null)
     {
-        var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hazz Karaoke Hoster");
+        var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hazz Karaoke Hoster LibVLC Test");
         Directory.CreateDirectory(appData);
         DatabasePath = databasePath ?? Path.Combine(appData, "hazz-hoster.db");
         ConnectionString = new SqliteConnectionStringBuilder

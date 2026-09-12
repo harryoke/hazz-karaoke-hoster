@@ -79,7 +79,8 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
         var image = (Image)audience.FindName("SingerBackgroundImage");
         var gif = (Image)audience.FindName("SingerBackgroundGif");
         var video = (MediaElement)audience.FindName("SingerBackgroundVideo");
-        var musicVideo = (MediaElement)audience.FindName("MusicVideoMedia");
+        var musicVideo = (AudienceVideoSurface)audience.FindName("MusicVideoMedia");
+        var windowsVideo = (MediaElement)musicVideo.Children[0];
         var scroller = (Border)audience.FindName("ScrollerPanel");
         var next = (Border)audience.FindName("NextSingerPanel");
 
@@ -111,7 +112,7 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
         });
         Require(scroller.VerticalAlignment == VerticalAlignment.Bottom && next.Margin.Bottom == 74 && next.Margin.Top == 30,
             "Bottom scroller placement or bottom Next Singer clearance is incorrect.");
-        Require(musicVideo.IsMuted && musicVideo.Volume == 0 && musicVideo.Stretch == Stretch.Uniform,
+        Require(windowsVideo.IsMuted && windowsVideo.Volume == 0 && windowsVideo.Stretch == Stretch.Uniform,
             "VJ music-video output is not silent and screen-fitted.");
         foreach (var method in new[] { "ShowMusicVideo", "PauseMusicVideo", "ResumeMusicVideo", "SyncMusicVideo", "ClearMusicVideo" })
             Require(typeof(AudienceWindow).GetMethod(method) is not null, $"Audience VJ method is missing: {method}");

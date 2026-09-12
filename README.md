@@ -1,3 +1,9 @@
+# Hazz Karaoke Hoster — experimental LibVLC test
+
+This branch tests LibVLC decoding for audience karaoke and music videos. See
+[test instructions](Documentation/LIBVLC_TEST.md). It uses a separate empty test
+database. The normal v1.0 release and website remain unchanged.
+
 # Hazz Karaoke Hoster v1.0
 
 ## Copyright and licence

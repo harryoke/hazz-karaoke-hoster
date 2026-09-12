@@ -78,7 +78,7 @@ internal static class UiLayoutSettingsStore
 {
     private static readonly string SettingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Hazz Karaoke Hoster", "ui-layout.json");
+        "Hazz Karaoke Hoster LibVLC Test", "ui-layout.json");
 
     public static UiLayoutSettings Load()
     {

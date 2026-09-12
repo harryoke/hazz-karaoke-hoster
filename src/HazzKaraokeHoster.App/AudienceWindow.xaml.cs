@@ -59,11 +59,14 @@ public partial class AudienceWindow : Window
     public AudienceWindow()
     {
         InitializeComponent();
+        AudienceMedia.BackendChanged += (_, _) => UpdateOverlayLayerVisibility();
+        MusicVideoMedia.BackendChanged += (_, _) => UpdateOverlayLayerVisibility();
         _ticker.Tick += (_, _) => TickScrollerSafe();
         Loaded += (_, _) => { ResetScroller(); _ticker.Start(); UpdateOverlayLayerVisibility(); };
         Closed += (_, _) =>
         {
             _ticker.Stop();
+            MoveNativeOverlays(null);
             StopBackgroundSlideshow();
             AudienceMedia.Stop();
             AudienceMedia.Source = null;
@@ -314,6 +317,8 @@ public partial class AudienceWindow : Window
     private bool _musicVideoShowKamikaze;
     private void UpdateOverlayLayerVisibility()
     {
+        MoveNativeOverlays(_karaokeActive && AudienceMedia.Source is not null && AudienceMedia.NativeActive ? AudienceMedia
+            : !_karaokeActive && MusicVideoMedia.Source is not null && MusicVideoMedia.NativeActive ? MusicVideoMedia : null);
         var musicVideoVisible = !_karaokeActive && MusicVideoMedia.Source is not null;
         SingerBackgroundGif.Visibility = !musicVideoVisible && !_karaokeActive && _backgroundImageEnabled && _backgroundGifPath.Length > 0
             ? Visibility.Visible : Visibility.Collapsed;
@@ -413,6 +418,7 @@ public partial class AudienceWindow : Window
         AudienceCdgImage.Source = source;
         AudienceCdgImage.Visibility = Visibility.Visible;
         _videoPlaying = false;
+        UpdateOverlayLayerVisibility();
     }
 
     public void LoadMutedVideo(string path)
@@ -422,6 +428,7 @@ public partial class AudienceWindow : Window
         AudienceMedia.Visibility = Visibility.Visible;
         AudienceMedia.Source = new Uri(path);
         _videoPlaying = false;
+        UpdateOverlayLayerVisibility();
     }
 
     public void PlayVideo(TimeSpan position)
@@ -459,6 +466,7 @@ public partial class AudienceWindow : Window
         AudienceCdgImage.Source = null;
         AudienceCdgImage.Visibility = Visibility.Collapsed;
         _videoPlaying = false;
+        UpdateOverlayLayerVisibility();
     }
 
     public void ShowMusicVideo(string path, TimeSpan position, bool playing)
@@ -507,8 +515,19 @@ public partial class AudienceWindow : Window
         UpdateOverlayLayerVisibility();
     }
 
-    private void MusicVideo_Ended(object sender, RoutedEventArgs e) => ClearMusicVideo();
-    private void MusicVideo_Failed(object sender, ExceptionRoutedEventArgs e) => ClearMusicVideo();
+    private void MusicVideo_Ended(object? sender, EventArgs e) => ClearMusicVideo();
+    private void MusicVideo_Failed(object? sender, EventArgs e) => ClearMusicVideo();
+
+    private AudienceVideoSurface? _overlayOwner;
+    private void MoveNativeOverlays(AudienceVideoSurface? target)
+    {
+        if (_overlayOwner == target) return;
+        if (_overlayOwner is not null) _overlayOwner.Overlay = null;
+        else Root.Children.Remove(AudienceOverlays);
+        _overlayOwner = target;
+        if (target is not null) target.Overlay = AudienceOverlays;
+        else Root.Children.Add(AudienceOverlays);
+    }
 
     private void Position(OverlayPosition p)
     {

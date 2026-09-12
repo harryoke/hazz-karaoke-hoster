@@ -21,7 +21,7 @@ internal static class MusicDeckQueueStateStore
 {
     private static readonly string StatePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Hazz Karaoke Hoster", "music-deck-queues.json");
+        "Hazz Karaoke Hoster LibVLC Test", "music-deck-queues.json");
 
     public static MusicDeckQueueState Load()
     {
