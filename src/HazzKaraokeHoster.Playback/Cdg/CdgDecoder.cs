@@ -20,7 +20,7 @@ public sealed class CdgDecoder
     private readonly uint[] _palette = new uint[16];
     private byte[] _packets = Array.Empty<byte>();
     private int _decodedPacketCount;
-    private int _transparentColor = -1;
+    private readonly byte[] _alpha = new byte[16];
     private int _horizontalOffset;
     private int _verticalOffset;
 
@@ -40,7 +40,7 @@ public sealed class CdgDecoder
         Array.Clear(_pixels);
         Array.Fill(_palette, 0xFF000000u);
         _decodedPacketCount = 0;
-        _transparentColor = -1;
+        Array.Fill(_alpha, (byte)255);
         _horizontalOffset = 0;
         _verticalOffset = 0;
         FrameVersion++;
@@ -84,7 +84,7 @@ public sealed class CdgDecoder
                 var sourceX = (x + _horizontalOffset) % Width;
                 var index = _pixels[sourceY * Width + sourceX] & 0x0F;
                 var argb = _palette[index];
-                var alpha = index == _transparentColor ? (byte)0 : (byte)(argb >> 24);
+                var alpha = _alpha[index];
                 destination[o++] = (byte)argb;          // B
                 destination[o++] = (byte)(argb >> 8);   // G
                 destination[o++] = (byte)(argb >> 16);  // R
@@ -184,7 +184,13 @@ public sealed class CdgDecoder
     }
 
     private void DefineTransparentColor(ReadOnlySpan<byte> data)
-        => _transparentColor = data[0] & 0x0F;
+    {
+        // Instruction 28 contains one transparency value for each palette
+        // entry, not a single transparent colour index. An all-zero packet
+        // means every colour is opaque, including palette entry zero.
+        for (var i = 0; i < 16; i++)
+            _alpha[i] = (byte)(255 - ((data[i] & 0x3F) << 2));
+    }
 
     private void Scroll(ReadOnlySpan<byte> data, bool copy)
     {

@@ -380,6 +380,11 @@
       <MenuItem Header="125% — Larger" Tag="1.25" IsCheckable="True" Click="HostTextSize_Click"/>
       <MenuItem Header="150% — Largest" Tag="1.5" IsCheckable="True" Click="HostTextSize_Click"/>
      </MenuItem>
+     <MenuItem Header="Audience video engine" ToolTip="Takes effect on the next video loaded. Current playback is not interrupted.">
+      <MenuItem x:Name="WindowsVideoEngineMenu" Header="Windows (default)" IsCheckable="True" IsChecked="True" Tag="Windows" Click="AudienceVideoEngine_Click"/>
+      <MenuItem x:Name="VlcVideoEngineMenu" Header="VLC (Windows fallback)" IsCheckable="True" Tag="VLC" Click="AudienceVideoEngine_Click"/>
+     </MenuItem>
+     <MenuItem x:Name="SmoothCdgMenu" Header="Smooth CD+G picture (untick for crisp pixels)" IsCheckable="True" IsChecked="True" Click="SmoothCdg_Click" ToolTip="Softens enlarged CD+G dot patterns in the preview and audience display. Does not alter the song file."/>
      <Separator/>
      <MenuItem Header="Open Audience Display" Click="AudienceButton_Click"/>
      <MenuItem x:Name="DisplayTargetsMenuItem" Header="Send Full Screen To" SubmenuOpened="DisplayTargetsMenu_Opened"/>

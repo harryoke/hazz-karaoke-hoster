@@ -98,6 +98,28 @@ Readable GRP and PLG groups become folders. If several group files have the same
 
 Recognised history formats include CSV, TSV, JSON, XML and supported SQLite or Access-based databases. Matching tracks link to the Hazz library; unmatched performances can remain as history. Keep a backup before reimporting, because repeated imports may replace earlier rows from that source.
 
+## Audience video engine and CD+G picture
+
+Open **DISPLAY > Audience video engine** and choose **Windows (default)** or
+**VLC (Windows fallback)**. The choice is saved and included in venue profiles.
+It takes effect on the next video loaded; changing the menu does not interrupt
+the current song. Reload a stopped video to compare the engines.
+
+VLC is used only for the audience karaoke and music-video picture. Audio routing,
+pitch control and the private preview keep their existing playback engines.
+Audience video stays muted to avoid duplicate sound. If VLC cannot open a video,
+Hazz attempts Windows playback and records the fallback in the Logs folder.
+Fullscreen placement and the existing audience overlay choices still apply.
+Background slideshow videos retain their existing muted looping playback.
+
+**DISPLAY > Smooth CD+G picture** softens enlarged pixel patterns in both the
+preview and audience window. Untick it for crisp pixels. This preference is saved.
+CD+G transparency handling has also been corrected so opaque grey artwork does
+not incorrectly become black. Smoothing is separate from that colour correction.
+
+The VLC runtime is included in the download. Extract and keep the whole folder,
+including `libvlc` and the DLLs; copying only the EXE will not include VLC support.
+
 ## Main-window text size
 
 If the playlists, singer list or controls are difficult to read:

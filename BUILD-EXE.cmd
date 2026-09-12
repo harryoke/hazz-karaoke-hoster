@@ -13,7 +13,7 @@ dotnet publish "src\HazzKaraokeHoster.App\HazzKaraokeHoster.App.csproj" ^
   -m:1 ^
   --disable-build-servers ^
   --self-contained true ^
-  -p:PublishSingleFile=true ^
+  -p:PublishSingleFile=false ^
   -p:IncludeNativeLibrariesForSelfExtract=true ^
   -p:EnableCompressionInSingleFile=true ^
   -p:PublishReadyToRun=false ^

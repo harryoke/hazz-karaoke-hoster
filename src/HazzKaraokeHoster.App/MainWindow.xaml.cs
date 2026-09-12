@@ -492,6 +492,8 @@ public partial class MainWindow : Window
     {
         var settings = UiLayoutSettingsStore.Load();
         ApplyHostTextScale(settings.HostTextScale);
+        ApplyAudienceVideoEngine(settings.UseLibVlcAudienceVideo);
+        ApplyCdgSmoothing(settings.SmoothCdgPicture);
         _fairRotation = settings.AutomaticRotation;
         _fairPrimary = settings.RotationPrimary;
         _newcomerPlacement = settings.NewcomerPlacement;
@@ -574,6 +576,8 @@ public partial class MainWindow : Window
         UiLayoutSettingsStore.Save(new UiLayoutSettings
         {
             HostTextScale = _hostTextScale,
+            UseLibVlcAudienceVideo = _useLibVlcAudienceVideo,
+            SmoothCdgPicture = _smoothCdgPicture,
             AutomaticRotation = _fairRotation,
             RotationPrimary = _fairPrimary,
             NewcomerPlacement = _newcomerPlacement,
@@ -2187,6 +2191,8 @@ public partial class MainWindow : Window
     {
         if (_audience is { IsLoaded: true }) return _audience;
         _audience = new AudienceWindow();
+        _audience.SetVideoEnginePreference(_useLibVlcAudienceVideo);
+        _audience.SetCdgSmoothing(_smoothCdgPicture);
         _audience.Closed += (_, _) => _audience = null;
         _audience.Show();
         ApplyOverlaySettings();

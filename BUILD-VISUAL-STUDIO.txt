@@ -1,4 +1,13 @@
-Hazz Karaoke Hoster v0.17.20 - Visual Studio 2026
+Current video-engine build - Visual Studio 2026
+
+Use Release/x64 and build the solution or run BUILD-EXE.cmd.
+Keep the entire RELEASE\HazzKaraokeHoster folder, including libvlc, DLLs and
+ThirdParty notices. The output now reports HAZZ PORTABLE FOLDER READY.
+The Windows/VLC choice is under DISPLAY > Audience video engine.
+This build is a portable folder, not a single EXE. The historical single-EXE
+instructions below apply only to older versions without VLC support.
+
+Historical v0.17.20 instructions:
 
 Normal Visual Studio build
 1. Extract the complete ZIP before opening it.
