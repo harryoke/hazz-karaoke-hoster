@@ -4,6 +4,7 @@ namespace HazzKaraokeHoster.App;
 
 internal sealed class UiLayoutSettings
 {
+    public double HostTextScale { get; set; } = 1;
     public bool AutomaticRotation { get; set; }
     public string NewcomerPlacement { get; set; } = "End of current round";
     public int NewcomerSpacing { get; set; } = 2;

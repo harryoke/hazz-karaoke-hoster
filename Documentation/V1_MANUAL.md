@@ -98,6 +98,25 @@ Readable GRP and PLG groups become folders. If several group files have the same
 
 Recognised history formats include CSV, TSV, JSON, XML and supported SQLite or Access-based databases. Matching tracks link to the Hazz library; unmatched performances can remain as history. Keep a backup before reimporting, because repeated imports may replace earlier rows from that source.
 
+## Main-window text size
+
+If the playlists, singer list or controls are difficult to read:
+
+1. Open **DISPLAY** at the top right of the main window.
+2. Choose **Main interface text size**.
+3. Choose **110%**, **125% — Larger**, or **150% — Largest**. The change appears immediately.
+4. Try a playlist and the singer list. Rows grow to fit the larger lettering;
+   long lists still scroll and keep their normal selection and drag-and-drop behaviour.
+5. To restore the original lettering, choose **100% — Original**.
+
+Hazz remembers this choice when you close and reopen it. Venue profiles also
+include the setting, so loading a saved venue can restore that venue's text size.
+This changes the main console, including its search results, both playlists,
+side list, singer list, buttons and menus. Separate browser/dialog windows keep
+their existing text sizes. It does not change the text shown to the audience;
+adjust that separately in **DISPLAY > Audience Settings**. Larger text leaves
+room for fewer rows. You can hide the karaoke preview to give singers more room.
+
 ## 4 Sound devices and audio levels
 
 ### Choose an output for each player

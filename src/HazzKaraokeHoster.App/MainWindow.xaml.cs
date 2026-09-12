@@ -491,6 +491,7 @@ public partial class MainWindow : Window
     private void RestoreMainLayout()
     {
         var settings = UiLayoutSettingsStore.Load();
+        ApplyHostTextScale(settings.HostTextScale);
         _fairRotation = settings.AutomaticRotation;
         _fairPrimary = settings.RotationPrimary;
         _newcomerPlacement = settings.NewcomerPlacement;
@@ -572,6 +573,7 @@ public partial class MainWindow : Window
         var totalWidth = Math.Max(1.0, MainLeftColumn.ActualWidth + MainCenterColumn.ActualWidth + MainRightColumn.ActualWidth);
         UiLayoutSettingsStore.Save(new UiLayoutSettings
         {
+            HostTextScale = _hostTextScale,
             AutomaticRotation = _fairRotation,
             RotationPrimary = _fairPrimary,
             NewcomerPlacement = _newcomerPlacement,
