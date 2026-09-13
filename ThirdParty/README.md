@@ -1,4 +1,4 @@
-# Third-party components in the LibVLC experiment
+# Third-party components
 
 The Hazz licence does not replace the licences of these components. Copies of
 their notices are included here. Libraries are unmodified, dynamically loaded
@@ -27,3 +27,11 @@ plugin directory. The project uses NuGet to restore original dependencies.
 Existing .NET, NAudio, SQLite and GIF dependencies retain their existing terms.
 The third-party code is not authored by Hazz and is not covered by Hazz's
 restriction on rebranded redistributions.
+
+* SoundTouch.NET 2.3.2 — Copyright Olaf Woudenberg 2011–2019, Olli Parviainen and contributors;
+  LGPL 2.1 or later. Included unmodified as the replaceable `SoundTouch.Net.dll`.
+  Licence: `SoundTouch.NET-LICENSE.txt`.
+  Source and build instructions: https://github.com/owoudenberg/soundtouch.net/tree/98e5b8fd2f8efed0ddf7c8f66b435bfb231659dc
+  The matching unmodified source archive is included as `SoundTouch.NET-2.3.2-source.zip`.
+  Exact NuGet package: https://www.nuget.org/packages/SoundTouch.Net/2.3.2
+  Used for independent tempo and pitch processing in karaoke and music audio.

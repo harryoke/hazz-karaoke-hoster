@@ -31,6 +31,7 @@ public partial class MainWindow
             if (deck == MusicDeckId.Deck1) _deck1PausedPosition = position; else _deck2PausedPosition = position;
             var media = MediaFor(deck);
             media.Source = new Uri(snapshot.Path);
+            media.Tempo = LoadTempo(snapshot.Path);
             media.Position = position;
             // Merely setting the source does not start either audio engine.
             TitleFor(deck).Text = "RECOVERED — press Resume: " + item.DisplayTitle;

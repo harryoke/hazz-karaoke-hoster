@@ -1,12 +1,14 @@
 # Hazz Karaoke Hoster User Manual
 
-Version 1.1. This guide explains how to set up a show, use each main feature and keep your singers and music organised. Follow the numbered steps in the section you need. Buttons are written as they appear in the app. Existing illustrations show the v1.0 layout; the new DISPLAY menu options are described in the video-engine, CD+G picture and text-size sections below.
+Version 1.2. This guide explains how to set up a show, use each main feature and keep your singers and music organised. Follow the numbered steps in the section you need. Buttons are written as they appear in the app. The console illustration below is rendered from v1.2; DISPLAY menu options are described in the relevant sections.
 
 ## 1 Find your way around
 
-![Current console layout](Images/console_v1.png)
+For the shared TEMPO button, Enter-to-add singers and CLEAR PLAYLIST, see [Tempo and playlist instructions](TEMPO_AND_PLAYLISTS.md). These replace the old optional song-title field shown in older pictures.
 
-This is a render of the v1.0 console layout with empty lists, made from the current interface source. It includes SOUND DEVICES, NORMALIZE AUDIO, MUSIC VIDEO and next-track status. The logo and live data are not loaded in this layout view. Dialog instructions below describe their actual controls; this image is not a picture of those dialogs.
+![Version 1.2 console with shared Tempo and Clear Playlist buttons](Images/console_v1.2.png)
+
+This is a render of the v1.2 console layout with empty lists, made from the interface source. It includes SOUND DEVICES, NORMALIZE AUDIO, MUSIC VIDEO, TEMPO, CLEAR PLAYLIST and next-track status. Live data is not loaded in this layout view. Dialog instructions below describe their actual controls; this image is not a picture of those dialogs.
 
 The left and right columns are music players. The centre contains the karaoke player, singer rotation and private preview. The top search buttons choose which library you search. Green buttons start playback, red buttons stop or remove, yellow buttons pause or adjust, blue buttons load or navigate, and teal buttons add or save. Active buttons become brighter.
 
@@ -241,9 +243,9 @@ This levels audio during playback; it does not rewrite files. It uses RMS levell
 
 ### Add a new or returning singer
 
-1. In SINGER NAME, type the singer's name. The optional song-title box is for request text, not a second singer name.
+1. In SINGER NAME, type the singer's name. The old optional song-title box has been removed; that space now holds TEMPO.
 2. To find a returning singer, open the name arrow or type part of their name. The picker shows about 100 recent/matching names while searching the complete saved singer database.
-3. Choose the name and click ADD SINGER.
+3. Choose the name and press Enter or click ADD SINGER. Enter works for a newly typed name too. Holding Enter does not repeatedly add it.
 4. Search KARAOKE and drag a song onto that singer's row.
 5. Double-click the singer, or right-click and choose OPEN SONGS & HISTORY, to review their requests.
 

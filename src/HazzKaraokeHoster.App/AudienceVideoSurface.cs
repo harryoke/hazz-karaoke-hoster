@@ -20,6 +20,20 @@ public sealed class AudienceVideoSurface : Grid
     private bool _started, _starting, _playing, _closed, _fallback;
     private int _generation;
     public bool UseLibVlc { get; set; }
+    private double _tempo = 1;
+    public double Tempo
+    {
+        get => _tempo;
+        set
+        {
+            var tempo = double.IsFinite(value) ? Math.Clamp(value, 0.75, 1.25) : 1;
+            if (_tempo == tempo) return;
+            _tempo = tempo;
+            _windows.SpeedRatio = _tempo;
+            if (NativeActive && _started && _player!.SetRate((float)_tempo) == -1)
+                UseWindows("LibVLC refused the selected tempo.");
+        }
+    }
     public static bool WindowsRequested => Environment.GetCommandLineArgs().Contains("--windows-video", StringComparer.OrdinalIgnoreCase);
     public bool NativeActive => _player is not null && !_fallback && !_closed;
     public event EventHandler? MediaEnded;
@@ -33,7 +47,7 @@ public sealed class AudienceVideoSurface : Grid
         // own Content to null. Keep a stable host so clearing really detaches.
         _view.Content = _overlayHost;
         Children.Add(_windows); Children.Add(_view);
-        _windows.MediaOpened += (_, _) => _windows.Position = _requestedPosition;
+        _windows.MediaOpened += (_, _) => { _windows.Position = _requestedPosition; _windows.SpeedRatio = _tempo; };
         _windows.MediaEnded += (_, _) => MediaEnded?.Invoke(this, EventArgs.Empty);
         _windows.MediaFailed += (_, e) => { App.WriteDiagnostic("WINDOWS VIDEO", e.ErrorException.ToString()); MediaFailed?.Invoke(this, EventArgs.Empty); };
     }
@@ -96,6 +110,7 @@ public sealed class AudienceVideoSurface : Grid
         if (!NativeActive) return;
         if (!_started && _requestedPosition > TimeSpan.Zero) _player!.Time = (long)_requestedPosition.TotalMilliseconds;
         _starting = false; _started = true;
+        if (_player!.SetRate((float)_tempo) == -1) { UseWindows("LibVLC refused the selected tempo."); return; }
         if (!_playing) _player!.SetPause(true);
     });
     private void OnEnded(object? sender, EventArgs e) => Post(() => { _playing = false; _started = false; _starting = false; _requestedPosition = TimeSpan.Zero; MediaEnded?.Invoke(this, EventArgs.Empty); });
@@ -108,6 +123,7 @@ public sealed class AudienceVideoSurface : Grid
         _requestedPosition = position;
         _view.Visibility = Visibility.Collapsed; _windows.Visibility = Visibility.Visible;
         _windows.Source = _source; _windows.Position = position;
+        _windows.SpeedRatio = _tempo;
         App.WriteDiagnostic("LIBVLC FALLBACK", reason);
         BackendChanged?.Invoke(this, EventArgs.Empty);
         if (resume) _windows.Play();

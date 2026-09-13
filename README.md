@@ -1,6 +1,12 @@
-# Hazz Karaoke Hoster v1.1
+# Hazz Karaoke Hoster v1.2
 
-Download the complete portable ZIP from the [v1.1 release](https://github.com/harryoke/hazz-karaoke-hoster/releases/tag/v1.1).
+v1.2 adds shared tempo control with saved track/singer preferences, Enter-to-add singers,
+clear-playlist buttons, full-length audience singer names, larger singer and heading fonts,
+saved text outlines, an adjustable scroller inset, and loading without a black
+audience screen. Read [v1.2 instructions](Documentation/RELEASE_v1.2.md).
+Download [v1.2](https://github.com/harryoke/hazz-karaoke-hoster/releases/tag/v1.2).
+
+Download the complete portable ZIP from the [v1.2 release](https://github.com/harryoke/hazz-karaoke-hoster/releases/tag/v1.2).
 Extract all files and keep the `libvlc` folder and DLLs beside the EXE.
 
 New in v1.1: saved main-console text sizes (100–150%), selectable Windows or
@@ -9,6 +15,7 @@ and smooth/crisp CD+G scaling. Windows remains the default video engine.
 
 Read the [v1.1 instructions and release notes](Documentation/RELEASE_v1.1.md)
 and the [updated complete user guide](Documentation/V1_MANUAL.md).
+See [tempo and playlist instructions](Documentation/TEMPO_AND_PLAYLISTS.md) for the latest controls.
 The v1.0 PDFs and older release notes below are historical documents and do not
 cover these additions. The updated guide linked above is the current reference.
 

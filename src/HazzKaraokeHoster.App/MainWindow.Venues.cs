@@ -278,7 +278,7 @@ public partial class MainWindow
             foreach (var x in saved.Songs) singer.Songs.Add(new SingerSongEntry { Id = x.QueueSongId, SongId = x.SongId, SongTitle = x.SongTitle, Artist = x.Artist, FilePath = x.FilePath, KeyChange = x.KeyChange, CdgSyncSeconds = x.CdgSyncSeconds });
             _queue.Add(singer);
         }
-        SingerNameBox.Text = ""; ManualSongBox.Text = "";
+        SingerNameBox.Text = "";
         _showStartedUtc = DateTimeOffset.UtcNow;
         QueueList.SelectedItem = _queue.FirstOrDefault();
         UpdateAudienceNext(); MarkLiveShowStateDirty(); SaveLiveShowStateNow(false);

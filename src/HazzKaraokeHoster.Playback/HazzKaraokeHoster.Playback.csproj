@@ -4,6 +4,7 @@
     <RootNamespace>HazzKaraokeHoster.Playback</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="SoundTouch.Net" Version="2.3.2" />
     <ProjectReference Include="..\HazzKaraokeHoster.Core\HazzKaraokeHoster.Core.csproj" />
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>

@@ -506,6 +506,9 @@ public partial class AudienceWindow : Window
         _videoPlaying = false;
     }
 
+    public void SetKaraokeTempo(double tempo) => AudienceMedia.Tempo = tempo;
+    public void SetMusicTempo(double tempo) => MusicVideoMedia.Tempo = tempo;
+
     public void SyncVideo(TimeSpan hostPosition)
     {
         if (!_videoPlaying || AudienceMedia.Source is null) return;

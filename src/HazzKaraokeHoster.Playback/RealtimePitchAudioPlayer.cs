@@ -14,7 +14,8 @@ public sealed class RealtimePitchAudioPlayer : IDisposable
     private IWavePlayer? _output;
     public string? OutputDeviceId { get; set; }
     private NAudio.CoreAudioApi.MMDevice? _device;
-    private SmbPitchShiftingSampleProvider? _pitch;
+    private TempoSampleProvider? _pitch;
+    private double _tempo = 1;
     private VolumeSampleProvider? _volume;
     private int _semitones;
 
@@ -34,7 +35,7 @@ public sealed class RealtimePitchAudioPlayer : IDisposable
             if (_reader.TotalTime > TimeSpan.Zero && target > _reader.TotalTime) target = _reader.TotalTime;
             var resume = _output?.PlaybackState == PlaybackState.Playing;
             if (resume) _output?.Pause();
-            _reader.CurrentTime = target;
+            _pitch?.Seek(() => _reader.CurrentTime = target);
             if (resume) _output?.Play();
         }
     }
@@ -48,7 +49,7 @@ public sealed class RealtimePitchAudioPlayer : IDisposable
         {
             _reader = new MediaFoundationReader(path);
             var source = _reader.ToSampleProvider();
-            _pitch = new SmbPitchShiftingSampleProvider(source);
+            _pitch = new TempoSampleProvider(source);
             _volume = new VolumeSampleProvider(new NormalizingSampleProvider(_pitch)) { Volume = 0.9f };
             if (string.IsNullOrWhiteSpace(OutputDeviceId)) _output = new WaveOutEvent { DesiredLatency = 120, NumberOfBuffers = 3 };
             else
@@ -59,6 +60,7 @@ public sealed class RealtimePitchAudioPlayer : IDisposable
                 _output = new WasapiOut(_device, NAudio.CoreAudioApi.AudioClientShareMode.Shared, true, 120);
             }
             _output.Init(_volume);
+            _tempo = 1;
             SetSemitones(0);
             return true;
         }
@@ -74,7 +76,13 @@ public sealed class RealtimePitchAudioPlayer : IDisposable
     public void SetSemitones(int semitones)
     {
         _semitones = Math.Clamp(semitones, -6, 6);
-        if (_pitch is not null) _pitch.PitchFactor = (float)Math.Pow(2.0, _semitones / 12.0);
+        _pitch?.Configure(_tempo, _semitones);
+    }
+
+    public void SetTempo(double tempo)
+    {
+        _tempo = double.IsFinite(tempo) ? Math.Clamp(tempo, 0.75, 1.25) : 1;
+        _pitch?.Configure(_tempo, _semitones);
     }
 
     public void SetVolume(double volume)
@@ -95,7 +103,7 @@ public sealed class RealtimePitchAudioPlayer : IDisposable
     {
         if (_output is null || _reader is null) return;
         _output.Stop();
-        _reader.CurrentTime = TimeSpan.Zero;
+        _pitch?.Seek(() => _reader.CurrentTime = TimeSpan.Zero);
     }
 
     public void SyncTo(TimeSpan hostPosition, double toleranceMilliseconds = 450)

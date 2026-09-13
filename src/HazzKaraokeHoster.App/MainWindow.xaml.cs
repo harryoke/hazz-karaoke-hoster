@@ -245,6 +245,8 @@ public partial class MainWindow : Window
         KaraokeMedia.MediaEnded += async (_, _) => await RunLiveOperationSafeAsync("KARAOKE COMPLETION", KaraokeCompletedAsync);
         KaraokeMedia.MediaFailed += (_, e) =>
         {
+            CloseTempoEditor();
+            SetKaraokeTempo(1);
             BrokenMediaRegistry.Mark(_karaokePackage?.SourcePath, e.ErrorException?.Message ?? "Karaoke playback failed");
             _pitchAudio.Stop();
             _karaokePlaying = false;
@@ -1507,6 +1509,8 @@ public partial class MainWindow : Window
 
         QuickMusicMedia.Stop();
         QuickMusicMedia.Source = new Uri(song.FilePath);
+        CloseTempoEditor();
+        QuickMusicMedia.Tempo = LoadTempo(song.FilePath);
         QuickMusicMedia.Volume = (_quickSearchFadeStartDeck1 > 0.0001 || _quickSearchFadeStartDeck2 > 0.0001) ? 0.0 : _quickSearchTargetVolume;
         QuickMusicMedia.Play();
         _quickSearchMusicActive = true;
@@ -1550,6 +1554,7 @@ public partial class MainWindow : Window
 
     private void StopQuickSearchMusic(bool includeRegularDecks, bool updateStatus)
     {
+        CloseTempoEditor();
         _quickSearchMusicFadeInActive = false;
         _quickSearchMusicActive = false;
         QuickMusicMedia.Stop();
@@ -1567,6 +1572,7 @@ public partial class MainWindow : Window
 
     private void FinishQuickSearchMusic(string status)
     {
+        CloseTempoEditor();
         _quickSearchMusicFadeInActive = false;
         _quickSearchMusicActive = false;
         QuickMusicMedia.Stop();
@@ -1846,18 +1852,22 @@ public partial class MainWindow : Window
         MarkLiveShowStateDirty(); // Marks this running session as not-clean until Hazz closes normally.
     }
 
-    private async void AddSinger_Click(object sender, RoutedEventArgs e)
+    private bool _addingSinger;
+    private async void SingerEntry_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        var singerName = SingerNameBox.Text.Trim();
-        var manual = ManualSongBox.Text.Trim();
+        if (e.Key != Key.Enter || Keyboard.Modifiers != ModifierKeys.None) return;
+        e.Handled = true;
+        if (e.IsRepeat || _addingSinger) return;
+        SingerNameBox.IsDropDownOpen = false;
+        await AddSingerAsync();
+    }
 
-        // The old unlabelled layout made the wider song field look like the singer-name field.
-        // Accept a name entered there on its own so ADD SINGER always does what the host expects.
-        if (singerName.Length == 0 && manual.Length > 0)
-        {
-            singerName = manual;
-            manual = string.Empty;
-        }
+    private async void AddSinger_Click(object sender, RoutedEventArgs e) => await AddSingerAsync();
+
+    private async Task AddSingerAsync()
+    {
+        if (_addingSinger) return;
+        var singerName = SingerNameBox.Text.Trim();
 
         if (singerName.Length == 0)
         {
@@ -1866,18 +1876,18 @@ public partial class MainWindow : Window
             return;
         }
 
+        _addingSinger = true;
         try
         {
             var singer = await GetOrCreateQueueSingerAsync(singerName);
-            if (manual.Length > 0)
-                singer.Songs.Add(new SingerSongEntry { SongTitle = manual });
             SingerNameBox.Text = string.Empty;
-            ManualSongBox.Clear();
             QueueList.SelectedItem = singer;
             QueueList.ScrollIntoView(singer);
             QueueDragHint.Text = $"Added {singer.SingerName} to the singers list";
             await RefreshSavedSingerNamesAsync();
             UpdateAudienceNext();
+            MarkLiveShowStateDirty();
+            SingerNameBox.Focus();
         }
         catch (Exception ex)
         {
@@ -1885,6 +1895,7 @@ public partial class MainWindow : Window
             MessageBox.Show(this, $"Hazz could not add {singerName}.\n\n{ex.Message}",
                 "Add Singer", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+        finally { _addingSinger = false; }
     }
 
     private async Task<SingerQueueEntry> GetOrCreateQueueSingerAsync(string singerName)
@@ -2490,6 +2501,7 @@ public partial class MainWindow : Window
         KeyText.Text = $"{_keyChange:+0;-0;0}";
         _pitchAudio.SetSemitones(_keyChange);
         _cdgTiming.Set(song.CdgSyncSeconds);
+        SetKaraokeTempo(_pitchAudio.IsLoaded ? LoadTempo(song.FilePath, TempoSinger) : 1);
         KaraokeNowText.Text = $"{singer.SingerName} — {song.SongTitle}" + (string.IsNullOrWhiteSpace(song.Artist) ? string.Empty : $" — {song.Artist}");
         QueueList.SelectedItem = singer;
         return true;
@@ -2603,6 +2615,7 @@ public partial class MainWindow : Window
 
     private void ReplaceKaraokePackage(KaraokePackage package, CdgDecoder? decoder, bool preservePresentation = false)
     {
+        CloseTempoEditor();
         CancelKaraokeStopFade();
         RestoreKaraokePlaybackVolume();
         var keepAudienceInKaraokeMode = preservePresentation && _karaokePresentationActive;
@@ -2647,6 +2660,7 @@ public partial class MainWindow : Window
         }
 
         var pitchReady = _pitchAudio.TryLoad(package.PlaybackPath, out var pitchError);
+        SetKaraokeTempo(pitchReady ? LoadTempo(package.SourcePath) : 1);
         KaraokeMedia.IsMuted = pitchReady || AudioNormalization.Enabled || !string.IsNullOrWhiteSpace(_soundRoutes.Karaoke);
         if (!pitchReady && (AudioNormalization.Enabled || !string.IsNullOrWhiteSpace(_soundRoutes.Karaoke)))
             throw new InvalidOperationException("Selected karaoke output could not be prepared: " + pitchError);
@@ -2660,11 +2674,14 @@ public partial class MainWindow : Window
 
     private async void KaraokePlay_Click(object sender, RoutedEventArgs e)
     {
+        CloseTempoEditor();
         if (_karaokePackage is null || KaraokeMedia.Source is null)
         {
             if (!await LoadNextSingerAsync()) return;
         }
         if (_karaokePackage is null || KaraokeMedia.Source is null) return;
+        if (!_karaokePresentationActive)
+            SetKaraokeTempo(_pitchAudio.IsLoaded ? LoadTempo(_karaokePackage.SourcePath, TempoSinger) : 1);
 
         CancelKaraokeStopFade();
         RestoreKaraokePlaybackVolume();
@@ -3097,6 +3114,8 @@ public partial class MainWindow : Window
 
     private async Task KaraokeCompletedAsync()
     {
+        CloseTempoEditor();
+        SetKaraokeTempo(1);
         CancelKaraokeStopFade();
         RestoreKaraokePlaybackVolume();
         _pitchAudio.Stop();
@@ -3179,6 +3198,7 @@ public partial class MainWindow : Window
     private void ApplyCurrentKaraokeVisualToAudience()
     {
         if (_audience is null) return;
+        _audience.SetKaraokeTempo(_karaokeTempo);
         // Preparing a song is private to the host. A freshly loaded CD+G
         // frame or an unopened video is usually black and must not cover
         // the venue display or an already-running music video until Play.
@@ -3310,6 +3330,8 @@ public partial class MainWindow : Window
         media.OutputDeviceId = deck == MusicDeckId.Deck1 ? _soundRoutes.Deck1 : _soundRoutes.Deck2;
         if (TakeReadyCue(deck, item.FilePath)) media = MediaFor(deck);
         else if (!TryLoadStandardMedia(media, item.FilePath)) return false;
+        CloseTempoEditor();
+        media.Tempo = LoadTempo(item.FilePath);
 
         list.SelectedIndex = index;
         SetCurrentMusicItem(deck, item);
@@ -3337,7 +3359,7 @@ public partial class MainWindow : Window
         return true;
     }
 
-    private static bool TryLoadStandardMedia(RoutedMusicElement media, string path)
+    private bool TryLoadStandardMedia(RoutedMusicElement media, string path)
     {
         var kind = MediaFileClassifier.Classify(path);
         if (kind is HazzMediaKind.ZipKaraoke or HazzMediaKind.CdgGraphics)
@@ -3353,6 +3375,7 @@ public partial class MainWindow : Window
 
         media.Stop();
         media.Source = new Uri(path);
+        media.Tempo = LoadTempo(path);
         return true;
     }
 
@@ -3497,6 +3520,8 @@ public partial class MainWindow : Window
 
     private void KaraokeStopForMusicResume(bool cancelPendingFade = true)
     {
+        CloseTempoEditor();
+        SetKaraokeTempo(1);
         if (cancelPendingFade) CancelKaraokeStopFade();
         KaraokeMedia.Stop();
         _pitchAudio.Stop();
@@ -3551,9 +3576,15 @@ public partial class MainWindow : Window
             UpdateIlluminatedButtons();
         }
         if (_quickSearchMusicVideo && _quickSearchMusicActive && !_karaokePresentationActive)
+        {
+            _audience?.SetMusicTempo(QuickMusicMedia.Tempo);
             _audience?.SyncMusicVideo(QuickMusicMedia.Position);
+        }
         else if (_audienceMusicVideoDeck != MusicDeckId.None && !_karaokePresentationActive && !IsDeckPaused(_audienceMusicVideoDeck))
+        {
+            _audience?.SetMusicTempo(MediaFor(_audienceMusicVideoDeck).Tempo);
             _audience?.SyncMusicVideo(MediaFor(_audienceMusicVideoDeck).Position);
+        }
         if (_karaokeOnlyMode) return;
         if (_quickSearchMusicFadeInActive)
         {
@@ -3668,7 +3699,7 @@ public partial class MainWindow : Window
 
         var duration = media.NaturalDuration.TimeSpan;
         if (duration <= TimeSpan.Zero) return;
-        var remaining = duration - media.Position;
+        var remaining = TimeSpan.FromTicks((long)((duration - media.Position).Ticks / media.Tempo));
         if (remaining.TotalSeconds <= 0 || remaining.TotalSeconds > CrossfadeSeconds) return;
 
         var to = Opposite(from);
@@ -3718,6 +3749,7 @@ public partial class MainWindow : Window
 
     private void HandleMusicDeckEnded(MusicDeckId deck)
     {
+        CloseTempoEditor();
         if (_musicSuspendedForKaraoke || _musicFadeOutForKaraoke) return;
 
         if (_crossfadeActive)
@@ -3957,6 +3989,7 @@ public partial class MainWindow : Window
     private void StopDeck(MusicDeckId deck)
     {
         if (deck == MusicDeckId.None) return;
+        CloseTempoEditor();
         MediaFor(deck).Stop();
         ClearMusicVideoForDeck(deck);
         var current = CurrentMusicItemFor(deck);
@@ -5123,10 +5156,7 @@ public partial class MainWindow : Window
                 $"Remove all {DeckBPlaylist.Items.Count:N0} tracks from the Side List?\n\nNo music files will be deleted.",
                 "Clear Side List", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
 
-        DeckBPlaylist.Items.Clear();
-        RecalculateMusicDeckOrder(MusicDeckId.Deck2);
-        MarkMusicDeckQueuesDirty();
-        UpdateMusicAutomationStatus("Side List cleared");
+        ClearMusicPlaylist(MusicDeckId.Deck2);
     }
 
     private void RemoveSelectedMusicTracks(MusicDeckId deck)
