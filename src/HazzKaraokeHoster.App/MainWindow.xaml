@@ -914,6 +914,8 @@
        <ComboBox x:Name="NextFontCombo" Width="180" SelectionChanged="OverlayChanged"/>
        <TextBlock Text="Size" VerticalAlignment="Center" Margin="4"/>
        <ComboBox x:Name="NextSizeCombo" Width="82" SelectionChanged="OverlayChanged"><ComboBoxItem Content="32"/><ComboBoxItem Content="40"/><ComboBoxItem Content="48" IsSelected="True"/><ComboBoxItem Content="56"/><ComboBoxItem Content="64"/><ComboBoxItem Content="72"/><ComboBoxItem Content="84"/><ComboBoxItem Content="96"/><ComboBoxItem Content="112"/><ComboBoxItem Content="128"/><ComboBoxItem Content="160"/><ComboBoxItem Content="192"/></ComboBox>
+       <TextBlock Text="Heading size" VerticalAlignment="Center" Margin="12,0,4,0"/>
+       <ComboBox x:Name="NextHeadingSizeCombo" Width="82" SelectionChanged="OverlayChanged" ToolTip="Size of the NEXT SINGERS heading, independently of singer names"><ComboBoxItem Content="20"/><ComboBoxItem Content="28"/><ComboBoxItem Content="36" IsSelected="True"/><ComboBoxItem Content="48"/><ComboBoxItem Content="64"/><ComboBoxItem Content="80"/><ComboBoxItem Content="96"/><ComboBoxItem Content="128"/></ComboBox>
        <TextBlock Text="Position" VerticalAlignment="Center" Margin="4"/>
        <ComboBox x:Name="PositionCombo" Width="150" SelectionChanged="OverlayChanged"><ComboBoxItem Content="TopCenter"/><ComboBoxItem Content="BottomCenter" IsSelected="True"/><ComboBoxItem Content="TopLeft"/><ComboBoxItem Content="TopRight"/><ComboBoxItem Content="BottomLeft"/><ComboBoxItem Content="BottomRight"/></ComboBox>
       </WrapPanel>

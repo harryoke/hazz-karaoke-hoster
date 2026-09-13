@@ -169,6 +169,20 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
         Require(outlinedNames.Length == 4 && outlinedNames.All(t=>StrokeTextBlock.GetStrokeWidth(t)==4), "Singer outline did not reach all names");
         var scrollerRuns = ((StrokeTextBlock)audience.FindName("ScrollerText")).Inlines;
         Require(scrollerRuns.Any(r=>StrokeTextBlock.GetStrokeWidth(r)==2) && scrollerRuns.Any(r=>StrokeTextBlock.GetStrokeWidth(r)==6), "Rotation and venue outlines must remain independent");
+        foreach (var outlineWidth in new[] { 0d, 2d, 8d })
+        {
+            var heading = new StrokeTextBlock { Text = "NEXT SINGERS", FontSize = 20, FontWeight = FontWeights.Bold,
+                Foreground = Brushes.White, Padding = new Thickness(outlineWidth / 2) };
+            StrokeTextBlock.SetStrokeWidth(heading, outlineWidth);
+            heading.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var w = heading.DesiredSize.Width;
+            // Simulate the fractional width lost during display/layout rounding.
+            heading.Arrange(new Rect(0, 0, w - 0.75, heading.DesiredSize.Height));
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(w) + 2, 60, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(heading);
+            var data = new byte[bitmap.PixelWidth * bitmap.PixelHeight * 4]; bitmap.CopyPixels(data, bitmap.PixelWidth * 4, 0);
+            Require(Enumerable.Range(0, bitmap.PixelWidth * bitmap.PixelHeight).Any(i => i % bitmap.PixelWidth > w * 0.75 && data[i * 4] > 100), "NEXT SINGERS loses its final word at a rounded width");
+        }
         audience.Close();
 
         var main = new MainWindow();

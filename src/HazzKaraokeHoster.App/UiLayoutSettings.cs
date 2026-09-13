@@ -62,6 +62,7 @@ internal sealed class UiLayoutSettings
     public bool AudienceShowNextSong { get; set; } = true;
     public string AudienceNextSingerFontFamily { get; set; } = "Segoe UI";
     public double AudienceNextSingerFontSize { get; set; } = 48;
+    public double AudienceNextHeadingFontSize { get; set; } = 36;
     public string AudienceNextSingerPosition { get; set; } = "BottomCenter";
     public bool AudienceScrollerEnabled { get; set; } = true;
     public string AudienceScrollerText { get; set; } = "WELCOME TO KARAOKE WITH HAZZ • PLEASE HAVE YOUR NEXT SONG READY •";

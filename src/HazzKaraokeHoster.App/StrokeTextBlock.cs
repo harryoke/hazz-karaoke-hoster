@@ -20,7 +20,7 @@ public sealed class StrokeTextBlock : Control
         var text = Inlines.Count > 0 ? string.Concat(Inlines.Select(r => r.Text)) : Text;
         var width = TextWrapping == TextWrapping.Wrap ? Math.Max(1, availableSize.Width - Padding.Left - Padding.Right) : double.PositiveInfinity;
         var f = Format(text, Foreground, width);
-        return new Size(f.WidthIncludingTrailingWhitespace + Padding.Left + Padding.Right, f.Height + Padding.Top + Padding.Bottom);
+        return new Size(Math.Ceiling(f.WidthIncludingTrailingWhitespace + Padding.Left + Padding.Right), Math.Ceiling(f.Height + Padding.Top + Padding.Bottom));
     }
     public static readonly DependencyProperty StrokeProperty = DependencyProperty.RegisterAttached("Stroke", typeof(Brush), typeof(StrokeTextBlock), new FrameworkPropertyMetadata(Brushes.Black, FrameworkPropertyMetadataOptions.AffectsRender));
     public static readonly DependencyProperty StrokeWidthProperty = DependencyProperty.RegisterAttached("StrokeWidth", typeof(double), typeof(StrokeTextBlock), new FrameworkPropertyMetadata(0d, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -55,7 +55,14 @@ public sealed class StrokeTextBlock : Control
     {
         var f = new FormattedText(text ?? string.Empty, CultureInfo.CurrentUICulture, FlowDirection,
             new Typeface(FontFamily, FontStyle, FontWeight, FontStretch), FontSize, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
-        if (double.IsFinite(width)) f.MaxTextWidth = width;
+        // A layout-rounded width can be fractionally smaller than the glyph
+        // advance measured above. FormattedText would then wrap the last word,
+        // and MaxLineCount=1 hides it. Untrimmed single-line text must retain
+        // its full natural width, including a rounding allowance.
+        if (double.IsFinite(width))
+            f.MaxTextWidth = TextWrapping == TextWrapping.NoWrap && TextTrimming == TextTrimming.None
+                ? Math.Max(width, Math.Ceiling(f.WidthIncludingTrailingWhitespace) + 1)
+                : width;
         if (TextWrapping == TextWrapping.NoWrap) f.MaxLineCount = 1;
         return f;
     }

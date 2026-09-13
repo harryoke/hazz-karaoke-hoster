@@ -233,6 +233,7 @@ public partial class AudienceWindow : Window
         _rotationScrollerBrush = BrushFromHex(s.RotationScrollerColor, Brushes.White);
         _venueScrollerBrush = BrushFromHex(s.VenueScrollerColor, Brushes.Gold);
         NextSingerHeadingText.Foreground = _nextHeadingBrush;
+        NextSingerHeadingText.FontSize = double.IsFinite(s.NextHeadingFontSize) ? Math.Clamp(s.NextHeadingFontSize, 20, 128) : 36;
 
         _backgroundImageEnabled = s.BackgroundImageEnabled;
         _logoEnabled = s.LogoEnabled;

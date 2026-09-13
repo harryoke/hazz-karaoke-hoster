@@ -15,6 +15,7 @@ public sealed class AudienceOverlaySettings
     public bool ShowNextSong { get; set; } = true;
     public string NextSingerFontFamily { get; set; } = "Segoe UI";
     public double NextSingerFontSize { get; set; } = 48;
+    public double NextHeadingFontSize { get; set; } = 36;
     public OverlayPosition NextSingerPosition { get; set; } = OverlayPosition.BottomCenter;
     public bool ScrollerEnabled { get; set; } = true;
     public string ScrollerText { get; set; } = "WELCOME TO KARAOKE WITH HAZZ";

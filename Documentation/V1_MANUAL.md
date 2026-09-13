@@ -102,6 +102,13 @@ Recognised history formats include CSV, TSV, JSON, XML and supported SQLite or A
 
 ### Text outlines (strokes)
 
+The **NEXT SINGERS** heading has its own **Heading size** selector under
+**DISPLAY > Audience Settings**. The default is now 36 (previously 20), with
+choices up to 128. This is independent of the singer-name size and is saved
+with your settings and venue profiles. The whole singer panel can still shrink
+to fit a small screen. Outlined headings now retain their complete text when
+Windows rounds their display width.
+
 Open **DISPLAY > Audience Text Outlines**. Each row has its own enable checkbox,
 **COLOUR** button and width slider (0.5–8 px). Separate rows control the heading,
 position numbers, singer names, song/artist details, rotation scroller, venue

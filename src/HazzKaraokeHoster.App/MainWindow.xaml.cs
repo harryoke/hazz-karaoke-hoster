@@ -558,6 +558,7 @@ public partial class MainWindow : Window
             .FirstOrDefault(x => string.Equals(x?.ToString(), settings.AudienceNextSingerFontFamily, StringComparison.OrdinalIgnoreCase))
             ?? NextFontCombo.SelectedItem;
         SelectComboItemByContent(NextSizeCombo, Math.Clamp(settings.AudienceNextSingerFontSize, 32, 192).ToString("0"), "48");
+        SelectComboItemByContent(NextHeadingSizeCombo, Math.Clamp(settings.AudienceNextHeadingFontSize, 20, 128).ToString("0"), "36");
         SelectComboItemByContent(PositionCombo, settings.AudienceNextSingerPosition, "BottomCenter");
         ScrollerCheck.IsChecked = settings.AudienceScrollerEnabled;
         ScrollerTextBox.Text = settings.AudienceScrollerText ?? string.Empty;
@@ -635,6 +636,7 @@ public partial class MainWindow : Window
             AudienceShowNextSong = ShowNextSongCheck.IsChecked == true,
             AudienceNextSingerFontFamily = NextFontCombo.SelectedItem?.ToString() ?? "Segoe UI",
             AudienceNextSingerFontSize = double.TryParse((NextSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var nextSize) ? nextSize : 48,
+            AudienceNextHeadingFontSize = double.TryParse((NextHeadingSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var headingSize) ? headingSize : 36,
             AudienceNextSingerPosition = (PositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "BottomCenter",
             AudienceScrollerEnabled = ScrollerCheck.IsChecked == true,
             AudienceScrollerText = ScrollerTextBox.Text,
@@ -2287,6 +2289,7 @@ public partial class MainWindow : Window
             ShowNextSong = ShowNextSongCheck.IsChecked == true,
             NextSingerFontFamily = NextFontCombo.SelectedItem?.ToString() ?? "Segoe UI",
             NextSingerFontSize = ComboNumber(NextSizeCombo, 48),
+            NextHeadingFontSize = ComboNumber(NextHeadingSizeCombo, 36),
             NextSingerPosition = pos,
             ScrollerEnabled = ScrollerCheck.IsChecked == true,
             ScrollerText = ScrollerTextBox.Text,
