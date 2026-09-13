@@ -1,0 +1,35 @@
+<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tempo and playlists | Hazz Karaoke Hoster v1.2</title><link rel="stylesheet" href="styles.css"><script defer src="script.js"></script></head><body><div class="grid-bg"></div><header><a class="brand" href="index.html"><img src="assets/hazz-logo.png" alt=""><span><b>HAZZ KARAOKE</b><strong>HOSTER</strong></span></a><button class="menu" aria-expanded="false">Menu</button><nav><a href="index.html">Home</a><a href="manual.html">Manual</a><a href="tempo.html">Tempo</a><a href="quick-start.html">Quick start</a><a class="download" href="download.html">Download</a></nav></header><main><section class="content shell"><h1 id="tempo-singer-entry-and-clearing-a-playlist">Tempo, singer entry and clearing a playlist</h1>
+<h2 id="change-the-speed-of-the-playing-song">Change the speed of the playing song</h2>
+<ol>
+<li>Start a karaoke song, a music track or a music video.</li>
+<li>Click <strong>TEMPO</strong>, beside <strong>ADD SINGER</strong>. This shared control follows the playing song. Karaoke takes priority while a singer is performing. Otherwise it controls quick-play music or the active music deck. During a crossfade it controls the outgoing deck until the handover finishes.</li>
+<li>Check the song name at the top of the tempo window.</li>
+<li>Move the slider. <strong>100%</strong> is normal speed, <strong>75%</strong> is slower and <strong>125%</strong> is faster. Arrow keys adjust in 1% steps. The musical key stays unchanged.</li>
+<li>Close the window to keep that tempo for the current playback only. The window also closes when playback changes tracks, so you cannot accidentally edit the next song.</li>
+</ol>
+<p>Tempo returns to <strong>100%</strong> when the song finishes or is stopped. A different song starts at 100% unless it has its own saved preference. Pausing and resuming keeps the current tempo. Music crossfade timing follows the adjusted speed.</p>
+<p>The position slider and time counters refer to positions in the original recording, so lyrics and video can follow the same timeline. They are not a wall-clock countdown at altered speed.</p>
+<h2 id="remember-a-tempo">Remember a tempo</h2>
+<ol>
+<li>With the desired song playing, click <strong>TEMPO</strong> and set its speed.</li>
+<li>Click <strong>SAVE FOR THIS TRACK</strong>. Hazz recalls that speed whenever the same file is loaded, including after restarting the app.</li>
+<li>During a queued singer's performance, you may instead choose <strong>SAVE FOR THIS SINGER AND SONG</strong>. This takes priority over the track default for that singer at that venue. Without an active venue, it belongs to the default singer list.</li>
+<li>To save normal speed again, click <strong>RESET TO 100%</strong>, then the appropriate Save button. Reset alone changes only the current playback.</li>
+</ol>
+<p>The original audio/video/ZIP is never modified and no new recording is exported. Preferences are stored in <code>tempo-preferences.json</code> beside Hazz's other local settings and are included in the normal database/settings backup. Preferences follow the file path; moving or renaming a file means it needs a new saved preference. Singer preferences use venue and singer name, so a renamed singer needs their preference saved again.</p>
+<p>Karaoke video and CD+G graphics follow the adjusted playback timeline. Both Windows and VLC audience video engines support the setting. If Hazz cannot decode a karaoke file's audio for processing, tempo is unavailable for that file rather than changing its pitch unexpectedly.</p>
+<h2 id="add-a-singer-with-enter">Add a singer with Enter</h2>
+<ol>
+<li>Type the full name into <strong>SINGER NAME</strong>, or choose a saved name.</li>
+<li>Press <strong>Enter</strong>, or click <strong>ADD SINGER</strong>.</li>
+<li>The singer appears in the rotation and the name field clears. An already queued singer is selected instead of creating a duplicate.</li>
+</ol>
+<p>The optional song-title box is removed. Assign songs by dragging a karaoke search result onto the singer, or open the singer's song list.</p>
+<h2 id="empty-a-deck-playlist">Empty a deck playlist</h2>
+<ol>
+<li>Under the relevant deck's playlist, click <strong>CLEAR PLAYLIST</strong>.</li>
+<li>Confirm that you want to empty that list.</li>
+<li>All rows are removed from that deck. The song already playing continues; use its Stop button if you also want to stop it. The other deck is not cleared and may still play through normal automation.</li>
+</ol>
+<p>The side list also has a clear command. This empties its holding list. Clearing does not delete media files, library entries, saved named playlists or music history. To retain a particular queue order for later, choose <strong>SAVE PLAYLIST</strong> before clearing it.</p>
+</section></main><footer><div class="shell"><div><b>HAZZ KARAOKE HOSTER</b><span>Version 1.2</span></div><nav><a href="download.html">Downloads</a><a href="https://github.com/harryoke/hazz-karaoke-hoster/releases/tag/v1.2">GitHub release</a></nav></div><p class="shell">Copyright &copy; 2026 Hazz Karaoke. <a href="licence.html">Free-use licence and redistribution terms</a></p></footer></body></html>
