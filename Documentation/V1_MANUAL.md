@@ -100,6 +100,19 @@ Recognised history formats include CSV, TSV, JSON, XML and supported SQLite or A
 
 ## Audience video engine and CD+G picture
 
+### Text outlines (strokes)
+
+Open **DISPLAY > Audience Text Outlines**. Each row has its own enable checkbox,
+**COLOUR** button and width slider (0.5–8 px). Separate rows control the heading,
+position numbers, singer names, song/artist details, rotation scroller, venue
+message scroller and Kamikaze message. Start with a black 2 px outline around
+light-coloured text, then adjust to suit your background. Changes appear live.
+Untick a row to remove that outline without losing its chosen colour and width.
+Close the panel to save. The settings are also included in venue profiles.
+The logo artwork and text contained inside CD+G/video files are not modified.
+Pixel widths use Windows display units and scale with display DPI and the
+singer panel's automatic fit, keeping the outline proportional to the text.
+
 If the TV cuts off the scrolling text, open **DISPLAY > Audience Settings**.
 Beside the scroller's Top/Bottom position, drag **Move away from edge** to move
 the scroller inward (0–250). For a bottom scroller this moves it up; for a top

@@ -393,6 +393,7 @@
      <MenuItem Header="Windowed / Move &amp; Resize" Click="AudienceWindowed_Click"/>
      <Separator/>
      <MenuItem Header="Audience Settings — Backgrounds, Logo, Scroller…" Click="DisplaySettingsMenu_Click"/>
+     <MenuItem Header="Audience Text Outlines…" Click="AudienceTextOutlines_Click"/>
     </MenuItem>
     <MenuItem Header="SHOW" Style="{StaticResource HeaderMenuItemStyle}">
      <MenuItem x:Name="FairRotationMenuItem" Header="Automatic Fair Singer Rotation" IsCheckable="True" Click="FairRotation_Click" ToolTip="Fewest turns first, then longest waiting. Disable to use manual ordering."/>

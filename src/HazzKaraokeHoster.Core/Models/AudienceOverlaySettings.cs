@@ -5,6 +5,7 @@ public enum OverlayPosition {
 
 public sealed class AudienceOverlaySettings
 {
+    public Dictionary<string, TextStrokeSettings> TextStrokes { get; set; } = new();
     public bool MusicVideoShowLogo { get; set; } = false;
     public bool MusicVideoShowScroller { get; set; } = false;
     public bool MusicVideoShowSingers { get; set; } = false;

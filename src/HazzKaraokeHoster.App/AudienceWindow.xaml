@@ -24,20 +24,20 @@
 
   <!-- Kamikaze announcement replaces the normal singer information until the next karaoke track starts. -->
   <Border x:Name="KamikazePanel" Panel.ZIndex="115" Background="#C8000000" Padding="34,24" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40" Visibility="Collapsed" MaxWidth="1120">
-   <TextBlock x:Name="KamikazeTextBlock" Text="KAMIKAZE KARAOKE!" TextAlignment="Center" TextWrapping="Wrap" FontSize="84" FontWeight="Black" Foreground="#FFD34D"/>
+   <local:StrokeTextBlock x:Name="KamikazeTextBlock" Text="KAMIKAZE KARAOKE!" TextAlignment="Center" TextWrapping="Wrap" FontSize="84" FontWeight="Black" Foreground="#FFD34D"/>
   </Border>
 
   <!-- Between songs the next four singers stay above the artwork/logo. -->
   <Border x:Name="NextSingerPanel" Panel.ZIndex="110" Background="#B0000000" Padding="22,14" CornerRadius="8" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="30,30,30,74" Visibility="Collapsed" MaxWidth="1040">
    <Viewbox x:Name="SingerTextFit" Stretch="Uniform" StretchDirection="DownOnly">
    <StackPanel x:Name="SingerTextContent" Width="960">
-    <TextBlock x:Name="NextSingerHeadingText" Text="NEXT SINGERS" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold" Foreground="#FFD34D" Margin="0,0,0,8"/>
+    <local:StrokeTextBlock x:Name="NextSingerHeadingText" Text="NEXT SINGERS" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold" Foreground="#FFD34D" Margin="0,0,0,8"/>
     <StackPanel x:Name="NextSingersStack"/>
    </StackPanel>
    </Viewbox>
   </Border>
   <Border x:Name="ScrollerPanel" Panel.ZIndex="111" Background="#D0000000" VerticalAlignment="Bottom" Height="52" ClipToBounds="True">
-   <Canvas x:Name="ScrollerCanvas"><TextBlock x:Name="ScrollerText" Text="" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center"/></Canvas>
+   <Canvas x:Name="ScrollerCanvas"><local:StrokeTextBlock x:Name="ScrollerText" Text="" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center"/></Canvas>
   </Border>
   </Grid>
  </Grid>

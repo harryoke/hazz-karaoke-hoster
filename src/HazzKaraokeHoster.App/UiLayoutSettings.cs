@@ -4,6 +4,7 @@ namespace HazzKaraokeHoster.App;
 
 internal sealed class UiLayoutSettings
 {
+    public Dictionary<string, HazzKaraokeHoster.Core.Models.TextStrokeSettings> AudienceTextStrokes { get; set; } = new();
     public double HostTextScale { get; set; } = 1;
     public bool UseLibVlcAudienceVideo { get; set; }
     public bool SmoothCdgPicture { get; set; } = true;

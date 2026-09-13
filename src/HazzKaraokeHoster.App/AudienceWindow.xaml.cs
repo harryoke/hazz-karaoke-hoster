@@ -13,6 +13,23 @@ namespace HazzKaraokeHoster.App;
 
 public partial class AudienceWindow : Window
 {
+    private Dictionary<string, TextStrokeSettings> _textStrokes = new();
+    private void SetTextStroke(StrokeTextBlock text, string key)
+    {
+        var s = _textStrokes.GetValueOrDefault(key);
+        var width = s?.Enabled == true && double.IsFinite(s.Width) ? Math.Clamp(s.Width, 0, 8) : 0;
+        StrokeTextBlock.SetStroke(text, BrushFromHex(s?.Color, Brushes.Black));
+        StrokeTextBlock.SetStrokeWidth(text, width);
+        text.Padding = new Thickness(width / 2);
+    }
+    private Run StrokeRun(string text, Brush fill, string key)
+    {
+        var run = new Run(text) { Foreground = fill };
+        var s = _textStrokes.GetValueOrDefault(key);
+        StrokeTextBlock.SetStroke(run, BrushFromHex(s?.Color, Brushes.Black));
+        StrokeTextBlock.SetStrokeWidth(run, s?.Enabled == true && double.IsFinite(s.Width) ? Math.Clamp(s.Width, 0, 8) : 0);
+        return run;
+    }
     public void SetCdgSmoothing(bool smooth) => RenderOptions.SetBitmapScalingMode(AudienceCdgImage,
         smooth ? BitmapScalingMode.HighQuality : BitmapScalingMode.NearestNeighbor);
     public void SetVideoEnginePreference(bool useVlc)
@@ -178,6 +195,9 @@ public partial class AudienceWindow : Window
 
     public void Apply(AudienceOverlaySettings s)
     {
+        _textStrokes = s.TextStrokes ?? new();
+        SetTextStroke(NextSingerHeadingText, "Heading");
+        SetTextStroke(KamikazeTextBlock, "Kamikaze");
         _showNextSinger = s.ShowNextSinger;
         _showNextSong = s.ShowNextSong;
         _nextFontFamily = new FontFamily(s.NextSingerFontFamily);
@@ -259,7 +279,7 @@ public partial class AudienceWindow : Window
             row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            var number = new TextBlock
+            var number = new StrokeTextBlock
             {
                 Text = $"{item.Position}.",
                 FontFamily = _nextFontFamily,
@@ -271,9 +291,10 @@ public partial class AudienceWindow : Window
                 Margin = new Thickness(0, 0, 10, 0)
             };
             Grid.SetColumn(number, 0);
+            SetTextStroke(number, "Position");
             row.Children.Add(number);
 
-            var singer = new TextBlock
+            var singer = new StrokeTextBlock
             {
                 Text = item.SingerName,
                 FontFamily = _nextFontFamily,
@@ -286,10 +307,11 @@ public partial class AudienceWindow : Window
                 Margin = new Thickness(0, 0, 14, 0)
             };
             Grid.SetColumn(singer, 1);
+            SetTextStroke(singer, "Singer");
             row.Children.Add(singer);
 
             var songText = string.IsNullOrWhiteSpace(item.SongText) ? "Waiting for song" : item.SongText;
-            var song = new TextBlock
+            var song = new StrokeTextBlock
             {
                 Text = _showNextSong ? songText : string.Empty,
                 FontFamily = _nextFontFamily,
@@ -300,6 +322,7 @@ public partial class AudienceWindow : Window
                 Visibility = _showNextSong ? Visibility.Visible : Visibility.Collapsed
             };
             Grid.SetColumn(song, 1);
+            SetTextStroke(song, "Song");
             Grid.SetRow(song, 1);
             row.Children.Add(song);
 
@@ -316,21 +339,27 @@ public partial class AudienceWindow : Window
             for (var i = 0; i < _rotation.Count; i++)
             {
                 var item = _rotation[i];
-                if (i > 0) ScrollerText.Inlines.Add(new Run("   •   ") { Foreground = _rotationScrollerBrush });
-                ScrollerText.Inlines.Add(new Run($"{item.Position}. {item.SingerName}") { Foreground = _rotationScrollerBrush });
+                if (i > 0) ScrollerText.Inlines.Add(StrokeRun("   •   ", _rotationScrollerBrush, "Rotation"));
+                ScrollerText.Inlines.Add(StrokeRun($"{item.Position}. {item.SingerName}", _rotationScrollerBrush, "Rotation"));
             }
         }
         else
         {
-            ScrollerText.Inlines.Add(new Run("Singer rotation empty") { Foreground = _rotationScrollerBrush });
+            ScrollerText.Inlines.Add(StrokeRun("Singer rotation empty", _rotationScrollerBrush, "Rotation"));
         }
 
         if (!string.IsNullOrWhiteSpace(_venueMessage))
         {
-            ScrollerText.Inlines.Add(new Run("   ◆   ") { Foreground = _venueScrollerBrush });
-            ScrollerText.Inlines.Add(new Run(_venueMessage) { Foreground = _venueScrollerBrush });
+            ScrollerText.Inlines.Add(StrokeRun("   ◆   ", _venueScrollerBrush, "Venue"));
+            ScrollerText.Inlines.Add(StrokeRun(_venueMessage, _venueScrollerBrush, "Venue"));
         }
 
+        var strokePad = ScrollerText.Inlines.Select(StrokeTextBlock.GetStrokeWidth).DefaultIfEmpty(0).Max() / 2;
+        ScrollerText.Padding = new Thickness(strokePad);
+        ScrollerText.InvalidateMeasure(); ScrollerText.InvalidateVisual();
+        ScrollerText.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        ScrollerPanel.Height = Math.Max(52, ScrollerText.DesiredSize.Height + 8);
+        Position(_nextSingerPosition);
         ResetScroller();
     }
 
@@ -570,9 +599,9 @@ public partial class AudienceWindow : Window
         var atTop = p is OverlayPosition.TopLeft or OverlayPosition.TopCenter or OverlayPosition.TopRight;
         NextSingerPanel.Margin = new Thickness(
             30,
-            atTop && _scrollerAtTop ? 74 + _scrollerEdgeInset : 30,
+            atTop && _scrollerAtTop ? ScrollerPanel.Height + 22 + _scrollerEdgeInset : 30,
             30,
-            !atTop && !_scrollerAtTop ? 74 + _scrollerEdgeInset : 30);
+            !atTop && !_scrollerAtTop ? ScrollerPanel.Height + 22 + _scrollerEdgeInset : 30);
     }
 
     private void ResetScroller()

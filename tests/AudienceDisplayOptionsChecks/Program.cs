@@ -136,7 +136,7 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
             audience.UpdateLayout();
             audience.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             audience.UpdateLayout();
-            var names = Walk((StackPanel)audience.FindName("NextSingersStack")).OfType<TextBlock>().Where(t => t.Text == longName).ToArray();
+            var names = Walk((StackPanel)audience.FindName("NextSingersStack")).OfType<StrokeTextBlock>().Where(t => t.Text == longName).ToArray();
             Require(names.Length == 4 && names.All(t => t.TextWrapping == TextWrapping.Wrap && t.TextTrimming == TextTrimming.None), "Long singer names must wrap in full");
             var root = (Grid)audience.FindName("Root");
             foreach (var name in names)
@@ -152,6 +152,23 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
             Require((edge == "Top" ? scroller.Margin.Top : scroller.Margin.Bottom) == 120, "Scroller inset did not reach selected edge");
             Require((edge == "Top" ? next.Margin.Top : next.Margin.Bottom) == 194, "Singer panel must leave clearance for inset scroller");
         }
+        var stroke = new StrokeTextBlock { Text = "Singer", FontSize = 64, Foreground = Brushes.White, Padding = new Thickness(4) };
+        StrokeTextBlock.SetStroke(stroke, Brushes.Red); StrokeTextBlock.SetStrokeWidth(stroke, 6);
+        stroke.Measure(new Size(500, 120)); stroke.Arrange(new Rect(0, 0, 500, 120));
+        var rendered = new System.Windows.Media.Imaging.RenderTargetBitmap(500, 120, 96, 96, PixelFormats.Pbgra32);
+        rendered.Render(stroke); var pixels = new byte[500 * 120 * 4]; rendered.CopyPixels(pixels, 500 * 4, 0);
+        Require(Enumerable.Range(0, pixels.Length / 4).Any(i => pixels[i*4+2] > 150 && pixels[i*4+1] < 50), "Stroke renderer did not draw red outline pixels");
+        var outlineSettings = new AudienceOverlaySettings { TextStrokes = new()
+        {
+            ["Singer"] = new TextStrokeSettings { Enabled = true, Width = 4, Color = "#FFFF0000" },
+            ["Rotation"] = new TextStrokeSettings { Enabled = true, Width = 2, Color = "#FFFF0000" },
+            ["Venue"] = new TextStrokeSettings { Enabled = true, Width = 6, Color = "#FF0000FF" }
+        }};
+        audience.Apply(outlineSettings);
+        var outlinedNames = Walk((StackPanel)audience.FindName("NextSingersStack")).OfType<StrokeTextBlock>().Where(t=>t.Text==longName).ToArray();
+        Require(outlinedNames.Length == 4 && outlinedNames.All(t=>StrokeTextBlock.GetStrokeWidth(t)==4), "Singer outline did not reach all names");
+        var scrollerRuns = ((StrokeTextBlock)audience.FindName("ScrollerText")).Inlines;
+        Require(scrollerRuns.Any(r=>StrokeTextBlock.GetStrokeWidth(r)==2) && scrollerRuns.Any(r=>StrokeTextBlock.GetStrokeWidth(r)==6), "Rotation and venue outlines must remain independent");
         audience.Close();
 
         var main = new MainWindow();

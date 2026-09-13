@@ -490,7 +490,16 @@ public partial class MainWindow : Window
 
     private void RestoreMainLayout()
     {
+        // Close editors bound to the previous venue's outline settings.
+        // Do not save the old editor over the profile being restored.
+        if (_textOutlineWindow != null)
+        {
+            _restoringOutlineSettings = true;
+            try { _textOutlineWindow.Close(); }
+            finally { _restoringOutlineSettings = false; }
+        }
         var settings = UiLayoutSettingsStore.Load();
+        _audienceTextStrokes = settings.AudienceTextStrokes ?? new();
         ApplyHostTextScale(settings.HostTextScale);
         ApplyAudienceVideoEngine(settings.UseLibVlcAudienceVideo);
         ApplyCdgSmoothing(settings.SmoothCdgPicture);
@@ -576,6 +585,7 @@ public partial class MainWindow : Window
         var totalWidth = Math.Max(1.0, MainLeftColumn.ActualWidth + MainCenterColumn.ActualWidth + MainRightColumn.ActualWidth);
         UiLayoutSettingsStore.Save(new UiLayoutSettings
         {
+            AudienceTextStrokes = _audienceTextStrokes,
             HostTextScale = _hostTextScale,
             UseLibVlcAudienceVideo = _useLibVlcAudienceVideo,
             SmoothCdgPicture = _smoothCdgPicture,
@@ -2272,6 +2282,7 @@ public partial class MainWindow : Window
         Enum.TryParse<OverlayPosition>((PositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var pos);
         return new AudienceOverlaySettings
         {
+            TextStrokes = _audienceTextStrokes,
             ShowNextSinger = ShowNextSingerCheck.IsChecked == true,
             ShowNextSong = ShowNextSongCheck.IsChecked == true,
             NextSingerFontFamily = NextFontCombo.SelectedItem?.ToString() ?? "Segoe UI",
