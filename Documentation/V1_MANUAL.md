@@ -100,6 +100,11 @@ Recognised history formats include CSV, TSV, JSON, XML and supported SQLite or A
 
 ## Audience video engine and CD+G picture
 
+**LOAD NEXT SINGER** prepares the song in the host preview while the audience
+keeps seeing the venue background, slideshow, logo/scroller or music video.
+The karaoke picture takes over when **PLAY** is pressed. Loading a file directly
+follows the same rule, including when the audience window is opened after loading.
+
 Open **DISPLAY > Audience video engine** and choose **Windows (default)** or
 **VLC (Windows fallback)**. The choice is saved and included in venue profiles.
 It takes effect on the next video loaded; changing the menu does not interrupt

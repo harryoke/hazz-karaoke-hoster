@@ -3162,6 +3162,14 @@ public partial class MainWindow : Window
     private void ApplyCurrentKaraokeVisualToAudience()
     {
         if (_audience is null) return;
+        // Preparing a song is private to the host. A freshly loaded CD+G
+        // frame or an unopened video is usually black and must not cover
+        // the venue display or an already-running music video until Play.
+        if (!_karaokePresentationActive)
+        {
+            _audience.ClearKaraokeVisual();
+            return;
+        }
         if (_karaokePackage?.Kind == KaraokePackageKind.CdgPair && _cdgBitmap is not null)
         {
             _audience.ShowCdg(_cdgBitmap);
