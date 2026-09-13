@@ -127,6 +127,31 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
         Require(musicVideo.Visibility == Visibility.Visible && next.Visibility == Visibility.Collapsed && scroller.Visibility == Visibility.Collapsed,
             "Singer lists or scroller still cover the audience music-video layer.");
         audience.ClearMusicVideo();
+        var longName = "Alexandra Catherine Montgomery and Friends With A Very Long Singer Name";
+        audience.SetSingerRotation(Enumerable.Range(1, 4).Select(i => new AudienceSingerDisplayItem { Position = i, SingerName = longName, SongText = "Example song" }).ToArray(), true);
+        foreach (var size in new[] { (800, 600), (1920, 1080) })
+        {
+            audience.Width = size.Item1; audience.Height = size.Item2;
+            audience.Apply(new AudienceOverlaySettings { ShowNextSinger = true, NextSingerFontSize = 192 });
+            audience.UpdateLayout();
+            audience.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            audience.UpdateLayout();
+            var names = Walk((StackPanel)audience.FindName("NextSingersStack")).OfType<TextBlock>().Where(t => t.Text == longName).ToArray();
+            Require(names.Length == 4 && names.All(t => t.TextWrapping == TextWrapping.Wrap && t.TextTrimming == TextTrimming.None), "Long singer names must wrap in full");
+            var root = (Grid)audience.FindName("Root");
+            foreach (var name in names)
+            {
+                var bounds = name.TransformToAncestor(root).TransformBounds(new Rect(name.RenderSize));
+                Require(bounds.Left >= -1 && bounds.Top >= -1 && bounds.Right <= root.ActualWidth + 1 && bounds.Bottom <= root.ActualHeight + 1, "Large singer text extends beyond audience screen");
+            }
+        }
+        foreach (var edge in new[] { "Top", "Bottom" })
+        {
+            audience.Apply(new AudienceOverlaySettings { ScrollerPosition = edge, ScrollerEdgeInset = 120,
+                NextSingerPosition = edge == "Top" ? OverlayPosition.TopCenter : OverlayPosition.BottomCenter });
+            Require((edge == "Top" ? scroller.Margin.Top : scroller.Margin.Bottom) == 120, "Scroller inset did not reach selected edge");
+            Require((edge == "Top" ? next.Margin.Top : next.Margin.Bottom) == 194, "Singer panel must leave clearance for inset scroller");
+        }
         audience.Close();
 
         var main = new MainWindow();

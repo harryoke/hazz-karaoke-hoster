@@ -100,6 +100,20 @@ Recognised history formats include CSV, TSV, JSON, XML and supported SQLite or A
 
 ## Audience video engine and CD+G picture
 
+If the TV cuts off the scrolling text, open **DISPLAY > Audience Settings**.
+Beside the scroller's Top/Bottom position, drag **Move away from edge** to move
+the scroller inward (0–250). For a bottom scroller this moves it up; for a top
+scroller it moves it down. Changes appear live. Zero restores the normal edge
+position. The inset is saved between sessions and included in venue profiles.
+The singer panel leaves clearance for the moved scroller.
+
+In **DISPLAY > Audience Settings**, the singer font size now ranges from 32 to
+192. Singer names use the full row and wrap onto additional lines instead of
+being cut short. Song details appear underneath. The panel uses the available
+screen width and reduces its overall size only when necessary to fit all four
+singers within the screen. Larger requested sizes can therefore be reduced for
+exceptionally long names or small windows. The selected size is saved.
+
 **LOAD NEXT SINGER** prepares the song in the host preview while the audience
 keeps seeing the venue background, slideshow, logo/scroller or music video.
 The karaoke picture takes over when **PLAY** is pressed. Loading a file directly

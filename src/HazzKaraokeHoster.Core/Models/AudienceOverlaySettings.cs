@@ -21,6 +21,7 @@ public sealed class AudienceOverlaySettings
     public double ScrollerFontSize { get; set; } = 30;
     public double ScrollerPixelsPerSecond { get; set; } = 110;
     public string ScrollerPosition { get; set; } = "Bottom";
+    public double ScrollerEdgeInset { get; set; }
 
     // Audience font colours. Stored as #AARRGGBB so they can be persisted safely.
     public string NextHeadingColor { get; set; } = "#FFFFD34D";

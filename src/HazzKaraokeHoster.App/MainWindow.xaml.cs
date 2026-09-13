@@ -548,7 +548,7 @@ public partial class MainWindow : Window
         NextFontCombo.SelectedItem = NextFontCombo.Items.Cast<object>()
             .FirstOrDefault(x => string.Equals(x?.ToString(), settings.AudienceNextSingerFontFamily, StringComparison.OrdinalIgnoreCase))
             ?? NextFontCombo.SelectedItem;
-        SelectComboItemByContent(NextSizeCombo, Math.Clamp(settings.AudienceNextSingerFontSize, 32, 72).ToString("0"), "48");
+        SelectComboItemByContent(NextSizeCombo, Math.Clamp(settings.AudienceNextSingerFontSize, 32, 192).ToString("0"), "48");
         SelectComboItemByContent(PositionCombo, settings.AudienceNextSingerPosition, "BottomCenter");
         ScrollerCheck.IsChecked = settings.AudienceScrollerEnabled;
         ScrollerTextBox.Text = settings.AudienceScrollerText ?? string.Empty;
@@ -558,6 +558,7 @@ public partial class MainWindow : Window
         SelectComboItemByContent(ScrollerSizeCombo, Math.Clamp(settings.AudienceScrollerFontSize, 22, 42).ToString("0"), "30");
         ScrollerSpeedSlider.Value = Math.Clamp(settings.AudienceScrollerPixelsPerSecond, ScrollerSpeedSlider.Minimum, ScrollerSpeedSlider.Maximum);
         SelectComboItemByContent(ScrollerPositionCombo, settings.AudienceScrollerPosition, "Bottom");
+        ScrollerInsetSlider.Value = double.IsFinite(settings.AudienceScrollerEdgeInset) ? Math.Clamp(settings.AudienceScrollerEdgeInset, 0, 250) : 0;
 
         _audienceKamikazeColor = NormalizeColor(settings.AudienceKamikazeColor, "#FFFFD34D");
         KamikazeTextBox.Text = string.IsNullOrWhiteSpace(settings.AudienceKamikazeText) ? "KAMIKAZE KARAOKE!" : settings.AudienceKamikazeText;
@@ -631,6 +632,7 @@ public partial class MainWindow : Window
             AudienceScrollerFontSize = double.TryParse((ScrollerSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var scrollerSize) ? scrollerSize : 30,
             AudienceScrollerPixelsPerSecond = ScrollerSpeedSlider.Value,
             AudienceScrollerPosition = (ScrollerPositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Bottom",
+            AudienceScrollerEdgeInset = ScrollerInsetSlider.Value,
             AudienceKamikazeText = KamikazeTextBox.Text,
             AudienceKamikazeFontFamily = KamikazeFontCombo.SelectedItem?.ToString() ?? "Segoe UI Black",
             AudienceKamikazeFontSize = double.TryParse((KamikazeSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var kamikazeSize) ? kamikazeSize : 84,
@@ -2281,6 +2283,7 @@ public partial class MainWindow : Window
             ScrollerFontSize = ComboNumber(ScrollerSizeCombo, 30),
             ScrollerPixelsPerSecond = ScrollerSpeedSlider.Value,
             ScrollerPosition = (ScrollerPositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Bottom",
+            ScrollerEdgeInset = ScrollerInsetSlider.Value,
             NextHeadingColor = _audienceNextHeadingColor,
             NextPositionColor = _audienceNextPositionColor,
             NextSingerColor = _audienceNextSingerColor,

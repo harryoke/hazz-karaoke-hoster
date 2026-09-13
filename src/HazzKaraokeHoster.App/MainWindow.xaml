@@ -912,7 +912,7 @@
        <TextBlock Text="Singer font" VerticalAlignment="Center" Margin="4"/>
        <ComboBox x:Name="NextFontCombo" Width="180" SelectionChanged="OverlayChanged"/>
        <TextBlock Text="Size" VerticalAlignment="Center" Margin="4"/>
-       <ComboBox x:Name="NextSizeCombo" Width="82" SelectionChanged="OverlayChanged"><ComboBoxItem Content="32"/><ComboBoxItem Content="40"/><ComboBoxItem Content="48" IsSelected="True"/><ComboBoxItem Content="56"/><ComboBoxItem Content="64"/><ComboBoxItem Content="72"/></ComboBox>
+       <ComboBox x:Name="NextSizeCombo" Width="82" SelectionChanged="OverlayChanged"><ComboBoxItem Content="32"/><ComboBoxItem Content="40"/><ComboBoxItem Content="48" IsSelected="True"/><ComboBoxItem Content="56"/><ComboBoxItem Content="64"/><ComboBoxItem Content="72"/><ComboBoxItem Content="84"/><ComboBoxItem Content="96"/><ComboBoxItem Content="112"/><ComboBoxItem Content="128"/><ComboBoxItem Content="160"/><ComboBoxItem Content="192"/></ComboBox>
        <TextBlock Text="Position" VerticalAlignment="Center" Margin="4"/>
        <ComboBox x:Name="PositionCombo" Width="150" SelectionChanged="OverlayChanged"><ComboBoxItem Content="TopCenter"/><ComboBoxItem Content="BottomCenter" IsSelected="True"/><ComboBoxItem Content="TopLeft"/><ComboBoxItem Content="TopRight"/><ComboBoxItem Content="BottomLeft"/><ComboBoxItem Content="BottomRight"/></ComboBox>
       </WrapPanel>
@@ -942,6 +942,9 @@
        <TextBlock x:Name="ScrollerSpeedText" Width="75" VerticalAlignment="Center" Text="110 px/s" Margin="6,0,0,0"/>
        <TextBlock Text="Position" VerticalAlignment="Center" Margin="8,0,4,0"/>
        <ComboBox x:Name="ScrollerPositionCombo" Width="100" SelectionChanged="OverlayChanged" ToolTip="Place the scrolling singer rotation at the top or bottom of the audience screen"><ComboBoxItem Content="Bottom" IsSelected="True"/><ComboBoxItem Content="Top"/></ComboBox>
+       <TextBlock Text="Move away from edge" VerticalAlignment="Center" Margin="12,0,4,0"/>
+       <Slider x:Name="ScrollerInsetSlider" Width="160" Minimum="0" Maximum="250" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="OverlayChanged" ToolTip="Move the scroller inward if the TV crops the screen edge. Zero restores the original position."/>
+       <TextBlock Text="{Binding ElementName=ScrollerInsetSlider, Path=Value, StringFormat={}{0:0} px}" VerticalAlignment="Center" Margin="6,0"/>
       </WrapPanel>
 
       <Border Grid.Row="6" BorderBrush="#3C4A58" BorderThickness="1,1,1,0" Margin="0,2,0,8"/>

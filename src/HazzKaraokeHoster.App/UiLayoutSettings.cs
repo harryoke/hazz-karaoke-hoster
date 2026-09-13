@@ -68,6 +68,7 @@ internal sealed class UiLayoutSettings
     public double AudienceScrollerFontSize { get; set; } = 30;
     public double AudienceScrollerPixelsPerSecond { get; set; } = 110;
     public string AudienceScrollerPosition { get; set; } = "Bottom";
+    public double AudienceScrollerEdgeInset { get; set; }
 
     public string AudienceKamikazeText { get; set; } = "KAMIKAZE KARAOKE!";
     public string AudienceKamikazeFontFamily { get; set; } = "Segoe UI Black";

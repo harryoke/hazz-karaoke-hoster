@@ -42,6 +42,7 @@ public partial class AudienceWindow : Window
     private bool _hasNextSinger;
     private bool _scrollerEnabled = true;
     private bool _scrollerAtTop;
+    private double _scrollerEdgeInset;
     private OverlayPosition _nextSingerPosition = OverlayPosition.BottomCenter;
     private bool _backgroundImageEnabled;
     private bool _logoEnabled;
@@ -85,7 +86,7 @@ public partial class AudienceWindow : Window
             SingerBackgroundVideo.Source = null;
             SingerBackgroundVideo.Close();
         };
-        SizeChanged += (_, _) => ResetScroller();
+        SizeChanged += (_, _) => { ResetScroller(); FitSingerPanel(); };
     }
 
     public void SendToDisplay(DisplayTarget target, bool fullScreen)
@@ -180,7 +181,7 @@ public partial class AudienceWindow : Window
         _showNextSinger = s.ShowNextSinger;
         _showNextSong = s.ShowNextSong;
         _nextFontFamily = new FontFamily(s.NextSingerFontFamily);
-        _nextFontSize = s.NextSingerFontSize;
+        _nextFontSize = double.IsFinite(s.NextSingerFontSize) ? Math.Clamp(s.NextSingerFontSize, 32, 192) : 48;
         _nextSingerPosition = s.NextSingerPosition;
 
         _scrollerEnabled = s.ScrollerEnabled;
@@ -190,6 +191,8 @@ public partial class AudienceWindow : Window
         _speed = Math.Clamp(s.ScrollerPixelsPerSecond, 20, 500);
         _scrollerAtTop = string.Equals(s.ScrollerPosition, "Top", StringComparison.OrdinalIgnoreCase);
         ScrollerPanel.VerticalAlignment = _scrollerAtTop ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+        _scrollerEdgeInset = double.IsFinite(s.ScrollerEdgeInset) ? Math.Clamp(s.ScrollerEdgeInset, 0, 250) : 0;
+        ScrollerPanel.Margin = _scrollerAtTop ? new Thickness(0, _scrollerEdgeInset, 0, 0) : new Thickness(0, 0, 0, _scrollerEdgeInset);
         Position(_nextSingerPosition);
 
         var backgroundStretch = s.BackgroundStretchMode switch
@@ -235,15 +238,26 @@ public partial class AudienceWindow : Window
         UpdateOverlayLayerVisibility();
     }
 
+    private void FitSingerPanel()
+    {
+        if (SingerTextContent is null || ActualWidth <= 0 || ActualHeight <= 0) return;
+        var margin = NextSingerPanel.Margin;
+        NextSingerPanel.MaxWidth = Math.Max(1, ActualWidth - margin.Left - margin.Right);
+        SingerTextContent.Width = Math.Max(1, NextSingerPanel.MaxWidth - 44);
+        SingerTextFit.MaxHeight = Math.Max(1, ActualHeight - margin.Top - margin.Bottom - 28);
+    }
+
     private void RenderNextSingers()
     {
+        FitSingerPanel();
         NextSingersStack.Children.Clear();
         foreach (var item in _rotation.Take(4))
         {
             var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(58) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.42, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.58, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
             var number = new TextBlock
             {
@@ -267,7 +281,8 @@ public partial class AudienceWindow : Window
                 FontWeight = FontWeights.Bold,
                 Foreground = _nextSingerBrush,
                 VerticalAlignment = VerticalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis,
+                TextTrimming = TextTrimming.None,
+                TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 14, 0)
             };
             Grid.SetColumn(singer, 1);
@@ -284,7 +299,8 @@ public partial class AudienceWindow : Window
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 Visibility = _showNextSong ? Visibility.Visible : Visibility.Collapsed
             };
-            Grid.SetColumn(song, 2);
+            Grid.SetColumn(song, 1);
+            Grid.SetRow(song, 1);
             row.Children.Add(song);
 
             NextSingersStack.Children.Add(row);
@@ -324,6 +340,7 @@ public partial class AudienceWindow : Window
     private bool _musicVideoShowKamikaze;
     private void UpdateOverlayLayerVisibility()
     {
+        FitSingerPanel();
         MoveNativeOverlays(_karaokeActive && AudienceMedia.Source is not null && AudienceMedia.NativeActive ? AudienceMedia
             : !_karaokeActive && MusicVideoMedia.Source is not null && MusicVideoMedia.NativeActive ? MusicVideoMedia : null);
         var musicVideoVisible = !_karaokeActive && MusicVideoMedia.Source is not null;
@@ -553,9 +570,9 @@ public partial class AudienceWindow : Window
         var atTop = p is OverlayPosition.TopLeft or OverlayPosition.TopCenter or OverlayPosition.TopRight;
         NextSingerPanel.Margin = new Thickness(
             30,
-            atTop && _scrollerAtTop ? 74 : 30,
+            atTop && _scrollerAtTop ? 74 + _scrollerEdgeInset : 30,
             30,
-            !atTop && !_scrollerAtTop ? 74 : 30);
+            !atTop && !_scrollerAtTop ? 74 + _scrollerEdgeInset : 30);
     }
 
     private void ResetScroller()
