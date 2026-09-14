@@ -10,3 +10,5 @@ New since v0.90:
 - All v0.90 music-video overlay options remain included.
 
 Validation: compilation, automated audio-processing and audience/interface regression checks, and ZIP integrity checks passed. Physical multi-device listening, hot-unplug and multi-hour playback testing remain outstanding. A successful cue check verifies opening, not every part of a media file. Per-player limiting does not guarantee the combined output of an external mixer cannot overload.
+
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

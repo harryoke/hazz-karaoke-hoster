@@ -7,3 +7,5 @@ It also includes [rotation methods](ROTATION_METHODS.md), [manual-default rotati
 Validation covers the application build and singer database integration: clear, restore, fresh history, missing files, malformed-file rollback, missing library songs, selective retention and history-only clearing. Physical audio/display and extended show testing remain necessary on your equipment.
 
 The illustrated PDF/Word manuals predate these changes. Read these updated guides alongside them until the consolidated v1.0 illustrated manuals are ready. This test build has not been published.
+
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

@@ -59,3 +59,5 @@ stability or guarantee that changing the decoder fixes every source of judder.
 The source ZIP targets Visual Studio 2026/.NET 10. Build Release/x64 or run
 `BUILD-EXE.cmd`; distribute the whole published folder. Third-party components
 retain their own licences; see `ThirdParty/README.md`.
+
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

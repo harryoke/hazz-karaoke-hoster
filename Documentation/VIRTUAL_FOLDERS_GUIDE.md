@@ -101,3 +101,5 @@ Supported organisation includes VirtualDJ 2024 **My Lists** (`.vdjfolder` or XML
 - **BPM import is near 100%.** Check the displayed phase. Linking folders, committing and finalising are reported separately. Wait for **Import complete** before starting another import or closing Hazz.
 - **VirtualDJ folders missing.** Select the whole VirtualDJ home folder rather than only `database.xml`, so Hazz can also see **MyLists**, **Playlists** and **Folders**.
 - **A file is missing or broken.** Virtual folders do not copy media. Reconnect the original drive or restore the indexed file path.
+
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

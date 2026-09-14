@@ -97,6 +97,11 @@ ON CONFLICT(file_path) DO UPDATE SET
                             else
                             {
                                 var parsed = ParseName(path);
+                                if (classification == ImportClassification.Music)
+                                {
+                                    var tags = await HazzKaraokeHoster.Core.Mp3Metadata.ReadAsync(path, parsed.Artist, parsed.Title, cancellationToken);
+                                    parsed.Artist = tags.Artist; parsed.Title = tags.Title;
+                                }
                                 pArtist.Value = parsed.Artist;
                                 pTitle.Value = parsed.Title;
                                 pManufacturer.Value = parsed.Manufacturer;
@@ -177,6 +182,11 @@ ON CONFLICT(file_path) DO UPDATE SET
             await database.InitializeAsync(cancellationToken);
             var info = new FileInfo(path);
             var parsed = ParseName(path);
+            if (classification == ImportClassification.Music)
+            {
+                var tags = await HazzKaraokeHoster.Core.Mp3Metadata.ReadAsync(path, parsed.Artist, parsed.Title, cancellationToken);
+                parsed.Artist = tags.Artist; parsed.Title = tags.Title;
+            }
             await using var connection = new SqliteConnection(database.ConnectionString);
             await connection.OpenAsync(cancellationToken);
             await using var command = connection.CreateCommand();

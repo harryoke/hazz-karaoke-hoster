@@ -60,3 +60,4 @@ Applying updates the current saved settings. Later adjustments do not automatica
 
 Profile application does not start playback or change singer history or song files. Physical audio-device and multi-hour testing of the audio engine remains outstanding.
 
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

@@ -289,7 +289,13 @@
      <ColumnDefinition Width="58"/>
     </Grid.ColumnDefinitions>
     <TextBlock Grid.Column="0" Text="{Binding NumberText}" FontWeight="Bold" VerticalAlignment="Center" Margin="5,0"/>
-    <TextBlock Grid.Column="1" Text="{Binding DisplayArtist}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0"/>
+    <DockPanel Grid.Column="1" Margin="4,0">
+     <Border Background="#18212B" CornerRadius="3" Padding="2,0" Margin="0,0,4,0" VerticalAlignment="Center" ToolTip="Favourite">
+      <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsFavourite}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
+      <TextBlock Text="★" Foreground="#FFFFD700"/>
+     </Border>
+     <TextBlock Text="{Binding DisplayArtist}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+    </DockPanel>
     <TextBlock Grid.Column="2" Text="{Binding DisplayTitle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0"/>
     <TextBlock Grid.Column="3" Text="{Binding DurationText}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4,0,6,0"/>
    </Grid>
@@ -345,7 +351,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="{DynamicResource HostFont10_5}" FontWeight="Bold" Foreground="#6EC1E4" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="#22303C" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v1.2" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="#D4DEE8"/>
+     <TextBlock Text="v1.3" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="#D4DEE8"/>
     </Border>
    </StackPanel>
 
@@ -582,6 +588,7 @@
         <Button Content="LOAD FILE" Style="{StaticResource LoadButtonStyle}" Click="LoadKaraoke_Click"/>
         <Button x:Name="TvDisplay2Button" Content="TV" Style="{StaticResource LoadButtonStyle}" Click="TvDisplay2_Click" MinWidth="58" FontWeight="Bold" ToolTip="One-click singer screen: send the audience/karaoke display fullscreen to Display 2."/>
         <Button x:Name="KaraokePlayButton" Content="▶ PLAY" Style="{StaticResource PlayButtonStyle}" Click="KaraokePlay_Click"/>
+        <Button x:Name="KaraokeRestartButton" Content="↺ RESTART SONG" Style="{StaticResource LoadButtonStyle}" Click="KaraokeRestart_Click" ToolTip="Play this loaded song again from 00:00, keeping its key, tempo and lyric-sync setting."/>
         <Button x:Name="KaraokePauseButton" Content="Ⅱ PAUSE" Style="{StaticResource PauseButtonStyle}" Click="KaraokePause_Click" ToolTip="Pause / resume from the same position"/>
         <Button x:Name="KaraokeStopButton" Content="▼ FADE STOP" Style="{StaticResource StopButtonStyle}" Click="KaraokeStop_Click" ToolTip="Fade the karaoke audio smoothly, then stop"/>
         <Button Content="FIND ALTERNATIVE" Style="{StaticResource SpecialButtonStyle}" Click="FindAlternative_Click" ToolTip="Play the next karaoke version of the same artist/title"/>
@@ -905,11 +912,11 @@
       </Grid.RowDefinitions>
       <TextBlock Text="AUDIENCE DISPLAY SETTINGS" Foreground="White" FontSize="{DynamicResource HostFont20}" FontWeight="Bold" Margin="3,0,3,10"/>
 
-      <StackPanel Grid.Row="1" Orientation="Horizontal">
+      <WrapPanel Grid.Row="1">
        <CheckBox x:Name="ShowNextSingerCheck" Content="Show next 4 singers" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged"/>
        <CheckBox x:Name="ShowNextSongCheck" Content="Show songs" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged"/>
        <TextBlock Text="Next 4 and rotation scroller are automatically hidden during karaoke playback." Foreground="#D0DAE4" VerticalAlignment="Center" Margin="10,0,0,0"/>
-      </StackPanel>
+      </WrapPanel>
       <WrapPanel Grid.Row="2" Margin="0,2">
        <TextBlock Text="Singer font" VerticalAlignment="Center" Margin="4"/>
        <ComboBox x:Name="NextFontCombo" Width="180" SelectionChanged="OverlayChanged"/>
@@ -943,7 +950,7 @@
        <ComboBox x:Name="ScrollerSizeCombo" Width="82" SelectionChanged="OverlayChanged"><ComboBoxItem Content="22"/><ComboBoxItem Content="26"/><ComboBoxItem Content="30" IsSelected="True"/><ComboBoxItem Content="36"/><ComboBoxItem Content="42"/></ComboBox>
        <TextBlock Text="Speed" VerticalAlignment="Center" Margin="4"/>
        <Slider x:Name="ScrollerSpeedSlider" Minimum="40" Maximum="250" Value="110" Width="150" ValueChanged="OverlayChanged" VerticalAlignment="Center"/>
-       <TextBlock x:Name="ScrollerSpeedText" Width="75" VerticalAlignment="Center" Text="110 px/s" Margin="6,0,0,0"/>
+       <TextBlock x:Name="ScrollerSpeedText" MinWidth="75" VerticalAlignment="Center" Text="110 px/s" Margin="6,0,0,0"/>
        <TextBlock Text="Position" VerticalAlignment="Center" Margin="8,0,4,0"/>
        <ComboBox x:Name="ScrollerPositionCombo" Width="100" SelectionChanged="OverlayChanged" ToolTip="Place the scrolling singer rotation at the top or bottom of the audience screen"><ComboBoxItem Content="Bottom" IsSelected="True"/><ComboBoxItem Content="Top"/></ComboBox>
        <TextBlock Text="Move away from edge" VerticalAlignment="Center" Margin="12,0,4,0"/>
@@ -954,19 +961,24 @@
       <Border Grid.Row="6" BorderBrush="#3C4A58" BorderThickness="1,1,1,0" Margin="0,2,0,8"/>
 
       <Grid Grid.Row="7" Margin="0,2,0,7">
+       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
        <CheckBox x:Name="AudienceBackgroundEnabledCheck" Grid.Column="0" Content="Singer-view background" Checked="OverlayChanged" Unchecked="OverlayChanged" ToolTip="Shown between karaoke songs behind the Next Singer display."/>
        <StackPanel Grid.Column="1"><Button Content="IMAGE / GIF / VIDEO…" Style="{StaticResource LoadButtonStyle}" Click="ChooseAudienceBackground_Click"/><Button Content="CHOOSE FOLDER…" Style="{StaticResource LoadButtonStyle}" Click="ChooseAudienceBackgroundFolder_Click" ToolTip="Slideshow: images and muted looping videos, one minute each"/></StackPanel>
        <Button Grid.Column="2" Content="CLEAR" Style="{StaticResource StopButtonStyle}" Click="ClearAudienceBackground_Click"/>
-       <StackPanel Grid.Column="3">
+       <StackPanel Grid.Row="1" Grid.ColumnSpan="4" Margin="0,6,0,0">
         <TextBlock x:Name="AudienceBackgroundFileText" Text="No background selected" Foreground="#D8E2EC" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8,0,0,0"/>
-        <StackPanel Orientation="Horizontal" Margin="8,4,0,0">
+        <WrapPanel Margin="8,4,0,0">
+         <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
          <TextBlock Text="Screen fit" VerticalAlignment="Center"/>
          <ComboBox x:Name="BackgroundStretchCombo" Width="145" Margin="8,0,18,0" SelectionChanged="OverlayChanged" ToolTip="Fit shows the whole image; Fill crops edges; Stretch fills without cropping; Center keeps the original size"><ComboBoxItem Content="Fit" IsSelected="True"/><ComboBoxItem Content="Fill (crop)"/><ComboBoxItem Content="Stretch"/><ComboBoxItem Content="Center"/></ComboBox>
+         </StackPanel>
+         <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
          <TextBlock Text="GIF speed" VerticalAlignment="Center"/>
          <Slider x:Name="BackgroundGifSpeedSlider" Minimum="0.25" Maximum="4" Value="1" TickFrequency="0.25" IsSnapToTickEnabled="True" Width="150" Margin="8,0" ValueChanged="OverlayChanged" ToolTip="GIF playback speed: 0.25x to 4x. Slideshow slots stay one minute."/>
          <TextBlock Text="{Binding ElementName=BackgroundGifSpeedSlider, Path=Value, StringFormat={}{0:0.##}x}" VerticalAlignment="Center"/>
         </StackPanel>
+        </WrapPanel>
        </StackPanel>
       </Grid>
 

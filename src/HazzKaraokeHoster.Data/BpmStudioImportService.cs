@@ -161,7 +161,20 @@ VALUES($path,$artist,$title,$format);
         await using (var cachedGroups = connection.CreateCommand())
         {
             cachedGroups.Transaction = (SqliteTransaction)tx;
-            cachedGroups.CommandText = "SELECT source_path,file_size,last_write_utc,folder_path,track_count FROM bpm_virtual_folder_sources;";
+            // Source stamps alone are insufficient: the user may have deleted or
+            // emptied the imported destination since the last successful import.
+            cachedGroups.CommandText = """
+WITH RECURSIVE folder_paths(id,path) AS (
+    SELECT id,name FROM virtual_folders WHERE parent_id IS NULL
+    UNION ALL
+    SELECT f.id,p.path || '/' || f.name
+    FROM virtual_folders f JOIN folder_paths p ON f.parent_id=p.id
+)
+SELECT s.source_path,s.file_size,s.last_write_utc,s.folder_path,s.track_count
+FROM bpm_virtual_folder_sources s
+JOIN folder_paths p ON p.path=s.folder_path COLLATE NOCASE
+WHERE EXISTS(SELECT 1 FROM virtual_folder_songs links WHERE links.folder_id=p.id);
+""";
             await using var cachedReader = await cachedGroups.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             while (await cachedReader.ReadAsync(cancellationToken).ConfigureAwait(false))
                 processedBpmGroups[cachedReader.GetString(0)] = (cachedReader.GetInt64(1), cachedReader.GetString(2), cachedReader.GetString(3), cachedReader.GetInt64(4));

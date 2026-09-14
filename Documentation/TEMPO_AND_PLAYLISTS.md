@@ -38,3 +38,5 @@ The optional song-title box is removed. Assign songs by dragging a karaoke searc
 3. All rows are removed from that deck. The song already playing continues; use its Stop button if you also want to stop it. The other deck is not cleared and may still play through normal automation.
 
 The side list also has a clear command. This empties its holding list. Clearing does not delete media files, library entries, saved named playlists or music history. To retain a particular queue order for later, choose **SAVE PLAYLIST** before clearing it.
+
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

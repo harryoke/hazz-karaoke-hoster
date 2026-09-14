@@ -186,6 +186,25 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
         audience.Close();
 
         var main = new MainWindow();
+        typeof(MainWindow).GetMethod("ApplyHostTextScale", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(main, new object[] { 1.5 });
+        var settingsFit = (Viewbox)main.FindName("SettingsAutoFit");
+        settingsFit.Measure(new Size(1000, 1800));
+        settingsFit.Arrange(new Rect(settingsFit.DesiredSize));
+        settingsFit.UpdateLayout();
+        var settingsBorder = (Border)settingsFit.Child;
+        foreach (var controlName in new[] { "BackgroundGifSpeedSlider", "BackgroundStretchCombo", "ScrollerSpeedText" })
+        {
+            var control = (FrameworkElement)main.FindName(controlName);
+            var bounds = control.TransformToAncestor(settingsBorder).TransformBounds(new Rect(control.RenderSize));
+            Require(bounds.Left >= 0 && bounds.Right <= settingsBorder.ActualWidth && bounds.Bottom <= settingsBorder.ActualHeight,
+                controlName + " is clipped at maximum GUI text size");
+        }
+        var playingField = typeof(MainWindow).GetField("_karaokePlaying", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        playingField.SetValue(main, true);
+        var playTask = (Task)typeof(MainWindow).GetMethod("StartKaraokeSafeAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(main, new object[] { false })!;
+        Require(playTask.IsCompletedSuccessfully && (bool)playingField.GetValue(main)!, "Play must leave active karaoke uninterrupted");
+        playingField.SetValue(main, false);
+        typeof(MainWindow).GetMethod("ApplyHostTextScale", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(main, new object[] { 1.0 });
         main.Measure(new Size(1440, 840));
         main.Arrange(new Rect(0, 0, 1440, 840));
         var positionCombo = (ComboBox)main.FindName("PositionCombo");
@@ -252,6 +271,27 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
             "The Karaoke Deck is not a drop target.");
         var deckType = typeof(MainWindow).GetNestedType("MusicDeckId", BindingFlags.NonPublic)!;
         var deck1 = Enum.Parse(deckType, "Deck1");
+        typeof(MainWindow).GetField("_restoringMusicDeckQueues", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(main, true);
+        var playlistA = (ListBox)main.FindName("DeckAPlaylist");
+        var playlistB = (ListBox)main.FindName("DeckBPlaylist");
+        Require(playlistA.ContextMenu!.Items.OfType<MenuItem>().Count() == 8 && playlistB.ContextMenu!.Items.OfType<MenuItem>().Count() == 8, "Both playlists need all context actions");
+        var currentTrack = MusicQueueItem.FromPath("C:/test/current.mp3");
+        var first = MusicQueueItem.FromPath("C:/test/first.mp3");
+        var nextTrack = MusicQueueItem.FromPath("C:/test/next.mp3");
+        playlistA.Items.Add(currentTrack); playlistA.Items.Add(first); playlistA.Items.Add(nextTrack);
+        typeof(MainWindow).GetField("_deck1CurrentItem", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(main, currentTrack);
+        playlistA.SelectedItems.Add(currentTrack); playlistA.SelectedItems.Add(nextTrack);
+        typeof(MainWindow).GetMethod("QueueSelectedNext", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(main, new[] { deck1 });
+        Require(ReferenceEquals(playlistA.Items[0], currentTrack) && ReferenceEquals(playlistA.Items[1], nextTrack), "Play next displaced current playback or failed to order the next track");
+        playlistA.SelectedItems.Add(nextTrack);
+        typeof(MainWindow).GetMethod("MoveSelectedToOtherDeck", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(main, new[] { deck1 });
+        Require(playlistA.Items.Contains(currentTrack) && playlistB.Items.Contains(nextTrack) && !playlistA.Items.Contains(nextTrack), "Move must retain current track and move queued tracks");
+        first.IsFavourite = true;
+        var favouriteVisual = (FrameworkElement)playlistA.ItemTemplate.LoadContent(); favouriteVisual.DataContext = first;
+        favouriteVisual.Measure(new Size(600,200)); favouriteVisual.Arrange(new Rect(0,0,600,200)); favouriteVisual.UpdateLayout();
+        Require(Walk(favouriteVisual).OfType<TextBlock>().Any(x => x.Text == "★" && x.Foreground is SolidColorBrush b && b.Color == Colors.Gold && ((Border)x.Parent).Visibility == Visibility.Visible), "Favourite star is not yellow");
+        playlistA.Items.Clear(); playlistB.Items.Clear();
+        typeof(MainWindow).GetField("_deck1CurrentItem", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(main, null);
         var setPaused = typeof(MainWindow).GetMethod("SetDeckPaused", BindingFlags.Instance | BindingFlags.NonPublic)!;
         setPaused.Invoke(main, new[] { deck1, (object)true });
         Require(Equals(((Button)main.FindName("DeckAPauseButton")).Content, "▶ RESUME"), "Pause does not switch to Resume.");

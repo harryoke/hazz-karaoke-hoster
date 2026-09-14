@@ -23,3 +23,5 @@ The [29-page v1.0 step-by-step user manual](https://github.com/harryoke/hazz-kar
 Release publish succeeded. Singer snapshot, automatic-save, backup compression/retention and shutdown checks passed in development. Current console layout checks passed at five sizes. ZIPs are read-tested and accompanied by SHA-256 hashes. Physical multi-device and extended live-show testing remain equipment-dependent.
 
 Back up your database before upgrading. Venue singer snapshots require copying venue-profiles.json with the venue-singers folder; the automatic database ZIP does not include that subfolder. Saving or clearing an active venue changes its saved list. Use USE WITHOUT VENUE before retaining selected followers if you want to preserve the old venue unchanged.
+
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

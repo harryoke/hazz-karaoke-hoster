@@ -1,7 +1,7 @@
 HAZZ KARAOKE HOSTER - FREE USE AND ORIGINAL BRANDING LICENCE
 Version 1 - 9 September 2026
 
-Copyright (c) 2026 Hazz Karaoke.
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.
 All rights reserved except as expressly permitted below.
 Project publisher: https://github.com/harryoke/hazz-karaoke-hoster
 

@@ -5,3 +5,5 @@
 - Hidden deck LED panels no longer build text strings or update scrolling transforms.
 
 Audio decoding, buffer sizes, normalization processing and fade timing are unchanged. These changes remove identifiable repeated work; whole-app CPU savings have not been measured and will depend on how the app is used.
+
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

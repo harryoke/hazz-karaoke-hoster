@@ -6,3 +6,4 @@ Starting blank or restoring a backup disconnects the named venue, preventing acc
 
 Validation: application build, singer database checks and isolated automatic-save tests covering queue/history capture, concurrent saves, revision cleanup, restart selection, disconnected operation and missing-profile failure. Real show-equipment testing remains pending. This is a local test release, not a published update.
 
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

@@ -14,3 +14,5 @@ Original manual rotation is the default. Open Show > Rotation Settings and expli
 Round robin and group rotation offer end-of-current-round, next-round or interleaved newcomer placement. Interleave spacing is adjustable from 1 to 10. Non-round methods use the chosen tie-breaker. Consecutive-turn protection is optional. Held singers and singers without songs stay behind ready singers. Current performers remain in their existing slot.
 
 Rounds advance when no ready eligible singer remains. Holds and missing song requests do not indefinitely block round advancement. Turn counts, group assignments and round state are included in show recovery. New Show resets the round and turn records. Mode and placement choices are saved in the UI settings and venue profiles. Turns are counted at Play, including subsequently interrupted performances.
+
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

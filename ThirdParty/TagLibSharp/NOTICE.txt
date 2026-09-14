@@ -1,0 +1,7 @@
+TagLibSharp 2.3.0, copyright Brian Nickel, Gabriel Burt, Stephen Shaw and contributors.
+Used unmodified under LGPL-2.1-only. See COPYING.txt.
+The matching upstream source is supplied in TaglibSharp-2.3.0.0-source.zip.
+Project: https://github.com/mono/taglib-sharp/tree/TaglibSharp-2.3.0.0
+This component's licence is separate from Hazz's own licence. You may modify or
+replace this component and reverse engineer the combined application for debugging
+your modifications to this LGPL component as permitted by its licence.

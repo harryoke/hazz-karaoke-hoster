@@ -47,3 +47,5 @@ Windows and VLC video clocks were checked at 75% and 125%, with pause and seek.
 
 The included User-Guide.md covers the new options. Existing v1.0 PDF manuals
 are historical and do not include these additions.
+
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

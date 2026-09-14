@@ -7,3 +7,5 @@ The archive contains hazz-hoster.db and top-level settings JSON files. Compressi
 Old uncompressed .db backups and matching .db.settings folders are left intact. After checking the new ZIP, you can remove unwanted old backup pairs from Library > Open Automatic Backups. These are backup copies; do not delete the live hazz-hoster.db from the main database folder. Manual backups are not included in automatic ZIP retention.
 
 To inspect a backup, extract the ZIP to a separate folder. There is no full-database restore wizard. Venue singer snapshots in venue-singers must still be backed up separately with venue-profiles.json; the automatic database archive does not include that subfolder.
+
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

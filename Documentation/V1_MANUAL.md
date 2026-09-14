@@ -1,14 +1,22 @@
+# v1.3 update
+
+[MP3 tags, favourites and every playlist right-click option](MUSIC_PLAYLIST_MENU.md)
+
+[Restart Song, display scaling and BPM re-import fixes](RELEASE_v1.3.md)
+
 # Hazz Karaoke Hoster User Manual
 
-Version 1.2. This guide explains how to set up a show, use each main feature and keep your singers and music organised. Follow the numbered steps in the section you need. Buttons are written as they appear in the app. The console illustration below is rendered from v1.2; DISPLAY menu options are described in the relevant sections.
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.
+
+Version 1.3. This guide explains how to set up a show, use each main feature and keep your singers and music organised. Follow the numbered steps in the section you need. Buttons are written as they appear in the app. The console illustration below is rendered from v1.3; DISPLAY menu options are described in the relevant sections.
 
 ## 1 Find your way around
 
 For the shared TEMPO button, Enter-to-add singers and CLEAR PLAYLIST, see [Tempo and playlist instructions](TEMPO_AND_PLAYLISTS.md). These replace the old optional song-title field shown in older pictures.
 
-![Version 1.2 console with shared Tempo and Clear Playlist buttons](Images/console_v1.2.png)
+![Version 1.3 console with shared Tempo and Clear Playlist buttons](Images/console_v1.3.png)
 
-This is a render of the v1.2 console layout with empty lists, made from the interface source. It includes SOUND DEVICES, NORMALIZE AUDIO, MUSIC VIDEO, TEMPO, CLEAR PLAYLIST and next-track status. Live data is not loaded in this layout view. Dialog instructions below describe their actual controls; this image is not a picture of those dialogs.
+This is a render of the v1.3 console layout with empty lists, made from the interface source. It includes SOUND DEVICES, NORMALIZE AUDIO, MUSIC VIDEO, TEMPO, CLEAR PLAYLIST and next-track status. Live data is not loaded in this layout view. Dialog instructions below describe their actual controls; this image is not a picture of those dialogs.
 
 The left and right columns are music players. The centre contains the karaoke player, singer rotation and private preview. The top search buttons choose which library you search. Green buttons start playback, red buttons stop or remove, yellow buttons pause or adjust, blue buttons load or navigate, and teal buttons add or save. Active buttons become brighter.
 
@@ -577,7 +585,7 @@ Recovery checkpoints run about every 15 seconds. These working recovery writes a
 1. Install Visual Studio 2026 with .NET Desktop Development and the .NET 10 SDK.
 2. Extract the source ZIP and open HazzKaraokeHoster.sln.
 3. Select Release and x64, restore packages, then Rebuild Solution.
-4. Run RELEASE/HazzKaraokeHoster/Hazz Karaoke Hoster.exe. The normal bin folder can contain many build files; the RELEASE folder contains the published single-file app.
+4. Run RELEASE/HazzKaraokeHoster/Hazz Karaoke Hoster.exe. The normal bin folder can contain many build files; the RELEASE folder contains the complete portable app, including its DLLs and libvlc folder.
 5. BUILD-EXE.cmd is the command-line alternative.
 6. If publishing fails, close any running copy, check SDK/workload installation and read the first real build error before the final wrapper error.
 

@@ -92,4 +92,15 @@ if (bpmRepeat.VirtualFoldersImported != 0 || bpmRepeat.VirtualFolderTrackLinksIm
 if (!repeatProgress.Any(p => p.Phase.Contains("Skipping unchanged BPM virtual folder", StringComparison.OrdinalIgnoreCase)))
     throw new Exception("Repeated BPM virtual-folder import did not use the unchanged-source cache.");
 
-Console.WriteLine("PASS: create, nesting, rename, multi-folder links, duplicate protection, browse, search, media filtering, remove, empty, cascade delete, media preservation and BPM Studio group import.");
+await repo.DeleteVirtualFolderAsync(bpmFolder.Id);
+var restored = await new BpmStudioImportService(db).ImportAsync(bpmRoot);
+if (restored.VirtualFoldersImported != 3 || restored.VirtualFolderTrackLinksImported != bulkGroupPaths.Length)
+    throw new Exception("Deleted BPM folder tree was not restored from unchanged source files.");
+folders = await repo.GetVirtualFoldersAsync();
+var restoredEighties = folders.Single(x => x.Name == "80s");
+if ((await repo.BrowseVirtualFolderAsync(restoredEighties.Id, "Music", "", "Artist", false, 0, 500)).TotalCount != bulkGroupPaths.Length)
+    throw new Exception("Restored BPM folder has missing tracks.");
+var restoredRepeat = await new BpmStudioImportService(db).ImportAsync(bpmRoot);
+if (restoredRepeat.VirtualFoldersImported != 0 || restoredRepeat.VirtualFolderTrackLinksImported != 0)
+    throw new Exception("Re-import after restoration created duplicates.");
+Console.WriteLine("PASS: virtual folders, BPM import, deleted-folder restoration and repeat-import duplicate protection.");

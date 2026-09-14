@@ -9,3 +9,5 @@ Ready singers with fewer turns in this show go first. Equal turn counts use arri
 A turn is counted once when Play checks out the singer's song, matching Hazz's existing rotation handoff. Pause/resume does not add a turn. A stopped or failed performance still counts as a started turn. Imported historical performances are not counted. Late arrivals can receive consecutive turns to catch up under this fewest-turns policy.
 
 Manual moves are replaced while fair mode is enabled. Disable the option to make a host override. New Show resets turn records; recovery snapshots preserve them. Singers are recognised by database ID when available, otherwise by their trimmed name ignoring case. Existing sessions started before this feature have no retrospective turn count.
+
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.

@@ -1,5 +1,7 @@
 # Hazz Karaoke Hoster Dummy Guide
 
+Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.
+
 Simple steps for a first live show.
 
 New in v0.97 test: **Show > Venue Profiles** can save different singer lists. Create a named profile with SAVE CURRENT, then SAVE SINGER LIST. On returning, APPLY its settings and LOAD SINGER LIST. Leave history ticked to restore songs sung previously. Saving or loading a named singer list enables automatic updates when requested, before switching singers and at shutdown. With no venue, history still saves in the main database. See the [step-by-step venue guide](VENUE_PROFILES.md) for starting blank, keeping regulars and backups. Manual rotation remains the default; computer sorting must be explicitly enabled in Show > Rotation Settings.
@@ -165,5 +167,3 @@ Audience Display Settings now includes SHOW DURING MUSIC VIDEOS with independent
 Check an option to retain that overlay during music videos. Its normal display settings must also be enabled. Leave all options unchecked for an unobstructed video, matching v0.80 behaviour. Changes apply live and are saved for the next launch. Background artwork remains hidden behind music videos.
 
 All v0.80 features and fixes remain included.
-
-

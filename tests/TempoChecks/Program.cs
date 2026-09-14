@@ -75,7 +75,7 @@ internal static class Program
             screenshot.Render(root);
             var png = new System.Windows.Media.Imaging.PngBitmapEncoder();
             png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(screenshot));
-            using (var snapshot = File.Create(Path.Combine(AppContext.BaseDirectory, "console-v1.2.png"))) png.Save(snapshot);
+            using (var snapshot = File.Create(Path.Combine(AppContext.BaseDirectory, "console-v1.3.png"))) png.Save(snapshot);
             var flags = BindingFlags.Instance | BindingFlags.NonPublic;
             void Field(string name, object value) => typeof(MainWindow).GetField(name, flags)!.SetValue(main, value);
             Field("_restoringLiveShowState", true); Field("_restoringMusicDeckQueues", true);

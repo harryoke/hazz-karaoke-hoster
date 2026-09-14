@@ -167,6 +167,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        SetupMusicContextMenus();
         SizeChanged += (_, _) => ScheduleViewportLayoutClamp();
         _library = new LibraryRepository(_db);
         _libraryImporter = new LibraryImportService(_db);
@@ -721,13 +722,13 @@ public partial class MainWindow : Window
             UpdateMusicAutomationStatus($"Restored unplayed music queues • D1 {DeckAPlaylist.Items.Count:N0} • D2 {DeckBPlaylist.Items.Count:N0}");
     }
 
-    private static void RestoreMusicDeckQueue(ListBox list, IEnumerable<MusicDeckQueueStateItem>? rows)
+    private void RestoreMusicDeckQueue(ListBox list, IEnumerable<MusicDeckQueueStateItem>? rows)
     {
         if (rows is null) return;
         foreach (var row in rows)
         {
             if (string.IsNullOrWhiteSpace(row.FilePath)) continue;
-            list.Items.Add(new MusicQueueItem
+            var item = new MusicQueueItem
             {
                 SongId = row.SongId,
                 FilePath = row.FilePath,
@@ -736,7 +737,9 @@ public partial class MainWindow : Window
                 Duration = row.DurationSeconds is double seconds && seconds > 0
                     ? TimeSpan.FromSeconds(seconds)
                     : null
-            });
+            };
+            list.Items.Add(item);
+            _ = RefreshMusicTagsSafeAsync(item);
         }
     }
 
@@ -1006,6 +1009,7 @@ public partial class MainWindow : Window
     }
 
     private void HostViewport_SizeChanged(object sender, SizeChangedEventArgs e) => ClampFixedRowsToViewport();
+
 
     private void DisplaySettingsMenu_Click(object sender, RoutedEventArgs e)
     {
@@ -2672,8 +2676,57 @@ public partial class MainWindow : Window
         ApplyCurrentKaraokeVisualToAudience();
     }
 
+    private bool _karaokeStartInProgress;
     private async void KaraokePlay_Click(object sender, RoutedEventArgs e)
+        => await StartKaraokeSafeAsync(restart: false);
+
+    private async void KaraokeRestart_Click(object sender, RoutedEventArgs e)
+        => await StartKaraokeSafeAsync(restart: true);
+
+    private async Task StartKaraokeSafeAsync(bool restart)
     {
+        if (_karaokeStartInProgress || (!restart && _karaokePlaying)) return;
+        if (restart && (_karaokePackage is null || KaraokeMedia.Source is null))
+        {
+            SearchStatus.Text = "Load a karaoke song before using Restart Song.";
+            return;
+        }
+        _karaokeStartInProgress = true;
+        try { await RunLiveOperationSafeAsync("KARAOKE START", () => StartKaraokeAsync(restart)); }
+        finally { _karaokeStartInProgress = false; }
+    }
+
+    private async Task StartKaraokeAsync(bool restart)
+    {
+        if (restart)
+        {
+            _silenceScanCts?.Cancel();
+            CancelKaraokeStopFade();
+            RestoreKaraokePlaybackVolume();
+            KaraokeMedia.Pause();
+            _pitchAudio.Pause();
+            _audience?.PauseVideo();
+            KaraokeMedia.Position = TimeSpan.Zero;
+            if (_pitchAudio.IsLoaded) _pitchAudio.Position = TimeSpan.Zero;
+            _cdgDecoder?.Reset();
+            _lastRenderedCdgVersion = -1;
+            RenderCdgAtCurrentPosition(force: true);
+            if (_karaokePresentationActive)
+            {
+                // Restart this performance without another rotation handoff or history entry.
+                _karaokePlaying = false;
+                _karaokePaused = true;
+                KaraokePause_Click(this, new RoutedEventArgs());
+                UpdatePlayerTimeDisplays(force: true);
+                SearchStatus.Text = "Karaoke restarted from 00:00";
+                return;
+            }
+        }
+        else if (_karaokePaused)
+        {
+            KaraokePause_Click(this, new RoutedEventArgs());
+            return;
+        }
         CloseTempoEditor();
         if (_karaokePackage is null || KaraokeMedia.Source is null)
         {
@@ -2686,7 +2739,7 @@ public partial class MainWindow : Window
         CancelKaraokeStopFade();
         RestoreKaraokePlaybackVolume();
 
-        if (AutoSkipSilenceCheck?.IsChecked == true && KaraokeMedia.Position.TotalSeconds < 0.15)
+        if (!restart && AutoSkipSilenceCheck?.IsChecked == true && KaraokeMedia.Position.TotalSeconds < 0.15)
             await SkipSilenceAsync(autoStart: true);
 
         // Starting the next karaoke song ends any pending Kamikaze announcement.
@@ -4139,6 +4192,7 @@ public partial class MainWindow : Window
     {
         var item = MusicQueueItem.FromSong(song);
         item.IsPlayedThisSession = _musicPlayedThisSession.Contains(item.FilePath);
+        _ = RefreshMusicTagsSafeAsync(item);
         return item;
     }
 
@@ -4146,6 +4200,7 @@ public partial class MainWindow : Window
     {
         var item = MusicQueueItem.FromPath(path);
         item.IsPlayedThisSession = _musicPlayedThisSession.Contains(item.FilePath);
+        _ = RefreshMusicTagsSafeAsync(item);
         return item;
     }
 
@@ -4174,6 +4229,20 @@ public partial class MainWindow : Window
         if (deck == MusicDeckId.Deck1) _deck1CurrentItem = item;
         else if (deck == MusicDeckId.Deck2) _deck2CurrentItem = item;
         RenumberPlaylist(PlaylistFor(deck));
+        _ = RefreshMusicTagsSafeAsync(item);
+    }
+
+    private async Task RefreshMusicTagsSafeAsync(MusicQueueItem item)
+    {
+        try
+        {
+            await item.RefreshTagsAsync();
+            item.IsFavourite = await Task.Run(() => MusicFavourites.Default.Contains(item.FilePath));
+            foreach (var deck in new[] { MusicDeckId.Deck1, MusicDeckId.Deck2 })
+                if (ReferenceEquals(CurrentMusicItemFor(deck), item))
+                    TitleFor(deck).Text = string.IsNullOrWhiteSpace(item.Artist) ? item.DisplayTitle : $"{item.DisplayArtist} — {item.DisplayTitle}";
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Music tags: {ex.Message}"); }
     }
 
     private void UpdateOpenedMusicMetadata(MusicDeckId deck)

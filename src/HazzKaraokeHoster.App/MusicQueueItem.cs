@@ -10,11 +10,29 @@ public sealed class MusicQueueItem : INotifyPropertyChanged
     private bool _isNowPlaying;
     private bool _isPlayedThisSession;
     private TimeSpan? _duration;
+    private bool _isFavourite;
+    public bool IsFavourite
+    {
+        get => _isFavourite;
+        set { _isFavourite = value; OnPropertyChanged(); OnPropertyChanged(nameof(NumberText)); }
+    }
 
     public long? SongId { get; init; }
     public string FilePath { get; init; } = string.Empty;
-    public string Artist { get; init; } = string.Empty;
-    public string Title { get; init; } = string.Empty;
+    public string Artist { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+
+    public async Task RefreshTagsAsync()
+    {
+        var version = ++_tagReadVersion;
+        var tags = await HazzKaraokeHoster.Core.Mp3Metadata.ReadAsync(FilePath, Artist, Title);
+        if (version != _tagReadVersion) return;
+        Artist = tags.Artist;
+        Title = tags.Title;
+        OnPropertyChanged(nameof(Artist)); OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(DisplayArtist)); OnPropertyChanged(nameof(DisplayTitle));
+    }
+    private int _tagReadVersion;
 
     public int Number
     {
