@@ -1,3 +1,7 @@
+# v1.4
+
+Music handover choices, real waveforms with click-to-seek, venue singer photos on the host and audience displays, and yellow favourite stars in search. See [v1.4 instructions](Documentation/RELEASE_v1.4.md).
+
 # v1.3
 
 See [v1.3 release notes](Documentation/RELEASE_v1.3.md) for MP3 tools, playlist menus, favourites and fixes.
@@ -521,5 +525,4 @@ New since v0.90:
 - All v0.90 music-video overlay options remain included.
 
 Validation: compilation, automated audio-processing and audience/interface regression checks, and ZIP integrity checks passed. Physical multi-device listening, hot-unplug and multi-hour playback testing remain outstanding. A successful cue check verifies opening, not every part of a media file. Per-player limiting does not guarantee the combined output of an external mixer cannot overload.
-
 

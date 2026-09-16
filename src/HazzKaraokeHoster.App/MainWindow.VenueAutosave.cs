@@ -19,6 +19,14 @@ public partial class MainWindow
         File.WriteAllText(temp, JsonSerializer.Serialize(id));
         File.Move(temp, ActiveSingerVenuePath, true);
         _activeSingerVenue = id;
+        SingerPhotoVenue = id?.ToString() ?? "default";
+        SingerPortrait.InvalidatePhotoCache();
+        SingerPhotoRevision++;
+        if (IsLoaded)
+        {
+            UpdateAudienceNext();
+            ApplyOverlaySettings();
+        }
     }
 
     private void InitializeVenueAutosave()
@@ -29,6 +37,7 @@ public partial class MainWindow
                 ? JsonSerializer.Deserialize<Guid?>(File.ReadAllText(ActiveSingerVenuePath)) : null;
         }
         catch (Exception ex) { App.WriteDiagnostic("VENUE AUTOSAVE LOAD", ex.ToString()); }
+        SingerPhotoVenue = _activeSingerVenue?.ToString() ?? "default";
     }
 
     private async Task SaveActiveVenueAsync()

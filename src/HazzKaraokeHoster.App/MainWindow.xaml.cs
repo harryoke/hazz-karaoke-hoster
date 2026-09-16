@@ -167,6 +167,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DeckAWaveform.SeekRequested += fraction => SeekMusicDeckFraction(MusicDeckId.Deck1, fraction);
+        DeckBWaveform.SeekRequested += fraction => SeekMusicDeckFraction(MusicDeckId.Deck2, fraction);
         SetupMusicContextMenus();
         SizeChanged += (_, _) => ScheduleViewportLayoutClamp();
         _library = new LibraryRepository(_db);
@@ -506,6 +508,8 @@ public partial class MainWindow : Window
         ApplyHostTextScale(settings.HostTextScale);
         ApplyAudienceVideoEngine(settings.UseLibVlcAudienceVideo);
         ApplyCdgSmoothing(settings.SmoothCdgPicture);
+
+        ApplyKaraokeMusicAction(settings.KaraokeMusicAction);
         _fairRotation = settings.AutomaticRotation;
         _fairPrimary = settings.RotationPrimary;
         _newcomerPlacement = settings.NewcomerPlacement;
@@ -557,6 +561,9 @@ public partial class MainWindow : Window
         // colours/artwork, so the venue message and font selections reverted.
         ShowNextSingerCheck.IsChecked = settings.AudienceShowNextSinger;
         ShowNextSongCheck.IsChecked = settings.AudienceShowNextSong;
+        ShowSingerPhotosCheck.IsChecked = settings.AudienceShowSingerPhotos;
+        SingerPhotoSizeSlider.Value = Math.Clamp(settings.AudienceSingerPhotoSize, 36, 180);
+        SelectComboItemByContent(SingerPhotoFitCombo, settings.AudienceSingerPhotoFit, "Fit");
         NextFontCombo.SelectedItem = NextFontCombo.Items.Cast<object>()
             .FirstOrDefault(x => string.Equals(x?.ToString(), settings.AudienceNextSingerFontFamily, StringComparison.OrdinalIgnoreCase))
             ?? NextFontCombo.SelectedItem;
@@ -593,6 +600,8 @@ public partial class MainWindow : Window
             HostTextScale = _hostTextScale,
             UseLibVlcAudienceVideo = _useLibVlcAudienceVideo,
             SmoothCdgPicture = _smoothCdgPicture,
+
+            KaraokeMusicAction = _karaokeMusicAction,
             AutomaticRotation = _fairRotation,
             RotationPrimary = _fairPrimary,
             NewcomerPlacement = _newcomerPlacement,
@@ -637,6 +646,9 @@ public partial class MainWindow : Window
             AudienceVenueScrollerColor = _audienceVenueScrollerColor,
             AudienceShowNextSinger = ShowNextSingerCheck.IsChecked == true,
             AudienceShowNextSong = ShowNextSongCheck.IsChecked == true,
+            AudienceShowSingerPhotos = ShowSingerPhotosCheck.IsChecked == true,
+            AudienceSingerPhotoSize = SingerPhotoSizeSlider.Value,
+            AudienceSingerPhotoFit = (SingerPhotoFitCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Fit",
             AudienceNextSingerFontFamily = NextFontCombo.SelectedItem?.ToString() ?? "Segoe UI",
             AudienceNextSingerFontSize = double.TryParse((NextSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var nextSize) ? nextSize : 48,
             AudienceNextHeadingFontSize = double.TryParse((NextHeadingSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var headingSize) ? headingSize : 36,
@@ -1229,6 +1241,8 @@ public partial class MainWindow : Window
         _lastTimelineUiUtc = now;
         UpdateMediaTime(DeckAMedia, DeckATimeText, DeckAProgress, _deck1SeekDragging);
         UpdateMediaTime(DeckBMedia, DeckBTimeText, DeckBProgress, _deck2SeekDragging);
+        UpdateWaveformProgress(DeckAMedia, DeckAWaveform);
+        UpdateWaveformProgress(DeckBMedia, DeckBWaveform);
 
         var karaokeTotal = MediaDuration(KaraokeMedia);
         if (karaokeTotal <= TimeSpan.Zero && _pitchAudio.TotalTime > TimeSpan.Zero) karaokeTotal = _pitchAudio.TotalTime;
@@ -1248,6 +1262,14 @@ public partial class MainWindow : Window
 
     private static TimeSpan MediaDuration(MediaElement media)
         => media.NaturalDuration.HasTimeSpan ? media.NaturalDuration.TimeSpan : TimeSpan.Zero;
+
+    private static void UpdateWaveformProgress(MediaElement media, MusicWaveform waveform)
+    {
+        var total = MediaDuration(media);
+        waveform.Progress = total > TimeSpan.Zero
+            ? Math.Clamp(media.Position.TotalSeconds / total.TotalSeconds, 0d, 1d)
+            : 0d;
+    }
 
     private static void UpdateTimeText(TimeSpan position, TimeSpan total, TextBlock text, ProgressBar progress)
     {
@@ -1313,6 +1335,19 @@ public partial class MainWindow : Window
             _audience?.ShowMusicVideo(videoItem.FilePath, target, !IsDeckPaused(deck));
         UpdatePlayerTimeDisplays(force: true);
         UpdateMusicAutomationStatus($"{DeckName(deck)} positioned at {target:hh\\:mm\\:ss\\.fff}");
+    }
+
+    private void SeekMusicDeckFraction(MusicDeckId deck, double fraction)
+    {
+        var media = MediaFor(deck);
+        var total = MediaDuration(media);
+        if (CurrentMusicItemFor(deck) is null || total <= TimeSpan.Zero)
+        {
+            UpdateMusicAutomationStatus($"Load and play a track on {DeckName(deck)} before seeking");
+            return;
+        }
+
+        SeekMusicDeck(deck, total.TotalSeconds * Math.Clamp(fraction, 0d, 1d));
     }
 
     private static string FormatPlayerTime(TimeSpan value)
@@ -2302,6 +2337,9 @@ public partial class MainWindow : Window
             TextStrokes = _audienceTextStrokes,
             ShowNextSinger = ShowNextSingerCheck.IsChecked == true,
             ShowNextSong = ShowNextSongCheck.IsChecked == true,
+            ShowSingerPhotos = ShowSingerPhotosCheck.IsChecked == true,
+            SingerPhotoSize = SingerPhotoSizeSlider.Value,
+            SingerPhotoFit = (SingerPhotoFitCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Fit",
             NextSingerFontFamily = NextFontCombo.SelectedItem?.ToString() ?? "Segoe UI",
             NextSingerFontSize = ComboNumber(NextSizeCombo, 48),
             NextHeadingFontSize = ComboNumber(NextHeadingSizeCombo, 36),
@@ -2360,6 +2398,7 @@ public partial class MainWindow : Window
     private void ApplyOverlaySettings()
     {
         ScrollerSpeedText.Text = $"{ScrollerSpeedSlider.Value:0} px/s";
+            SingerPhotoSizeText.Text = $"{SingerPhotoSizeSlider.Value:0}px";
         if (LogoWidthText is not null) LogoWidthText.Text = $"{LogoWidthSlider.Value:0}px";
         _audience?.Apply(CurrentOverlaySettings());
         _audience?.SetKaraokeActive(_karaokePresentationActive);
@@ -2384,7 +2423,8 @@ public partial class MainWindow : Window
             {
                 Position = index + 1,
                 SingerName = singer.SingerName,
-                SongText = songText
+                SongText = songText,
+                PhotoPath = SingerPortrait.PhotoPath(SingerPhotoVenue, singer.SingerName)
             };
         }).ToList();
 
@@ -3388,6 +3428,8 @@ public partial class MainWindow : Window
 
         list.SelectedIndex = index;
         SetCurrentMusicItem(deck, item);
+        WaveformFor(deck).FilePath = item.FilePath;
+        WaveformFor(deck).Progress = 0;
         // The started track is no longer an "unplayed" queue item, so persist the
         // remaining queue immediately even when it happened to already be row #1.
         MarkMusicDeckQueuesDirty();
@@ -3602,6 +3644,7 @@ public partial class MainWindow : Window
 
     private void FinalizeMusicSuspensionBeforeResume()
     {
+        if (_musicSuspendedForKaraoke && _retainedMusicDeck != MusicDeckId.None) return;
         _musicFadeOutForKaraoke = false;
         _crossfadeActive = false;
         _crossfadeFrom = MusicDeckId.None;
@@ -3803,7 +3846,11 @@ public partial class MainWindow : Window
     private void HandleMusicDeckEnded(MusicDeckId deck)
     {
         CloseTempoEditor();
-        if (_musicSuspendedForKaraoke || _musicFadeOutForKaraoke) return;
+        if (_musicSuspendedForKaraoke || _musicFadeOutForKaraoke)
+        {
+            if (deck == _retainedMusicDeck) _retainedMusicEnded = true;
+            return;
+        }
 
         if (_crossfadeActive)
         {
@@ -3846,7 +3893,7 @@ public partial class MainWindow : Window
 
     private void HandleMusicDeckFailed(MusicDeckId deck, Exception? error)
     {
-        if (_musicSuspendedForKaraoke) return;
+        if (_musicSuspendedForKaraoke) { if (deck == _retainedMusicDeck) _retainedMusicEnded = true; return; }
         ClearMusicVideoForDeck(deck);
         BrokenMediaRegistry.Mark((deck == MusicDeckId.Deck1 ? _deck1CurrentItem : _deck2CurrentItem)?.FilePath, error?.Message ?? "Music playback failed");
         UpdateMusicAutomationStatus($"{DeckName(deck)} playback error");
@@ -3876,6 +3923,7 @@ public partial class MainWindow : Window
         if (_musicSuspendedForKaraoke) return;
 
         CaptureMusicResumeTarget();
+        CaptureRetainedMusic();
         _musicSuspendedForKaraoke = true;
         _musicFadeInResume = false;
         _musicFadeOutForKaraoke = _activeMusicDeck != MusicDeckId.None || _crossfadeActive;
@@ -3952,6 +4000,7 @@ public partial class MainWindow : Window
         SetDeckFadeFactor(MusicDeckId.Deck1, _fadeOutStartDeck1 * (1.0 - progress));
         SetDeckFadeFactor(MusicDeckId.Deck2, _fadeOutStartDeck2 * (1.0 - progress));
         if (progress < 1.0) return;
+        if (FinishRetainedMusicFade()) return;
 
         StopDeck(MusicDeckId.Deck1);
         StopDeck(MusicDeckId.Deck2);
@@ -3975,6 +4024,7 @@ public partial class MainWindow : Window
         }
         if (!_musicSuspendedForKaraoke && !forceStart) return;
         if (_musicFadeInResume) return;
+        if (ResumeRetainedMusic(fadeInSeconds)) return;
 
         _musicFadeOutForKaraoke = false;
         StopDeck(MusicDeckId.Deck1);
@@ -4183,6 +4233,9 @@ public partial class MainWindow : Window
             _deck2NextIndex = 0;
         }
 
+        WaveformFor(deck).FilePath = null;
+        WaveformFor(deck).Progress = 0;
+
         RenumberPlaylist(list);
         if (list.Items.Count > 0) list.SelectedIndex = 0;
         else list.SelectedIndex = -1;
@@ -4353,6 +4406,7 @@ public partial class MainWindow : Window
     private ListBox PlaylistFor(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? DeckAPlaylist : DeckBPlaylist;
     private RoutedMusicElement MediaFor(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? DeckAMedia : DeckBMedia;
     private TextBlock TitleFor(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? DeckATitle : DeckBTitle;
+    private MusicWaveform WaveformFor(MusicDeckId deck) => deck == MusicDeckId.Deck1 ? DeckAWaveform : DeckBWaveform;
 
     private void UpdateMusicAutomationStatus(string text)
     {

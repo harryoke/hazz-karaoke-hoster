@@ -56,6 +56,9 @@ public partial class AudienceWindow : Window
     private bool _karaokeActive;
     private bool _showNextSinger = true;
     private bool _showNextSong = true;
+    private bool _showSingerPhotos = true;
+    private double _singerPhotoSize = 64;
+    private string _singerPhotoFit = "Fit";
     private bool _hasNextSinger;
     private bool _scrollerEnabled = true;
     private bool _scrollerAtTop;
@@ -200,6 +203,9 @@ public partial class AudienceWindow : Window
         SetTextStroke(KamikazeTextBlock, "Kamikaze");
         _showNextSinger = s.ShowNextSinger;
         _showNextSong = s.ShowNextSong;
+        _showSingerPhotos = s.ShowSingerPhotos;
+        _singerPhotoSize = double.IsFinite(s.SingerPhotoSize) ? Math.Clamp(s.SingerPhotoSize, 36, 180) : 64;
+        _singerPhotoFit = string.IsNullOrWhiteSpace(s.SingerPhotoFit) ? "Fit" : s.SingerPhotoFit;
         _nextFontFamily = new FontFamily(s.NextSingerFontFamily);
         _nextFontSize = double.IsFinite(s.NextSingerFontSize) ? Math.Clamp(s.NextSingerFontSize, 32, 192) : 48;
         _nextSingerPosition = s.NextSingerPosition;
@@ -276,6 +282,7 @@ public partial class AudienceWindow : Window
         {
             var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = _showSingerPhotos ? new GridLength(_singerPhotoSize) : new GridLength(0) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -295,6 +302,29 @@ public partial class AudienceWindow : Window
             SetTextStroke(number, "Position");
             row.Children.Add(number);
 
+            if (_showSingerPhotos && !string.IsNullOrWhiteSpace(item.PhotoPath) && File.Exists(item.PhotoPath))
+            {
+                var fit = _singerPhotoFit switch
+                {
+                    "Fill / crop" => Stretch.UniformToFill,
+                    "Stretch" => Stretch.Fill,
+                    "Center" => Stretch.None,
+                    _ => Stretch.Uniform
+                };
+                var portrait = new Image
+                {
+                    Width = _singerPhotoSize,
+                    Height = _singerPhotoSize,
+                    Stretch = fit,
+                    Margin = new Thickness(0, 0, 10, 0),
+                    Source = LoadImageUnlocked(item.PhotoPath)
+                };
+                // Keep every photo inside a predictable square tile.  The selected
+                // fit mode controls how the original aspect ratio is handled.
+                portrait.Clip = new RectangleGeometry(new Rect(0, 0, _singerPhotoSize, _singerPhotoSize));
+                Grid.SetColumn(portrait, 1); Grid.SetRowSpan(portrait, 2); row.Children.Add(portrait);
+            }
+
             var singer = new StrokeTextBlock
             {
                 Text = item.SingerName,
@@ -307,7 +337,7 @@ public partial class AudienceWindow : Window
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 14, 0)
             };
-            Grid.SetColumn(singer, 1);
+            Grid.SetColumn(singer, 2);
             SetTextStroke(singer, "Singer");
             row.Children.Add(singer);
 
@@ -322,7 +352,7 @@ public partial class AudienceWindow : Window
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 Visibility = _showNextSong ? Visibility.Visible : Visibility.Collapsed
             };
-            Grid.SetColumn(song, 1);
+            Grid.SetColumn(song, 2);
             SetTextStroke(song, "Song");
             Grid.SetRow(song, 1);
             row.Children.Add(song);

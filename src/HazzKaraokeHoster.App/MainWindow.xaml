@@ -14,6 +14,7 @@
   </LinearGradientBrush>
  </Window.Background>
  <Window.Resources>
+  <local:FavouriteStarConverter x:Key="FavouriteStarConverter"/>
   <sys:Double x:Key="HostFont10">10</sys:Double>
   <sys:Double x:Key="HostFont10_5">10.5</sys:Double>
   <sys:Double x:Key="HostFont11">11</sys:Double>
@@ -351,7 +352,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="{DynamicResource HostFont10_5}" FontWeight="Bold" Foreground="#6EC1E4" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="#22303C" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v1.3" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="#D4DEE8"/>
+     <TextBlock Text="v1.4" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="#D4DEE8"/>
     </Border>
    </StackPanel>
 
@@ -403,6 +404,7 @@
     </MenuItem>
     <MenuItem Header="SHOW" Style="{StaticResource HeaderMenuItemStyle}">
      <MenuItem x:Name="FairRotationMenuItem" Header="Automatic Fair Singer Rotation" IsCheckable="True" Click="FairRotation_Click" ToolTip="Fewest turns first, then longest waiting. Disable to use manual ordering."/>
+     <MenuItem x:Name="KaraokeMusicActionMenu" Header="Music when karaoke starts"><MenuItem Header="Fade and stop — next queued track (default)" Tag="Next" IsCheckable="True" Click="KaraokeMusicAction_Click"/><MenuItem Header="Fade then pause — resume same track" Tag="Pause" IsCheckable="True" Click="KaraokeMusicAction_Click"/><MenuItem Header="Fade then keep playing silently" Tag="Muted" IsCheckable="True" Click="KaraokeMusicAction_Click"/></MenuItem>
      <MenuItem Header="Rotation Settings…" Click="RotationSettings_Click"/>
      <MenuItem Header="Venue Profiles…" Click="VenueProfiles_Click"/>
      <Separator/>
@@ -490,13 +492,17 @@
         </Grid.RowDefinitions>
        <TextBlock x:Name="DeckATitle" Text="No track loaded" FontSize="{DynamicResource HostFont18}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="3,4,3,8"/>
        <Border Grid.Row="1" Background="#020605" BorderBrush="#607069" BorderThickness="1" CornerRadius="4" Margin="3">
-        <Canvas x:Name="DeckALedViewport" Height="48" ClipToBounds="True" VerticalAlignment="Center">
-         <TextBlock x:Name="DeckALedText" Text="DECK 1 READY  •  LOAD MUSIC" Foreground="#5CFF9A" FontFamily="Consolas"
-                    FontSize="{DynamicResource HostFont22}" FontWeight="Bold" Canvas.Top="9" TextOptions.TextRenderingMode="ClearType">
-          <TextBlock.Effect><DropShadowEffect Color="#20FF72" BlurRadius="12" ShadowDepth="0" Opacity="0.95"/></TextBlock.Effect>
-          <TextBlock.RenderTransform><TranslateTransform x:Name="DeckALedTransform"/></TextBlock.RenderTransform>
-         </TextBlock>
-        </Canvas>
+        <Grid>
+         <Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="52"/></Grid.RowDefinitions>
+         <Canvas x:Name="DeckALedViewport" Grid.Row="0" ClipToBounds="True" VerticalAlignment="Center">
+          <TextBlock x:Name="DeckALedText" Text="DECK 1 READY  •  LOAD MUSIC" Foreground="#5CFF9A" FontFamily="Consolas"
+                     FontSize="{DynamicResource HostFont22}" FontWeight="Bold" Canvas.Top="9" TextOptions.TextRenderingMode="ClearType">
+           <TextBlock.Effect><DropShadowEffect Color="#20FF72" BlurRadius="12" ShadowDepth="0" Opacity="0.95"/></TextBlock.Effect>
+           <TextBlock.RenderTransform><TranslateTransform x:Name="DeckALedTransform"/></TextBlock.RenderTransform>
+          </TextBlock>
+         </Canvas>
+         <local:MusicWaveform x:Name="DeckAWaveform" Grid.Row="1" Height="48" Margin="3,0"/>
+        </Grid>
        </Border>
        <WrapPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,5,0,1">
         <Button Content="ADD FILES" Style="{StaticResource SaveButtonStyle}" Click="DeckAAdd_Click"/>
@@ -706,11 +712,24 @@
          <MenuItem Header="KAMIKAZE FOR THIS SINGER" Click="SingerMenuKamikaze_Click"/>
          <MenuItem Header="CLEAR QUEUED SONGS" Click="SingerMenuClearSongs_Click"/>
          <MenuItem Header="EDIT NAME / NOTES…" Click="SingerMenuEdit_Click"/>
+         <MenuItem Header="CHOOSE SINGER PHOTO…" Click="SingerPhotoChoose_Click"/>
+         <MenuItem Header="TAKE SINGER PHOTO WITH WEBCAM…" Click="SingerPhotoWebcam_Click"/>
+         <MenuItem Header="REMOVE SINGER PHOTO" Click="SingerPhotoRemove_Click"/>
          <Separator/>
          <MenuItem Header="REMOVE FROM SHOW" Click="SingerMenuRemove_Click"/>
-        </ContextMenu>
+       </ContextMenu>
        </DataGrid.ContextMenu>
        <DataGrid.Columns>
+        <DataGridTemplateColumn Header="Photo" Width="Auto">
+         <DataGridTemplateColumn.CellTemplate>
+          <DataTemplate>
+           <local:SingerPortrait Width="28" Height="28" Margin="2"
+                                  SingerName="{Binding SingerName}"
+                                  VenueKey="{Binding DataContext.SingerPhotoVenue, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                  Revision="{Binding DataContext.SingerPhotoRevision, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"/>
+          </DataTemplate>
+         </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
         <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="Auto"/>
         <DataGridTextColumn Header="Singer" Binding="{Binding SingerName}" Width="1.05*" MinWidth="100"/>
         <DataGridTextColumn Header="Next Song" Binding="{Binding NextSongTitle}" Width="1.45*" MinWidth="140"/>
@@ -775,13 +794,17 @@
         </Grid.RowDefinitions>
        <TextBlock x:Name="DeckBTitle" Text="No track loaded" FontSize="{DynamicResource HostFont18}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="3,4,3,8"/>
        <Border Grid.Row="1" Background="#020605" BorderBrush="#607069" BorderThickness="1" CornerRadius="4" Margin="3">
-        <Canvas x:Name="DeckBLedViewport" Height="48" ClipToBounds="True" VerticalAlignment="Center">
-         <TextBlock x:Name="DeckBLedText" Text="DECK 2 READY  •  LOAD MUSIC" Foreground="#5CFF9A" FontFamily="Consolas"
-                    FontSize="{DynamicResource HostFont22}" FontWeight="Bold" Canvas.Top="9" TextOptions.TextRenderingMode="ClearType">
-          <TextBlock.Effect><DropShadowEffect Color="#20FF72" BlurRadius="12" ShadowDepth="0" Opacity="0.95"/></TextBlock.Effect>
-          <TextBlock.RenderTransform><TranslateTransform x:Name="DeckBLedTransform"/></TextBlock.RenderTransform>
-         </TextBlock>
-        </Canvas>
+        <Grid>
+         <Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="52"/></Grid.RowDefinitions>
+         <Canvas x:Name="DeckBLedViewport" Grid.Row="0" ClipToBounds="True" VerticalAlignment="Center">
+          <TextBlock x:Name="DeckBLedText" Text="DECK 2 READY  •  LOAD MUSIC" Foreground="#5CFF9A" FontFamily="Consolas"
+                     FontSize="{DynamicResource HostFont22}" FontWeight="Bold" Canvas.Top="9" TextOptions.TextRenderingMode="ClearType">
+           <TextBlock.Effect><DropShadowEffect Color="#20FF72" BlurRadius="12" ShadowDepth="0" Opacity="0.95"/></TextBlock.Effect>
+           <TextBlock.RenderTransform><TranslateTransform x:Name="DeckBLedTransform"/></TextBlock.RenderTransform>
+          </TextBlock>
+         </Canvas>
+         <local:MusicWaveform x:Name="DeckBWaveform" Grid.Row="1" Height="48" Margin="3,0"/>
+        </Grid>
        </Border>
        <WrapPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,5,0,1">
         <Button Content="ADD FILES" Style="{StaticResource SaveButtonStyle}" Click="DeckBAdd_Click"/>
@@ -873,9 +896,21 @@
      </DockPanel>
      <DataGrid x:Name="SearchGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" MouseDoubleClick="SearchGrid_MouseDoubleClick"
                PreviewKeyDown="SearchGrid_PreviewKeyDown"
-               PreviewMouseLeftButtonDown="SearchGrid_PreviewMouseLeftButtonDown" PreviewMouseMove="SearchGrid_PreviewMouseMove"
+               PreviewMouseLeftButtonDown="SearchGrid_PreviewMouseLeftButtonDown" PreviewMouseRightButtonDown="SearchGrid_PreviewMouseRightButtonDown" PreviewMouseMove="SearchGrid_PreviewMouseMove"
                ToolTip="In KARAOKE mode, drag a result onto a singer's row.">
+      <DataGrid.ContextMenu>
+       <ContextMenu Opened="SearchContextMenu_Opened">
+        <MenuItem Header="MARK AS FAVOURITE" Click="SearchFavourite_Click"/>
+       </ContextMenu>
+      </DataGrid.ContextMenu>
       <DataGrid.Columns>
+       <DataGridTemplateColumn Header="★" Width="34">
+        <DataGridTemplateColumn.CellTemplate>
+         <DataTemplate>
+          <TextBlock Text="{Binding FilePath, Converter={StaticResource FavouriteStarConverter}}" Foreground="#FFD34D" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="Favourite"/>
+         </DataTemplate>
+        </DataGridTemplateColumn.CellTemplate>
+       </DataGridTemplateColumn>
        <DataGridTextColumn Header="Artist" Binding="{Binding Artist}" Width="1.7*"/>
        <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="1.9*"/>
        <DataGridTextColumn Header="Maker" Binding="{Binding Manufacturer}" Width="*"/>
@@ -915,6 +950,13 @@
       <WrapPanel Grid.Row="1">
        <CheckBox x:Name="ShowNextSingerCheck" Content="Show next 4 singers" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged"/>
        <CheckBox x:Name="ShowNextSongCheck" Content="Show songs" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged"/>
+       <CheckBox x:Name="ShowSingerPhotosCheck" Content="Show singer photos" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged"/>
+       <TextBlock Text="Photo size" VerticalAlignment="Center" Margin="8,0,3,0"/>
+       <Slider x:Name="SingerPhotoSizeSlider" Minimum="36" Maximum="180" Value="64" Width="130" ValueChanged="OverlayChanged"/>
+       <TextBlock x:Name="SingerPhotoSizeText" Text="64px" MinWidth="42" VerticalAlignment="Center"/>
+       <ComboBox x:Name="SingerPhotoFitCombo" Width="115" SelectedIndex="0" SelectionChanged="OverlayChanged" ToolTip="How the square singer photo tile fits the original picture">
+        <ComboBoxItem Content="Fit"/><ComboBoxItem Content="Fill / crop"/><ComboBoxItem Content="Stretch"/><ComboBoxItem Content="Center"/>
+       </ComboBox>
        <TextBlock Text="Next 4 and rotation scroller are automatically hidden during karaoke playback." Foreground="#D0DAE4" VerticalAlignment="Center" Margin="10,0,0,0"/>
       </WrapPanel>
       <WrapPanel Grid.Row="2" Margin="0,2">

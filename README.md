@@ -6,9 +6,15 @@ Hazz brings a karaoke player, singer rotation and two music decks into one conso
 
 ![Hazz Karaoke Hoster v1.3 console with two music decks, karaoke controls, singer rotation and sound-device settings](Documentation/Images/console_v1.3.png)
 
-*Hazz Karaoke Hoster v1.3.*
+*Previous v1.3 console shown; v1.4 adds deck waveforms and singer photos.*
 
 **[Download for Windows](https://github.com/harryoke/hazz-karaoke-hoster/releases/latest)** · **[Official website](https://harryoke.github.io/hazz-karaoke-hoster/)** · **[User guide](Documentation/V1_MANUAL.md)**
+
+## New in v1.4
+
+Choose how background music gives way to karaoke: fade and stop (default), fade and pause, or fade and continue silently. See real audio waveforms on both decks and click to seek. Save singer photos per venue, show them in the singer list and on TV, and adjust their size and fit. Search favourites now show yellow stars.
+
+[Step-by-step v1.4 instructions](Documentation/RELEASE_v1.4.md)
 
 ## What you can do
 

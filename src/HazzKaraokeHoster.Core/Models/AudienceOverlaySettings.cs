@@ -13,6 +13,9 @@ public sealed class AudienceOverlaySettings
 
     public bool ShowNextSinger { get; set; } = true;
     public bool ShowNextSong { get; set; } = true;
+    public bool ShowSingerPhotos { get; set; } = true;
+    public double SingerPhotoSize { get; set; } = 64;
+    public string SingerPhotoFit { get; set; } = "Fit";
     public string NextSingerFontFamily { get; set; } = "Segoe UI";
     public double NextSingerFontSize { get; set; } = 48;
     public double NextHeadingFontSize { get; set; } = 36;

@@ -6,7 +6,7 @@ Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke
 
 - Read MP3 artist and title tags in playlists, scrolling deck displays and music-folder scans, with fallback for missing or unreadable tags.
 - Edit MP3 artist, title and album from the playlist. Saving uses a temporary copy and retains the audio. Loaded, paused and cued files must be unloaded before editing.
-- Mark favourites with yellow stars, saved between sessions and shared across both decks.
+- Mark favourites with yellow stars, saved between sessions and shared across both decks. Search results also show the yellow star and support right-click marking for one or multiple selected tracks.
 - Right-click for Play next on this deck, Move to the other deck/side list, Add to virtual folder, Show in folder, Locate missing file and Track information.
 - Locate missing file repairs current playlist entries; old saved playlists and historical paths are not rewritten.
 

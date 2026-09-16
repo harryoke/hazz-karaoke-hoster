@@ -8,6 +8,8 @@ internal sealed class UiLayoutSettings
     public double HostTextScale { get; set; } = 1;
     public bool UseLibVlcAudienceVideo { get; set; }
     public bool SmoothCdgPicture { get; set; } = true;
+    public string KaraokeMusicAction { get; set; } = "Next";
+
     public bool AutomaticRotation { get; set; }
     public string NewcomerPlacement { get; set; } = "End of current round";
     public int NewcomerSpacing { get; set; } = 2;
@@ -60,6 +62,9 @@ internal sealed class UiLayoutSettings
     // settings so the complete singer display returns exactly as the host left it.
     public bool AudienceShowNextSinger { get; set; } = true;
     public bool AudienceShowNextSong { get; set; } = true;
+    public bool AudienceShowSingerPhotos { get; set; } = true;
+    public double AudienceSingerPhotoSize { get; set; } = 64;
+    public string AudienceSingerPhotoFit { get; set; } = "Fit";
     public string AudienceNextSingerFontFamily { get; set; } = "Segoe UI";
     public double AudienceNextSingerFontSize { get; set; } = 48;
     public double AudienceNextHeadingFontSize { get; set; } = 36;

@@ -5,4 +5,5 @@ public sealed class AudienceSingerDisplayItem
     public int Position { get; init; }
     public string SingerName { get; init; } = string.Empty;
     public string SongText { get; init; } = string.Empty;
+    public string PhotoPath { get; init; } = string.Empty;
 }
