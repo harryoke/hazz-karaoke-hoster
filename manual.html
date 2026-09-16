@@ -1,13 +1,58 @@
-<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>User manual | Hazz v1.3</title><link rel="stylesheet" href="styles.css"></head><body><header><a class="brand" href="index.html">HAZZ KARAOKE HOSTER</a><nav><a href="index.html">Home</a><a href="manual.html">Manual</a><a href="playlist.html">Playlist tools</a><a href="download.html">Download v1.3</a></nav></header><main class="content shell"><h1 id="v1.3-update">v1.3 update</h1>
+<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>User manual | Hazz v1.4</title><link rel="stylesheet" href="styles.css"></head><body><header><a class="brand" href="index.html">HAZZ KARAOKE HOSTER</a><nav><a href="index.html">Home</a><a href="manual.html">Manual</a><a href="playlist.html">Playlist tools</a><a href="download.html">Download v1.4</a></nav></header><main class="content shell"><section class="content shell"><h1 id="hazz-karaoke-hoster-v1.4-new-features-and-instructions">Hazz Karaoke Hoster v1.4 — new features and instructions</h1>
+<p>Version 1.4 adds music handover choices, real deck waveforms, venue singer photos and favourites in search. Doctor integration remains separate.</p>
+<h2 id="build-with-visual-studio-2026">Build with Visual Studio 2026</h2>
+<ol>
+<li>Extract the entire ZIP to a new folder.</li>
+<li>Install the .NET desktop development workload and .NET 10 SDK.</li>
+<li>Open HazzKaraokeHoster.sln, allow NuGet restore, select Release / x64.</li>
+<li>Choose Build &gt; Rebuild Solution. Keep the Release project enabled.</li>
+<li>Use RELEASE/HazzKaraokeHoster/Hazz Karaoke Hoster.exe. Keep all accompanying DLLs and the libvlc folder.
+BUILD-EXE.cmd is the alternative publish command.</li>
+</ol>
+<h2 id="choose-what-music-does-when-karaoke-starts">Choose what music does when karaoke starts</h2>
+<ol>
+<li>Open SHOW &gt; Music when karaoke starts.</li>
+<li>Choose one:
+<ul>
+<li>Fade and stop — next queued track (default): existing behaviour; the interrupted music is consumed and queued music returns.</li>
+<li>Fade then pause — resume same track: music fades using the crossfade duration, pauses at that point, then fades back from that position.</li>
+<li>Fade then keep playing silently: the music continues advancing at zero volume. When karaoke ends, it fades back at its current position.</li>
+</ul>
+</li>
+<li>Start a music track on Deck 1 or Deck 2, then press karaoke PLAY.</li>
+<li>Use karaoke STOP or PLAY MUSIC to return. The existing karaoke STOP return fade is 1.5 seconds.
+The choice is saved. Changing it during a karaoke song applies to the next handover.
+If a silent track ends, Hazz waits for karaoke to finish then uses queued music; it does not loop or start another track silently.
+During a crossfade, the incoming deck is retained and the outgoing track is finished.
+This option applies to the regular music decks. Space-bar search preview keeps its existing stop behaviour.</li>
+</ol>
+<h2 id="waveforms">Waveforms</h2>
+<p>Load/play music on either deck. An overview is generated in the background.
+Click the waveform to seek. Unsupported files show a message; the position slider remains available.</p>
+<h2 id="singer-photos">Singer photos</h2>
+<p>Right-click a singer in the main list and choose CHOOSE SINGER PHOTO.
+The webcam action opens Windows Camera; take/save the picture and select it afterwards.
+Photos are stored by singer name and active venue; no venue uses the default collection.
+In DISPLAY &gt; audience settings, enable Show singer photos and adjust Photo size and Fit, Fill/crop, Stretch or Center.
+Photos appear in the main singer list and beside the upcoming singers on the TV. The upcoming list follows existing hide-during-karaoke behaviour.</p>
+<h2 id="search-favourites">Search favourites</h2>
+<p>Right-click a search result to mark/unmark it as a favourite. Music search supports multiple selected rows.
+Saved favourites have a yellow star in search results.</p>
+<h2 id="testing">Testing</h2>
+<p>The exact packaged source passed Release compilation with zero warnings/errors.
+Automated handover logic checks passed for pause, mute, default, early return, ended-track fallback, crossfade and setting changes.
+These checks use simulated music devices. Test pause/resume and silent playback with your actual sound devices before a live show.</p>
+<p>Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.</p>
+</section><h1 id="v1.4-update">v1.4 update</h1>
 <p><a href="playlist.html">MP3 tags, favourites and every playlist right-click option</a></p>
-<p><a href="https://github.com/harryoke/hazz-karaoke-hoster/releases/tag/v1.3">Restart Song, display scaling and BPM re-import fixes</a></p>
+<p><a href="https://github.com/harryoke/hazz-karaoke-hoster/releases/tag/v1.4">Restart Song, display scaling and BPM re-import fixes</a></p>
 <h1 id="hazz-karaoke-hoster-user-manual">Hazz Karaoke Hoster User Manual</h1>
 <p>Copyright © 2026 Hazz Karaoke. All rights reserved in the original Hazz Karaoke Hoster code, documentation, branding and artwork. Third-party components remain subject to their respective licences.</p>
-<p>Version 1.3. This guide explains how to set up a show, use each main feature and keep your singers and music organised. Follow the numbered steps in the section you need. Buttons are written as they appear in the app. The console illustration below is rendered from v1.3; DISPLAY menu options are described in the relevant sections.</p>
+<p>Version 1.4. This guide explains how to set up a show, use each main feature and keep your singers and music organised. Follow the numbered steps in the section you need. Buttons are written as they appear in the app. The console illustration below is rendered from v1.4; DISPLAY menu options are described in the relevant sections.</p>
 <h2 id="find-your-way-around">1 Find your way around</h2>
 <p>For the shared TEMPO button, Enter-to-add singers and CLEAR PLAYLIST, see <a href="tempo.html">Tempo and playlist instructions</a>. These replace the old optional song-title field shown in older pictures.</p>
-<p><img src="assets/console_v1.3.png" alt="Version 1.3 console with shared Tempo and Clear Playlist buttons" /></p>
-<p>This is a render of the v1.3 console layout with empty lists, made from the interface source. It includes SOUND DEVICES, NORMALIZE AUDIO, MUSIC VIDEO, TEMPO, CLEAR PLAYLIST and next-track status. Live data is not loaded in this layout view. Dialog instructions below describe their actual controls; this image is not a picture of those dialogs.</p>
+<p><img src="assets/console_v1.4.png" alt="Version 1.4 console with shared Tempo and Clear Playlist buttons" /></p>
+<p>This is a render of the v1.4 console layout with empty lists, made from the interface source. It includes SOUND DEVICES, NORMALIZE AUDIO, MUSIC VIDEO, TEMPO, CLEAR PLAYLIST and next-track status. Live data is not loaded in this layout view. Dialog instructions below describe their actual controls; this image is not a picture of those dialogs.</p>
 <p>The left and right columns are music players. The centre contains the karaoke player, singer rotation and private preview. The top search buttons choose which library you search. Green buttons start playback, red buttons stop or remove, yellow buttons pause or adjust, blue buttons load or navigate, and teal buttons add or save. Active buttons become brighter.</p>
 <h3 id="fit-the-console-to-your-screen">Fit the console to your screen</h3>
 <ol>
