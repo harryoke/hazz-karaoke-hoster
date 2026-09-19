@@ -42,6 +42,11 @@ public partial class MainWindow
 
     private async Task SaveActiveVenueAsync()
     {
+        if (!_showRecoveryReady)
+        {
+            App.WriteDiagnostic("VENUE SAVE SKIPPED", "Show recovery was not loaded successfully; preserving the existing venue snapshot.");
+            return;
+        }
         await _venueSaveGate.WaitAsync();
         try
         {

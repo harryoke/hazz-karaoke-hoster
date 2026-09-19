@@ -390,6 +390,7 @@ public partial class LibraryBrowserWindow : Window
     {
         e.Effects = (e.Data.GetDataPresent(typeof(SongRecord)) || e.Data.GetDataPresent(typeof(SongRecord[]))) && FindFolderAt(e.OriginalSource as DependencyObject) is not null
             ? DragDropEffects.Copy : DragDropEffects.None;
+        DragEdgeScroll.Update((ItemsControl)sender, e);
         e.Handled = true;
     }
 

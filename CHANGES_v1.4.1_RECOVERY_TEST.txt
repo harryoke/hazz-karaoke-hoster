@@ -1,0 +1,49 @@
+HAZZ KARAOKE HOSTER v1.4.1 — RECOVERY TEST
+===========================================
+
+This build is based directly on the clean v1.4 Visual Studio 2026 source supplied by Hazz.
+It deliberately keeps the existing v1.4 feature set and addresses the reported regression/user requests.
+
+1. SINGER / AUDIENCE SETTINGS PROTECTION
+- ui-layout.json remains in %LOCALAPPDATA%\Hazz Karaoke Hoster.
+- Saving now keeps ui-layout.backup.json as the previous configuration and ui-layout.pre-session.json as the settings that existed before the current run first saved anything.
+- Unknown settings written by newer/test builds are retained through JsonExtensionData instead of being silently dropped.
+- This is intended to stop a future skin/test branch from resetting singer-screen configuration simply because it adds a new setting.
+
+2. KARAOKE SEARCH PUNCTUATION BUG
+- FTS5 search text is now converted to safe alphanumeric prefix tokens.
+- Apostrophes and punctuation are treated as separators rather than FTS syntax.
+- Regression examples include:
+  What's Up
+  Let's Get It On
+  Sweet Child O' Mine
+  (I Can't Get No) Satisfaction
+  AC/DC
+  Wake Me Up Before You Go-Go
+- Added tests\SearchPunctuationChecks.
+
+3. KARAOKE SEEKING
+- Karaoke progress indicator is now a draggable seek slider.
+- Added -5s and +5s buttons.
+- Seeking also updates the separate pitch/tempo audio path when active.
+- CD+G graphics rebuild to the requested time using the existing deterministic decoder seek logic.
+- Karaoke video audience output is re-synchronised after a seek.
+
+4. KARAOKE FOCUS LAYOUT
+- New SHOW menu option: "Karaoke Focus — Singer List on Right".
+- Uses Deck 1 as the single music deck.
+- Moves the actual karaoke singer-list panel into the former Deck 2/right-hand pane.
+- Collapses the centre singer-list row and expands the karaoke preview.
+- Existing normal, single-deck and karaoke-only modes remain available.
+- The mode is saved/restored in ui-layout.json.
+
+5. SINGER HISTORY CSV EXPORT
+- Singer Songs / History now includes EXPORT CSV.
+- Exports the currently displayed (including filtered) history.
+- Columns: Singer, Last Sung, Times Sung, Title, Artist, Key Change, CDG Sync Seconds, File Path.
+- UTF-8 CSV with proper quoting for apostrophes, commas and quotes.
+
+BUILD NOTE
+----------
+This source targets .NET 10 / Windows x64 and should be compiled in Visual Studio 2026 with .NET Desktop Development,
+or by running BUILD-RECOVERY-TEST.cmd.

@@ -18,16 +18,15 @@ public sealed class LibraryRepository(HazzDatabase database) : ILibraryRepositor
         query = (query ?? string.Empty).Trim();
         if (query.Length == 0) return Array.Empty<SongRecord>();
         limit = Math.Clamp(limit, 1, 2000);
-        var terms = query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                         .Select(t => t.Replace("\"", "\"\"") + "*");
-        var fts = string.Join(" AND ", terms);
+        var fts = BuildFtsPrefixQuery(query);
+        if (fts.Length == 0) return Array.Empty<SongRecord>();
 
         await using var connection = new SqliteConnection(database.ConnectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
 SELECT s.id, s.artist, s.title, s.manufacturer, s.disc_id, s.file_path, s.format,
-       s.file_size, s.date_added, s.cdg_sync_seconds, s.preferred_key, s.media_kind
+       s.file_size, s.date_added, s.cdg_sync_seconds, s.preferred_key, s.media_kind, s.duration_seconds
 FROM songs_fts f
 JOIN songs s ON s.id = f.rowid
 WHERE songs_fts MATCH $q
@@ -63,7 +62,7 @@ LIMIT $limit;
                     : "lower(s.media_kind)=lower($kind)";
             fallback.CommandText = $"""
 SELECT s.id, s.artist, s.title, s.manufacturer, s.disc_id, s.file_path, s.format,
-       s.file_size, s.date_added, s.cdg_sync_seconds, s.preferred_key, s.media_kind
+       s.file_size, s.date_added, s.cdg_sync_seconds, s.preferred_key, s.media_kind, s.duration_seconds
 FROM songs s
 WHERE {kindFilter}
   AND (s.artist LIKE $text COLLATE NOCASE OR s.title LIKE $text COLLATE NOCASE
@@ -91,7 +90,7 @@ LIMIT $limit;
         await using var command = connection.CreateCommand();
         command.CommandText = """
 SELECT id, artist, title, manufacturer, disc_id, file_path, format,
-       file_size, date_added, cdg_sync_seconds, preferred_key, media_kind
+       file_size, date_added, cdg_sync_seconds, preferred_key, media_kind, duration_seconds
 FROM songs WHERE file_path=$path LIMIT 1;
 """;
         command.Parameters.AddWithValue("$path", filePath);
@@ -123,7 +122,7 @@ FROM songs WHERE file_path=$path LIMIT 1;
             await using var command = connection.CreateCommand();
             command.CommandText = """
 SELECT id, artist, title, manufacturer, disc_id, file_path, format,
-       file_size, date_added, cdg_sync_seconds, preferred_key, media_kind
+       file_size, date_added, cdg_sync_seconds, preferred_key, media_kind, duration_seconds
 FROM songs
 WHERE media_kind='Karaoke'
   AND title LIKE $title COLLATE NOCASE
@@ -161,12 +160,12 @@ LIMIT 1500;
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-INSERT INTO songs(artist,title,manufacturer,disc_id,file_path,format,file_size,date_added,cdg_sync_seconds,preferred_key,last_seen_utc,media_kind)
-VALUES($artist,$title,$manufacturer,$disc,$path,$format,$size,$added,$sync,$key,CURRENT_TIMESTAMP,$kind)
+INSERT INTO songs(artist,title,manufacturer,disc_id,file_path,format,file_size,date_added,cdg_sync_seconds,preferred_key,last_seen_utc,media_kind,duration_seconds)
+VALUES($artist,$title,$manufacturer,$disc,$path,$format,$size,$added,$sync,$key,CURRENT_TIMESTAMP,$kind,$duration)
 ON CONFLICT(file_path) DO UPDATE SET
  artist=excluded.artist,title=excluded.title,manufacturer=excluded.manufacturer,disc_id=excluded.disc_id,
  format=excluded.format,file_size=excluded.file_size,date_added=COALESCE(excluded.date_added,songs.date_added),
- media_kind=excluded.media_kind,last_seen_utc=CURRENT_TIMESTAMP
+ media_kind=excluded.media_kind,duration_seconds=COALESCE(excluded.duration_seconds,songs.duration_seconds),last_seen_utc=CURRENT_TIMESTAMP
 RETURNING id;
 """;
         command.Parameters.AddWithValue("$artist", song.Artist);
@@ -180,6 +179,7 @@ RETURNING id;
         command.Parameters.AddWithValue("$sync", song.CdgSyncSeconds);
         command.Parameters.AddWithValue("$key", song.PreferredKey);
         command.Parameters.AddWithValue("$kind", string.IsNullOrWhiteSpace(song.MediaKind) ? "Karaoke" : song.MediaKind);
+        command.Parameters.AddWithValue("$duration", song.DurationSeconds is double seconds && seconds > 0 ? seconds : DBNull.Value);
         var value = await command.ExecuteScalarAsync(cancellationToken);
         return Convert.ToInt64(value);
     }
@@ -194,6 +194,51 @@ RETURNING id;
         command.Parameters.AddWithValue("$sync", Math.Round(cdgSyncSeconds * 4) / 4.0);
         command.Parameters.AddWithValue("$id", songId);
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task SaveDurationAsync(long songId, double durationSeconds, CancellationToken cancellationToken = default)
+    {
+        if (songId <= 0 || !double.IsFinite(durationSeconds) || durationSeconds <= 0) return;
+        await using var connection = new SqliteConnection(database.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE songs SET duration_seconds=$duration WHERE id=$id";
+        command.Parameters.AddWithValue("$duration", durationSeconds);
+        command.Parameters.AddWithValue("$id", songId);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<int> DeleteSongsAsync(IEnumerable<long> songIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(songIds);
+        var ids = songIds.Where(id => id > 0).Distinct().ToArray();
+        if (ids.Length == 0) return 0;
+
+        await using var connection = new SqliteConnection(database.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        var deleted = 0;
+
+        foreach (var chunk in ids.Chunk(900))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await using var command = connection.CreateCommand();
+            command.Transaction = (SqliteTransaction)transaction;
+            var parameters = new string[chunk.Length];
+            for (var i = 0; i < chunk.Length; i++)
+            {
+                parameters[i] = $"$id{i}";
+                command.Parameters.AddWithValue(parameters[i], chunk[i]);
+            }
+
+            // songs_ad keeps the FTS5 index in sync; related source/virtual-folder rows
+            // cascade and singer/music history retain their text while song_id becomes NULL.
+            command.CommandText = $"DELETE FROM songs WHERE id IN ({string.Join(",", parameters)});";
+            deleted += await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return deleted;
     }
 
     public async Task<LibraryBrowsePage> BrowseAsync(
@@ -222,11 +267,8 @@ RETURNING id;
         await using var connection = new SqliteConnection(database.ConnectionString);
         await connection.OpenAsync(cancellationToken);
 
-        var hasFilter = filter.Length > 0;
-        var fts = hasFilter
-            ? string.Join(" AND ", filter.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(t => t.Replace("\"", "\"\"") + "*"))
-            : string.Empty;
+        var fts = BuildFtsPrefixQuery(filter);
+        var hasFilter = fts.Length > 0;
         var fromAndWhere = hasFilter
             ? "FROM songs_fts f JOIN songs s ON s.id=f.rowid WHERE songs_fts MATCH $filter AND s.media_kind=$kind"
             : "FROM songs s WHERE s.media_kind=$kind";
@@ -247,7 +289,7 @@ RETURNING id;
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
 SELECT s.id, s.artist, s.title, s.manufacturer, s.disc_id, s.file_path, s.format,
-       s.file_size, s.date_added, s.cdg_sync_seconds, s.preferred_key, s.media_kind
+       s.file_size, s.date_added, s.cdg_sync_seconds, s.preferred_key, s.media_kind, s.duration_seconds
 {fromAndWhere}
 ORDER BY {orderBy}
 LIMIT $limit OFFSET $offset;
@@ -358,10 +400,8 @@ ORDER BY f.name COLLATE NOCASE, f.id;
             "dateadded" => $"s.date_added {direction}, s.id {direction}",
             _ => $"s.artist COLLATE NOCASE {direction}, s.title COLLATE NOCASE {direction}, s.id {direction}"
         };
-        var hasFilter = filter.Length > 0;
-        var fts = hasFilter
-            ? string.Join(" AND ", filter.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(t => t.Replace("\"", "\"\"") + "*"))
-            : string.Empty;
+        var fts = BuildFtsPrefixQuery(filter);
+        var hasFilter = fts.Length > 0;
         var fromAndWhere = hasFilter
             ? "FROM songs_fts f JOIN songs s ON s.id=f.rowid JOIN virtual_folder_songs vf ON vf.song_id=s.id WHERE vf.folder_id=$folder AND songs_fts MATCH $filter AND s.media_kind=$kind"
             : "FROM songs s JOIN virtual_folder_songs vf ON vf.song_id=s.id WHERE vf.folder_id=$folder AND s.media_kind=$kind";
@@ -383,7 +423,7 @@ ORDER BY f.name COLLATE NOCASE, f.id;
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
 SELECT s.id, s.artist, s.title, s.manufacturer, s.disc_id, s.file_path, s.format,
-       s.file_size, s.date_added, s.cdg_sync_seconds, s.preferred_key, s.media_kind
+       s.file_size, s.date_added, s.cdg_sync_seconds, s.preferred_key, s.media_kind, s.duration_seconds
 {fromAndWhere}
 ORDER BY {orderBy}
 LIMIT $limit OFFSET $offset;
@@ -397,6 +437,35 @@ LIMIT $limit OFFSET $offset;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken)) items.Add(ReadSong(reader));
         return new LibraryBrowsePage(items, total, offset, pageSize);
+    }
+
+    /// <summary>
+    /// Builds a safe FTS5 prefix query from ordinary user text.
+    /// Punctuation is treated as a separator, so titles such as "What's Up",
+    /// "Let's Get It On", "AC/DC" and "(I Can't Get No) Satisfaction" cannot
+    /// accidentally be parsed as FTS5 operators/syntax.
+    /// </summary>
+    private static string BuildFtsPrefixQuery(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+        var tokens = new List<string>();
+        var token = new StringBuilder();
+        foreach (var ch in text)
+        {
+            if (char.IsLetterOrDigit(ch))
+            {
+                token.Append(ch);
+                continue;
+            }
+
+            if (token.Length == 0) continue;
+            tokens.Add(token.ToString());
+            token.Clear();
+        }
+
+        if (token.Length > 0) tokens.Add(token.ToString());
+        return string.Join(" AND ", tokens.Select(t => $"\"{t}\"*"));
     }
 
     private async Task ExecuteFolderCommandAsync(string sql, long folderId, CancellationToken cancellationToken)
@@ -453,7 +522,7 @@ LIMIT $limit OFFSET $offset;
             await using var command = connection.CreateCommand();
             command.CommandText = $"""
 SELECT id, artist, title, manufacturer, disc_id, file_path, format,
-       file_size, date_added, cdg_sync_seconds, preferred_key, media_kind
+       file_size, date_added, cdg_sync_seconds, preferred_key, media_kind, duration_seconds
 FROM songs
 WHERE media_kind=$kind AND id {comparison} $pivot
 ORDER BY id {direction}
@@ -504,7 +573,7 @@ LIMIT $limit;
         if (!reader.IsDBNull(8) && DateTimeOffset.TryParse(reader.GetString(8), out var dt)) added = dt;
         return new SongRecord(reader.GetInt64(0), reader.GetString(1), reader.GetString(2), reader.GetString(3),
             reader.GetString(4), reader.GetString(5), reader.GetString(6), reader.GetInt64(7), added,
-            reader.GetDouble(9), reader.GetInt32(10), reader.GetString(11));
+            reader.GetDouble(9), reader.GetInt32(10), reader.GetString(11), reader.IsDBNull(12) ? null : reader.GetDouble(12));
     }
 
     private static bool PathEquals(string a, string b)

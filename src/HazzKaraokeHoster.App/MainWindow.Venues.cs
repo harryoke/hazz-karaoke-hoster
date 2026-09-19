@@ -258,7 +258,7 @@ public partial class MainWindow
     private List<LiveShowSingerSnapshot> CaptureVenueRoster() => _queue.Select(s => new LiveShowSingerSnapshot
     {
         QueueId = s.Id, SingerId = s.SingerId, SingerName = s.SingerName, IsHeld = s.IsHeld,
-        Songs = s.Songs.Select(x => new LiveShowSongSnapshot { QueueSongId = x.Id, SongId = x.SongId, SongTitle = x.SongTitle, Artist = x.Artist, FilePath = x.FilePath, KeyChange = x.KeyChange, CdgSyncSeconds = x.CdgSyncSeconds }).ToList()
+        Songs = s.Songs.Select(x => new LiveShowSongSnapshot { QueueSongId = x.Id, SongId = x.SongId, SongTitle = x.SongTitle, Artist = x.Artist, FilePath = x.FilePath, DurationSeconds = x.DurationSeconds, KeyChange = x.KeyChange, CdgSyncSeconds = x.CdgSyncSeconds }).ToList()
     }).ToList();
 
     private void RestoreVenueRoster(List<LiveShowSingerSnapshot> roster)
@@ -275,12 +275,12 @@ public partial class MainWindow
         foreach (var saved in roster)
         {
             var singer = new SingerQueueEntry { Id = saved.QueueId, SingerId = saved.SingerId, SingerName = saved.SingerName, IsHeld = saved.IsHeld };
-            foreach (var x in saved.Songs) singer.Songs.Add(new SingerSongEntry { Id = x.QueueSongId, SongId = x.SongId, SongTitle = x.SongTitle, Artist = x.Artist, FilePath = x.FilePath, KeyChange = x.KeyChange, CdgSyncSeconds = x.CdgSyncSeconds });
+            foreach (var x in saved.Songs) singer.Songs.Add(new SingerSongEntry { Id = x.QueueSongId, SongId = x.SongId, SongTitle = x.SongTitle, Artist = x.Artist, FilePath = x.FilePath, DurationSeconds = x.DurationSeconds, KeyChange = x.KeyChange, CdgSyncSeconds = x.CdgSyncSeconds });
             _queue.Add(singer);
         }
         SingerNameBox.Text = "";
         _showStartedUtc = DateTimeOffset.UtcNow;
         QueueList.SelectedItem = _queue.FirstOrDefault();
-        UpdateAudienceNext(); MarkLiveShowStateDirty(); SaveLiveShowStateNow(false);
+        UpdateAudienceNext(); _ = HydrateQueueDurationsAsync(); MarkLiveShowStateDirty(); SaveLiveShowStateNow(false);
     }
 }

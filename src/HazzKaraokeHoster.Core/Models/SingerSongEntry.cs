@@ -10,6 +10,7 @@ public sealed class SingerSongEntry : INotifyPropertyChanged
     private string _filePath = string.Empty;
     private int _keyChange;
     private double _cdgSyncSeconds;
+    private double? _durationSeconds;
 
     public Guid Id { get; init; } = Guid.NewGuid();
     public long? SongId { get; set; }
@@ -40,6 +41,18 @@ public sealed class SingerSongEntry : INotifyPropertyChanged
             var clamped = Math.Clamp(value, -6, 6);
             if (_keyChange == clamped) return;
             _keyChange = clamped;
+            OnPropertyChanged();
+        }
+    }
+
+    public double? DurationSeconds
+    {
+        get => _durationSeconds;
+        set
+        {
+            double? normalized = value is double seconds && double.IsFinite(seconds) && seconds > 0 ? seconds : null;
+            if (_durationSeconds == normalized) return;
+            _durationSeconds = normalized;
             OnPropertyChanged();
         }
     }

@@ -1,0 +1,12 @@
+HAZZ KARAOKE HOSTER v1.4.2 - BUILD FIX 6
+==============================================
+
+Search-result right-click single-selection crash
+------------------------------------------------
+- Fixes the UI exception: "Can only change SelectedItems collection in multiple selection modes. Use SelectedItem in single select modes."
+- Karaoke search uses DataGridSelectionMode.Single. Right-click selection now uses SearchGrid.SelectedItem/CurrentItem in that mode.
+- Music search can switch to Extended selection. In that mode, right-clicking an unselected row still clears the old multi-selection and selects the clicked row, preserving the existing multi-select workflow.
+- Context-menu commands now fall back to SelectedItem if SelectedItems is temporarily empty, so MARK FAVOURITE / REMOVE FROM LIBRARY DATABASE still act on the row that was right-clicked.
+- No file deletion behaviour was changed; database-removal commands remain database-only.
+
+Baseline: v1.4.2 UserFeedbackTest BuildFix5.

@@ -1,0 +1,24 @@
+HAZZ KARAOKE HOSTER v1.4.2 — BUILD FIX 1
+==========================================
+
+Fixes Visual Studio compile error:
+
+CS0173 in HazzKaraokeHoster.Core/Models/SingerSongEntry.cs
+"Type of conditional expression cannot be determined because there is no implicit conversion between 'double' and '<null>'"
+
+CAUSE
+-----
+DurationSeconds normalisation used 'var' for a conditional expression whose branches were a double and null.
+C# could not infer the intended nullable double type.
+
+FIX
+---
+Changed:
+    var normalized = ... ? seconds : null;
+
+to:
+    double? normalized = ... ? seconds : null;
+
+The CS0006 missing HazzKaraokeHoster.Core/Data/Playback DLL errors and the MSB3030 missing App output errors are expected cascade errors from the Core compile failure and should clear once Core compiles.
+
+Feature version remains 1.4.2. No functional behaviour was changed by this build fix.

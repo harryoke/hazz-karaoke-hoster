@@ -5,6 +5,7 @@ namespace HazzKaraokeHoster.Data;
 public sealed class HazzDatabase
 {
     private int _optimizedThisRun;
+    private int _filenameRepairThisRun;
     public string DatabasePath { get; }
     public string ConnectionString { get; }
 
@@ -52,7 +53,8 @@ CREATE TABLE IF NOT EXISTS songs (
     cdg_sync_seconds REAL NOT NULL DEFAULT 0,
     preferred_key INTEGER NOT NULL DEFAULT 0,
     last_seen_utc TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    media_kind TEXT NOT NULL DEFAULT 'Karaoke'
+    media_kind TEXT NOT NULL DEFAULT 'Karaoke',
+    duration_seconds REAL NULL
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS songs_fts USING fts5(
@@ -207,6 +209,7 @@ CREATE INDEX IF NOT EXISTS ix_bpm_virtual_folder_sources_stamp
 
         // Incremental migrations for databases created by earlier Hazz builds.
         await EnsureColumnAsync(connection, "songs", "media_kind", "TEXT NOT NULL DEFAULT 'Karaoke'", cancellationToken);
+        await EnsureColumnAsync(connection, "songs", "duration_seconds", "REAL NULL", cancellationToken);
         await EnsureColumnAsync(connection, "music_history", "duration_seconds", "REAL NULL", cancellationToken);
         await EnsureColumnAsync(connection, "singer_history", "times_sung", "INTEGER NOT NULL DEFAULT 1", cancellationToken);
 
@@ -225,6 +228,13 @@ CREATE INDEX IF NOT EXISTS ix_songs_kind_date_added ON songs(media_kind, date_ad
 """;
         await indexes.ExecuteNonQueryAsync(cancellationToken);
 
+        // Repair rows written by the v1.4.x filename parser before it understood
+        // letter-only Zoom Pop Box catalogue codes such as ZPBINDIE. This is intentionally
+        // narrow: only Karaoke rows with empty maker/disc fields whose current artist starts
+        // with ZPB and whose filename starts with that same token are eligible.
+        if (Interlocked.Exchange(ref _filenameRepairThisRun, 1) == 0)
+            await RepairKnownKaraokeFilenameParsingAsync(connection, cancellationToken);
+
         // Refresh planner statistics once per application run. PRAGMA optimize is deliberately
         // bounded by SQLite and avoids a full VACUUM, so startup remains safe for large show data.
         if (Interlocked.Exchange(ref _optimizedThisRun, 1) == 0)
@@ -235,6 +245,52 @@ CREATE INDEX IF NOT EXISTS ix_songs_kind_date_added ON songs(media_kind, date_ad
         }
 
         await MergeDuplicateVirtualFoldersAsync(connection, cancellationToken);
+    }
+
+    private static async Task RepairKnownKaraokeFilenameParsingAsync(SqliteConnection connection, CancellationToken token)
+    {
+        var candidates = new List<(long Id, string FilePath, string CurrentArtist)>();
+        await using (var select = connection.CreateCommand())
+        {
+            select.CommandText = """
+SELECT id,file_path,artist
+FROM songs
+WHERE media_kind='Karaoke'
+  AND manufacturer=''
+  AND disc_id=''
+  AND artist LIKE 'ZPB%'
+  AND instr(title,' - ') > 0;
+""";
+            await using var reader = await select.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token))
+                candidates.Add((reader.GetInt64(0), reader.GetString(1), reader.GetString(2)));
+        }
+
+        foreach (var candidate in candidates)
+        {
+            token.ThrowIfCancellationRequested();
+            var stem = Path.GetFileNameWithoutExtension(candidate.FilePath).Trim();
+            if (!stem.StartsWith(candidate.CurrentArtist + " - ", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var parsed = LibraryImportService.ParseName(candidate.FilePath);
+            if (string.IsNullOrWhiteSpace(parsed.DiscId) ||
+                !parsed.DiscId.StartsWith("ZPB", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            await using var update = connection.CreateCommand();
+            update.CommandText = """
+UPDATE songs
+SET artist=$artist,title=$title,manufacturer=$manufacturer,disc_id=$disc
+WHERE id=$id;
+""";
+            update.Parameters.AddWithValue("$artist", parsed.Artist);
+            update.Parameters.AddWithValue("$title", parsed.Title);
+            update.Parameters.AddWithValue("$manufacturer", parsed.Manufacturer);
+            update.Parameters.AddWithValue("$disc", parsed.DiscId);
+            update.Parameters.AddWithValue("$id", candidate.Id);
+            await update.ExecuteNonQueryAsync(token);
+        }
     }
 
     public long GetStorageSizeBytes()

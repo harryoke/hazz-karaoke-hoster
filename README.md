@@ -4,13 +4,17 @@ Free-to-use Windows software for hosting karaoke nights, playing background musi
 
 Hazz brings a karaoke player, singer rotation and two music decks into one console, with tools for organising large libraries and preparing the next track during a live show.
 
-![Hazz Karaoke Hoster v1.3 console with two music decks, karaoke controls, singer rotation and sound-device settings](Documentation/Images/console_v1.3.png)
+![Hazz Karaoke Hoster v1.5 console with two music decks, karaoke controls, singer rotation and sound-device settings](Documentation/Images/console_v1.5.png)
 
-*Previous v1.3 console shown; v1.4 adds deck waveforms and singer photos.*
+*v1.5 Classic console shown with illustrative sample rows.*
 
 **[Download for Windows](https://github.com/harryoke/hazz-karaoke-hoster/releases/latest)** · **[Official website](https://harryoke.github.io/hazz-karaoke-hoster/)** · **[User guide](Documentation/V1_MANUAL.md)**
 
-## New in v1.4
+## New in v1.5
+
+Folder-only Kamikaze, scrolling while dragging through long lists, four complete skins, Karaoke Focus, karaoke seeking, track lengths, history CSV export and saved-data protection. [Read the v1.5 instructions](Documentation/RELEASE_v1.5.md).
+
+## Retained from v1.4
 
 Choose how background music gives way to karaoke: fade and stop (default), fade and pause, or fade and continue silently. See real audio waveforms on both decks and click to seek. Save singer photos per venue, show them in the singer list and on TV, and adjust their size and fit. Search favourites now show yellow stars.
 

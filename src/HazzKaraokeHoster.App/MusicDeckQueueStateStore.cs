@@ -23,34 +23,53 @@ internal static class MusicDeckQueueStateStore
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Hazz Karaoke Hoster", "music-deck-queues.json");
 
+    private static bool _canSave;
+
     public static MusicDeckQueueState Load()
     {
-        try
+        try { var state = LoadFrom(StatePath); _canSave = true; return state; }
+        catch { _canSave = false; return new MusicDeckQueueState(); }
+    }
+
+    internal static MusicDeckQueueState LoadFrom(string path)
+    {
+        if (!File.Exists(path) && !File.Exists(path + ".previous")) return new();
+        foreach (var candidate in new[] { path, path + ".previous" })
         {
-            if (!File.Exists(StatePath)) return new MusicDeckQueueState();
-            return JsonSerializer.Deserialize<MusicDeckQueueState>(File.ReadAllText(StatePath)) ?? new MusicDeckQueueState();
+            try
+            {
+                if (File.Exists(candidate) && JsonSerializer.Deserialize<MusicDeckQueueState>(File.ReadAllText(candidate)) is { Deck1: not null, Deck2: not null } state)
+                    return state;
+            }
+            catch (IOException) { }
+            catch (JsonException) { }
         }
-        catch
-        {
-            // A damaged queue-state file must never prevent Hazz from starting a show.
-            return new MusicDeckQueueState();
-        }
+        throw new IOException("Saved music queues could not be read; existing files preserved.");
     }
 
     public static void Save(MusicDeckQueueState state)
     {
+        if (!_canSave) return;
+        try { SaveTo(StatePath, state); }
+        catch { /* Preserve existing data when storage is unavailable. */ }
+    }
+
+    internal static void SaveTo(string path, MusicDeckQueueState state)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
-            var folder = Path.GetDirectoryName(StatePath)!;
-            Directory.CreateDirectory(folder);
-            var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
-            var temp = StatePath + ".tmp";
-            File.WriteAllText(temp, json);
-            File.Move(temp, StatePath, overwrite: true);
+            File.WriteAllText(temp, JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true }));
+            if (!File.Exists(path)) File.Move(temp, path);
+            else
+            {
+                bool valid;
+                try { valid = JsonSerializer.Deserialize<MusicDeckQueueState>(File.ReadAllText(path)) is { Deck1: not null, Deck2: not null }; }
+                catch (JsonException) { valid = false; }
+                File.Replace(temp, path, path + (valid ? ".previous" : ".unreadable"), true);
+            }
         }
-        catch
-        {
-            // Queue persistence is a safety feature and must never interrupt live playback/shutdown.
-        }
+        finally { if (File.Exists(temp)) File.Delete(temp); }
     }
 }

@@ -1,3 +1,5 @@
+Current release: v1.5. See [v1.5 instructions](RELEASE_v1.5.md) for drag-edge scrolling, folder-only Kamikaze, skin choices, saved-data protection and new playback controls.
+
 # Music tags and playlist menu — v1.3
 
 Extract the whole Windows ZIP into a new folder and run Hazz Karaoke Hoster.exe.

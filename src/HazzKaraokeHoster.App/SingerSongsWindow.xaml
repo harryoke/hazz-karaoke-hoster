@@ -33,7 +33,7 @@
 
   <StackPanel Grid.Row="0" Margin="2,0,2,8">
    <TextBlock x:Name="SingerTitle" Text="Singer" FontSize="26" FontWeight="Bold"/>
-   <TextBlock Text="Queued songs — drag rows to change order. Drag a song UP from SINGER HISTORY (or double-click it) to sing it again. Key and CD+G sync are retained." Foreground="#9EABB9" TextWrapping="Wrap"/>
+   <TextBlock Text="Queued songs — drag rows to change order. Drag a song UP from SINGER HISTORY (or double-click it) to sing it again. Key and CD+G sync are retained. Positive sync advances graphics; negative delays." Foreground="#9EABB9" TextWrapping="Wrap"/>
   </StackPanel>
 
   <DataGrid x:Name="SongGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" AllowDrop="True"
@@ -62,11 +62,12 @@
   </WrapPanel>
 
   <Grid Grid.Row="4" Margin="2,0,2,6">
-   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
    <TextBlock Text="SINGER HISTORY" FontSize="17" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
    <TextBox x:Name="HistorySearchBox" Grid.Column="1" MinWidth="160" Height="32" VerticalContentAlignment="Center"
             ToolTip="Type artist or song title, for example Elvis" TextChanged="HistorySearchBox_TextChanged"/>
-   <Button Grid.Column="2" Content="CLEAR" Click="HistorySearchClear_Click" MinWidth="72"/>
+   <Button Grid.Column="2" Content="EXPORT CSV" Click="HistoryExportCsv_Click" MinWidth="100" ToolTip="Export the singer's currently displayed history to a CSV file."/>
+   <Button Grid.Column="3" Content="CLEAR" Click="HistorySearchClear_Click" MinWidth="72"/>
   </Grid>
   <DataGrid x:Name="HistoryGrid" Grid.Row="5" AutoGenerateColumns="False" IsReadOnly="True"
             PreviewMouseLeftButtonDown="HistoryGrid_PreviewMouseLeftButtonDown"

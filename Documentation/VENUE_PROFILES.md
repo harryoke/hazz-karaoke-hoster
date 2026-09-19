@@ -1,3 +1,5 @@
+Current release: v1.5. See [v1.5 instructions](RELEASE_v1.5.md) for drag-edge scrolling, folder-only Kamikaze, skin choices, saved-data protection and new playback controls.
+
 # Venue profiles
 
 ## Singer lists — v0.98 test

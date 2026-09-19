@@ -1,0 +1,22 @@
+HAZZ KARAOKE HOSTER v1.4.2 - BUILD FIX 2
+=========================================
+
+Fixes Visual Studio compiler error:
+  CS0103: The name 'MediaDurationProbe' does not exist in the current context
+  in MainWindow.xaml.cs.
+
+Cause:
+  MediaDurationProbe is correctly present in HazzKaraokeHoster.Core, but
+  MainWindow.xaml.cs did not import the root HazzKaraokeHoster.Core namespace.
+
+Correction:
+  Added:
+      using HazzKaraokeHoster.Core;
+  to MainWindow.xaml.cs.
+
+Build Fix 1's nullable double correction in SingerSongEntry.cs remains included.
+No v1.4.2 feature behaviour was removed or changed.
+
+The MSB3030 missing .deps.json/.runtimeconfig.json/apphost.exe errors reported
+alongside CS0103 are downstream release-project errors caused by the App project
+not compiling. Once the App project builds, those files are generated normally.

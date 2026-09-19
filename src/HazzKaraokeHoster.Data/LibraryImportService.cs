@@ -15,6 +15,11 @@ public sealed class LibraryImportService(HazzDatabase database) : ILibraryImport
     { ".mp4", ".mkv", ".avi", ".mov", ".mpeg", ".mpg", ".wmv", ".m4v", ".vob", ".ts", ".m2ts", ".webm", ".divx" };
 
     private static readonly Regex DiscPrefixRegex = new(@"^(?<disc>[A-Za-z][A-Za-z0-9_-]{1,18}\d)(?:[-_ ]?(?<track>\d{1,3}))?$", RegexOptions.Compiled);
+    // Some karaoke catalogue families use an all-letter disc code. Keep this deliberately
+    // narrow so ordinary three-part filenames such as "ABBA - Song - Live" are not
+    // mistaken for catalogue-prefixed karaoke tracks. Zoom Pop Box uses ZPB... codes
+    // such as ZPBINDIE.
+    private static readonly Regex LetterOnlyDiscPrefixRegex = new(@"^(?<disc>ZPB[A-Za-z0-9_-]{2,16})$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex ManufacturerRegex = new(@"^[A-Za-z]+", RegexOptions.Compiled);
 
     public async Task<LibraryImportResult> ImportAsync(
@@ -312,16 +317,44 @@ ON CONFLICT(file_path) DO UPDATE SET
         return ImportClassification.Unsupported;
     }
 
-    internal static (string Artist, string Title, string Manufacturer, string DiscId) ParseName(string path)
+    public static (string Artist, string Title, string Manufacturer, string DiscId) ParseName(string path)
     {
         var stem = Path.GetFileNameWithoutExtension(path).Trim();
         var parts = stem.Split(" - ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
         string artist = string.Empty, title = stem, manufacturer = string.Empty, disc = string.Empty;
-        if (parts.Length >= 3 && DiscPrefixRegex.IsMatch(parts[0]))
+        if (parts.Length >= 3 && TryParseDiscPrefix(parts[0], out disc, out manufacturer))
         {
-            disc = parts[0]; manufacturer = ManufacturerRegex.Match(disc).Value.ToUpperInvariant(); artist = parts[1]; title = string.Join(" - ", parts.Skip(2));
+            artist = parts[1];
+            title = string.Join(" - ", parts.Skip(2));
         }
-        else if (parts.Length >= 2) { artist = parts[0]; title = string.Join(" - ", parts.Skip(1)); }
+        else if (parts.Length >= 2)
+        {
+            artist = parts[0];
+            title = string.Join(" - ", parts.Skip(1));
+        }
         return (artist, title, manufacturer, disc);
+    }
+
+    private static bool TryParseDiscPrefix(string value, out string disc, out string manufacturer)
+    {
+        disc = string.Empty;
+        manufacturer = string.Empty;
+        var token = value.Trim();
+
+        if (DiscPrefixRegex.IsMatch(token))
+        {
+            disc = token;
+            manufacturer = ManufacturerRegex.Match(disc).Value.ToUpperInvariant();
+            return true;
+        }
+
+        if (LetterOnlyDiscPrefixRegex.IsMatch(token))
+        {
+            disc = token;
+            manufacturer = "ZPB";
+            return true;
+        }
+
+        return false;
     }
 }

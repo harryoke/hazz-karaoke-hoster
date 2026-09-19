@@ -3,6 +3,14 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using HazzKaraokeHoster.Playback.Cdg;
 
+var timing = new HazzKaraokeHoster.Playback.CdgTimingController();
+timing.Set(1);
+if (timing.GetGraphicsTime(TimeSpan.FromSeconds(10)).TotalSeconds != 11) throw new Exception("Positive CDG sync must advance graphics");
+timing.Set(-1);
+if (timing.GetGraphicsTime(TimeSpan.FromSeconds(10)).TotalSeconds != 9) throw new Exception("Negative CDG sync must delay graphics");
+timing.Reset();
+if (timing.GetGraphicsTime(TimeSpan.FromSeconds(10)).TotalSeconds != 10) throw new Exception("CDG sync reset");
+Console.WriteLine("PASS: CDG sync positive advances, negative delays, reset unchanged.");
 static byte[] Packet(byte instruction, params byte[] data)
 {
     var p = new byte[24]; p[0] = 9; p[1] = instruction;

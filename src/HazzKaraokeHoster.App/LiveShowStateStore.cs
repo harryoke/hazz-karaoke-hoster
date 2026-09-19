@@ -7,6 +7,9 @@ internal sealed class LiveShowStateStore
     private readonly string _path;
     private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = false };
 
+    private bool _canSave;
+    public bool CanSave => _canSave;
+
     public LiveShowStateStore()
     {
         var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hazz Karaoke Hoster");
@@ -18,12 +21,14 @@ internal sealed class LiveShowStateStore
     {
         try
         {
+            _canSave = true;
             if (!File.Exists(_path)) return null;
             var json = File.ReadAllText(_path);
-            return JsonSerializer.Deserialize<LiveShowSnapshot>(json, _jsonOptions);
+            return JsonSerializer.Deserialize<LiveShowSnapshot>(json, _jsonOptions) ?? throw new InvalidDataException("Empty show recovery file");
         }
         catch (Exception ex)
         {
+            _canSave = false;
             App.WriteDiagnostic("SHOW RECOVERY LOAD", ex.ToString());
             return null;
         }
@@ -31,13 +36,15 @@ internal sealed class LiveShowStateStore
 
     public void Save(LiveShowSnapshot snapshot)
     {
+        if (!_canSave) return;
         try
         {
             var directory = Path.GetDirectoryName(_path);
             if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
             var temp = _path + ".tmp";
             File.WriteAllText(temp, JsonSerializer.Serialize(snapshot, _jsonOptions));
-            File.Move(temp, _path, true);
+            if (File.Exists(_path)) File.Replace(temp, _path, _path + ".previous", true);
+            else File.Move(temp, _path);
         }
         catch (Exception ex)
         {
@@ -47,6 +54,7 @@ internal sealed class LiveShowStateStore
 
     public void Clear()
     {
+        if (!_canSave) return;
         try
         {
             if (File.Exists(_path)) File.Delete(_path);
@@ -94,6 +102,7 @@ internal sealed class LiveShowSongSnapshot
     public string SongTitle { get; set; } = string.Empty;
     public string Artist { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;
+    public double? DurationSeconds { get; set; }
     public int KeyChange { get; set; }
     public double CdgSyncSeconds { get; set; }
 }

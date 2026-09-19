@@ -1,0 +1,22 @@
+HAZZ KARAOKE HOSTER v1.4.2 USER FEEDBACK TEST — BUILD FIX 3
+============================================================
+Baseline: v1.4.2 UserFeedbackTest BuildFix2
+
+Fixes in this package
+---------------------
+1. Karaoke Focus / Single Deck post-karaoke music handoff
+   - Deck 2 is a holding Side List in Single Deck/Karaoke Focus mode and must never
+     be selected as a playable resume target.
+   - CaptureMusicResumeTarget now selects Deck 1 only while Single Deck mode is active.
+   - ResumeMusicAfterKaraoke also normalises any old/restored Deck 2 resume target
+     back to Deck 1 as a second-line safety check.
+   - This addresses the reported case where a Deck 1 playlist did not resume after
+     the first natural karaoke ending while the singer list was on the right.
+
+2. Music deck LED scrolling
+   - LED/marquee animation now has its own 33 ms DispatcherTimer instead of sharing
+     the music automation/fade timer.
+   - Deck LED canvases now use a fixed 48 px viewport height and stretch horizontally.
+   - LED measurement/reset handling was hardened for zero-size/initial-layout cases.
+
+No v1.4.2 user-feedback features were removed.

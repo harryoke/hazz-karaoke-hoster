@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using HazzKaraokeHoster.Core;
 using HazzKaraokeHoster.Core.Interfaces;
 using HazzKaraokeHoster.Core.Models;
 using HazzKaraokeHoster.Data;
@@ -44,6 +45,7 @@ public partial class MainWindow : Window
     private readonly CancellationTokenSource _lifetime = new();
     private readonly DispatcherTimer _karaokeVisualTimer = new() { Interval = TimeSpan.FromMilliseconds(15) };
     private readonly DispatcherTimer _musicAutomationTimer = new() { Interval = TimeSpan.FromMilliseconds(50) };
+    private readonly DispatcherTimer _deckLedTimer = new() { Interval = TimeSpan.FromMilliseconds(33) };
     private readonly byte[] _cdgFrameBuffer = new byte[CdgDecoder.Width * CdgDecoder.Height * 4];
 
     private enum MusicDeckId { None, Deck1, Deck2 }
@@ -114,6 +116,7 @@ public partial class MainWindow : Window
     private bool _karaokePlaying;
     private bool _karaokePaused;
     private bool _karaokePresentationActive;
+    private bool _karaokeSeekDragging;
     private DateTime _lastAudienceVideoSyncUtc = DateTime.MinValue;
     private DateTime _lastPitchSyncUtc = DateTime.MinValue;
     private SingerQueueEntry? _activeSinger;
@@ -128,6 +131,7 @@ public partial class MainWindow : Window
     private double _lastPreviewHeight = 250;
     private double _deckBPlayerHeightBeforeSideList = 205;
     private bool _singleDeckMode;
+    private bool _karaokeFocusMode;
     private bool _autoCrossfadeBeforeSingleDeck = true;
     private string _audienceBackgroundFolderPath = string.Empty;
     private string _audienceBackgroundImagePath = string.Empty;
@@ -208,6 +212,7 @@ public partial class MainWindow : Window
 
         _karaokeVisualTimer.Tick += (_, _) => RunLiveTimerSafe("KARAOKE VISUAL TIMER", KaraokeVisualTimer_Tick);
         _musicAutomationTimer.Tick += (_, _) => RunLiveTimerSafe("MUSIC AUTOMATION TIMER", MusicAutomationTimer_Tick);
+        _deckLedTimer.Tick += (_, _) => RunLiveTimerSafe("DECK LED TIMER", UpdateDeckLedDisplays);
         _musicQueueSaveTimer.Tick += (_, _) =>
         {
             _musicQueueSaveTimer.Stop();
@@ -270,7 +275,11 @@ public partial class MainWindow : Window
             RestoreMainLayout();
             RestoreMusicDeckQueues();
             ClampFixedRowsToViewport();
+            _lastLedUpdateUtc = DateTime.UtcNow;
+            _deckALedX = double.NaN;
+            _deckBLedX = double.NaN;
             _musicAutomationTimer.Start();
+            _deckLedTimer.Start();
             _recoveryCheckpointTimer.Start();
             UpdateMusicAutomationStatus("Music ready");
             RefreshDisplayTargets();
@@ -282,10 +291,12 @@ public partial class MainWindow : Window
                 if (databaseBytes >= 1024L * 1024 * 1024)
                     App.WriteDiagnostic("DATABASE SIZE", $"Hazz database storage is {databaseBytes / (1024d * 1024 * 1024):0.00} GB. Back up and review repeated imports if growth is unexpected.");
                 TryRestoreLiveShowState();
+                _showRecoveryReady = _liveShowStateStore.CanSave;
                 await RefreshLibraryCountsAsync();
                 await RefreshSavedSingerNamesAsync();
                 await RefreshLibraryAutoWatchAsync();
                 InitializeVenueAutosave();
+                UpdateQueueTimeEstimate();
                 SearchStatus.Text = "Database ready • library auto-watch ON";
             }
             catch (Exception ex)
@@ -308,6 +319,7 @@ public partial class MainWindow : Window
             _karaokeStopFadeCts?.Cancel();
             _karaokeVisualTimer.Stop();
             _musicAutomationTimer.Stop();
+            _deckLedTimer.Stop();
             _musicQueueSaveTimer.Stop();
             _liveShowStateSaveTimer.Stop();
             _recoveryCheckpointTimer.Stop();
@@ -493,8 +505,27 @@ public partial class MainWindow : Window
         }
     }
 
+    private bool _restoringMainLayout;
+    private bool _mainLayoutReady;
+    private bool _musicQueuesReady;
+    private bool _showRecoveryReady;
+
     private void RestoreMainLayout()
     {
+        _restoringMainLayout = true;
+        _mainLayoutReady = false;
+        try
+        {
+            RestoreMainLayoutCore();
+            _mainLayoutReady = true;
+        }
+        finally { _restoringMainLayout = false; }
+    }
+
+    private void RestoreMainLayoutCore()
+    {
+        _consoleSkinLayout?.Apply("Classic", false, false);
+        _consoleSkinLayout = null;
         // Close editors bound to the previous venue's outline settings.
         // Do not save the old editor over the profile being restored.
         if (_textOutlineWindow != null)
@@ -504,12 +535,15 @@ public partial class MainWindow : Window
             finally { _restoringOutlineSettings = false; }
         }
         var settings = UiLayoutSettingsStore.Load();
+        _kamikazeFolderPath = settings.KamikazeFolderPath ?? string.Empty;
+        UpdateKamikazeSourceMenu();
         _audienceTextStrokes = settings.AudienceTextStrokes ?? new();
         ApplyHostTextScale(settings.HostTextScale);
         ApplyAudienceVideoEngine(settings.UseLibVlcAudienceVideo);
         ApplyCdgSmoothing(settings.SmoothCdgPicture);
 
         ApplyKaraokeMusicAction(settings.KaraokeMusicAction);
+        _consoleSkin = ConsoleSkinLayout.Normalize(settings.ConsoleSkin);
         _fairRotation = settings.AutomaticRotation;
         _fairPrimary = settings.RotationPrimary;
         _newcomerPlacement = settings.NewcomerPlacement;
@@ -528,14 +562,18 @@ public partial class MainWindow : Window
         Width = Math.Clamp(settings.WindowWidth, MinWidth, Math.Max(MinWidth, work.Width));
         Height = Math.Clamp(settings.WindowHeight, MinHeight, Math.Max(MinHeight, work.Height));
         Dispatcher.BeginInvoke(() => WindowState = WindowState.Maximized, DispatcherPriority.Loaded);
-        MainLeftColumn.Width = new GridLength(Math.Clamp(settings.LeftColumnWeight, 0.05, 10), GridUnitType.Star);
+        _classicLeftWeight = Math.Clamp(settings.LeftColumnWeight, 0.05, 10);
+        _classicCenterWeight = Math.Clamp(settings.CenterColumnWeight, 0.05, 10);
+        _classicRightWeight = Math.Clamp(settings.RightColumnWeight, 0.05, 10);
+        MainLeftColumn.Width = new GridLength(_classicLeftWeight, GridUnitType.Star);
         MainCenterColumn.Width = new GridLength(Math.Clamp(settings.CenterColumnWeight, 0.05, 10), GridUnitType.Star);
         MainRightColumn.Width = new GridLength(Math.Clamp(settings.RightColumnWeight, 0.05, 10), GridUnitType.Star);
         _lastPreviewHeight = 120;
         SetPreviewVisible(settings.PreviewVisible);
         SetKaraokeOnlyMode(settings.KaraokeOnlyMode, stopMusic: false, saveImmediately: false);
         _deckBPlayerHeightBeforeSideList = Math.Max(145, settings.DeckBPlayerHeight);
-        SetSingleDeckMode(settings.SingleDeckMode, stopDeck2: false, saveImmediately: false);
+        SetSingleDeckMode(settings.SingleDeckMode || settings.KaraokeFocusMode, stopDeck2: false, saveImmediately: false);
+        SetKaraokeFocusMode(settings.KaraokeFocusMode, stopDeck2: false, saveImmediately: false);
         ClampFixedRowsToViewport();
         BackgroundGifSpeedSlider.Value = double.IsFinite(settings.AudienceBackgroundGifSpeed) ? Math.Clamp(settings.AudienceBackgroundGifSpeed, 0.25, 4) : 1;
         SelectComboItemByContent(BackgroundStretchCombo, DisplayBackgroundStretch(settings.AudienceBackgroundStretchMode), "Fit");
@@ -593,6 +631,9 @@ public partial class MainWindow : Window
 
     private void SaveMainLayout()
     {
+        if (!_mainLayoutReady || _restoringMainLayout) return;
+        RememberClassicWidths();
+        var preservedSettings = UiLayoutSettingsStore.Load();
         var totalWidth = Math.Max(1.0, MainLeftColumn.ActualWidth + MainCenterColumn.ActualWidth + MainRightColumn.ActualWidth);
         UiLayoutSettingsStore.Save(new UiLayoutSettings
         {
@@ -602,6 +643,8 @@ public partial class MainWindow : Window
             SmoothCdgPicture = _smoothCdgPicture,
 
             KaraokeMusicAction = _karaokeMusicAction,
+            ConsoleSkin = _consoleSkin,
+            KamikazeFolderPath = _kamikazeFolderPath,
             AutomaticRotation = _fairRotation,
             RotationPrimary = _fairPrimary,
             NewcomerPlacement = _newcomerPlacement,
@@ -612,9 +655,9 @@ public partial class MainWindow : Window
             DefaultDeck2Volume = DeckBVolume.Value,
             DefaultAutoCrossfade = AutoCrossfadeCheck.IsChecked == true,
             DefaultCrossfadeSeconds = CrossfadeSecondsSlider.Value,
-            LeftColumnWeight = Math.Max(0.05, MainLeftColumn.ActualWidth / totalWidth),
-            CenterColumnWeight = Math.Max(0.05, MainCenterColumn.ActualWidth / totalWidth),
-            RightColumnWeight = Math.Max(0.05, MainRightColumn.ActualWidth / totalWidth),
+            LeftColumnWeight = _classicLeftWeight,
+            CenterColumnWeight = _classicCenterWeight,
+            RightColumnWeight = _classicRightWeight,
             DeckAPlayerHeight = Math.Max(145, DeckAPlayerRow.ActualHeight),
             DeckBPlayerHeight = Math.Max(145, _singleDeckMode ? _deckBPlayerHeightBeforeSideList : DeckBPlayerRow.ActualHeight),
             KaraokeDeckHeight = Math.Max(185, _karaokeOnlyMode ? _fullModeKaraokeDeckHeight : KaraokeDeckRow.ActualHeight),
@@ -625,6 +668,8 @@ public partial class MainWindow : Window
             WindowMaximized = WindowState == WindowState.Maximized,
             KaraokeOnlyMode = _karaokeOnlyMode,
             SingleDeckMode = _singleDeckMode,
+            KaraokeFocusMode = _karaokeFocusMode,
+            ExtensionData = preservedSettings.ExtensionData,
             AudienceBackgroundEnabled = AudienceBackgroundEnabledCheck.IsChecked == true,
             AudienceBackgroundGifSpeed = BackgroundGifSpeedSlider.Value,
             AudienceBackgroundStretchMode = SelectedBackgroundStretch(),
@@ -677,6 +722,7 @@ public partial class MainWindow : Window
 
     private void SaveMusicDeckQueuesNow()
     {
+        if (!_musicQueuesReady || _restoringMusicDeckQueues) return;
         _musicQueueSaveTimer.Stop();
         var state = new MusicDeckQueueState
         {
@@ -709,6 +755,7 @@ public partial class MainWindow : Window
 
     private void RestoreMusicDeckQueues()
     {
+        _musicQueuesReady = false;
         var state = MusicDeckQueueStateStore.Load();
         _restoringMusicDeckQueues = true;
         try
@@ -717,6 +764,7 @@ public partial class MainWindow : Window
             DeckBPlaylist.Items.Clear();
             RestoreMusicDeckQueue(DeckAPlaylist, state.Deck1);
             RestoreMusicDeckQueue(DeckBPlaylist, state.Deck2);
+            _musicQueuesReady = true;
             RenumberPlaylist(DeckAPlaylist);
             RenumberPlaylist(DeckBPlaylist);
             RecalculateMusicDeckOrder(MusicDeckId.Deck1);
@@ -804,9 +852,11 @@ public partial class MainWindow : Window
         if (visible)
         {
             KaraokePreviewRow.MinHeight = 80;
-            KaraokePreviewSplitterRow.Height = new GridLength(8);
-            KaraokePreviewRow.Height = new GridLength(Math.Clamp(_lastPreviewHeight, 80, 650));
-            KaraokePreviewSplitter.Visibility = Visibility.Visible;
+            KaraokePreviewSplitterRow.Height = _karaokeFocusMode ? new GridLength(0) : new GridLength(8);
+            KaraokePreviewRow.Height = _karaokeFocusMode
+                ? new GridLength(1, GridUnitType.Star)
+                : new GridLength(Math.Clamp(_lastPreviewHeight, 80, 650));
+            KaraokePreviewSplitter.Visibility = _karaokeFocusMode ? Visibility.Collapsed : Visibility.Visible;
             KaraokePreviewPanel.Visibility = Visibility.Visible;
             PreviewToggleButton.Content = "HIDE PREVIEW";
         }
@@ -835,6 +885,10 @@ public partial class MainWindow : Window
 
     private void SetSingleDeckMode(bool enabled, bool stopDeck2, bool saveImmediately)
     {
+        if (!enabled && _karaokeFocusMode)
+            SetKaraokeFocusMode(false, stopDeck2: false, saveImmediately: false);
+
+        var wasSingleDeck = _singleDeckMode;
         _singleDeckMode = enabled;
         if (SingleDeckModeMenuItem is not null) SingleDeckModeMenuItem.IsChecked = enabled;
 
@@ -843,7 +897,7 @@ public partial class MainWindow : Window
             if (DeckBPlayerRow.ActualHeight >= 145) _deckBPlayerHeightBeforeSideList = DeckBPlayerRow.ActualHeight;
             if (stopDeck2) StopDeckTwoForSideListMode();
             CancelMusicTransitions();
-            _autoCrossfadeBeforeSingleDeck = AutoCrossfadeCheck.IsChecked == true;
+            if (!wasSingleDeck) _autoCrossfadeBeforeSingleDeck = AutoCrossfadeCheck.IsChecked == true;
             AutoCrossfadeCheck.IsChecked = false;
             AutoCrossfadeCheck.IsEnabled = false;
             CrossfadeSecondsSlider.IsEnabled = false;
@@ -885,6 +939,7 @@ public partial class MainWindow : Window
             SearchStatus.Text = enabled ? "Single Deck mode • Deck 2 is a side list" : "Karaoke + Music Mode";
         }
         UpdateVisualCrossfader();
+        ApplyConsoleSkinLayout();
         ClampFixedRowsToViewport();
         if (saveImmediately && IsLoaded) SaveMainLayout();
     }
@@ -907,8 +962,76 @@ public partial class MainWindow : Window
         RecalculateMusicDeckOrder(MusicDeckId.Deck2);
     }
 
+    private void KaraokeFocusMode_Click(object sender, RoutedEventArgs e)
+    {
+        SetKaraokeFocusMode(KaraokeFocusModeMenuItem.IsChecked, stopDeck2: true, saveImmediately: true);
+    }
+
+    private void SetKaraokeFocusMode(bool enabled, bool stopDeck2, bool saveImmediately)
+    {
+        if (enabled && _karaokeOnlyMode)
+            SetKaraokeOnlyMode(false, stopMusic: false, saveImmediately: false);
+
+        _karaokeFocusMode = enabled;
+        if (KaraokeFocusModeMenuItem is not null) KaraokeFocusModeMenuItem.IsChecked = enabled;
+
+        if (enabled)
+        {
+            SetSingleDeckMode(true, stopDeck2, saveImmediately: false);
+
+            if (SingerListPanel.Parent is Panel currentParent)
+                currentParent.Children.Remove(SingerListPanel);
+            if (!KaraokeFocusSingerHost.Children.Contains(SingerListPanel))
+                KaraokeFocusSingerHost.Children.Add(SingerListPanel);
+            Grid.SetRow(SingerListPanel, 0);
+            Grid.SetColumn(SingerListPanel, 0);
+
+            SingerListRow.MinHeight = 0;
+            SingerListRow.Height = new GridLength(0);
+            KaraokeFocusSingerHost.Visibility = Visibility.Visible;
+            MusicDeckBPanel.Visibility = Visibility.Collapsed;
+
+            SetPreviewVisible(true);
+            HostModeText.Text = "KARAOKE FOCUS + SINGLE MUSIC DECK";
+            SearchStatus.Text = "Karaoke Focus • singer list on right • enlarged karaoke preview";
+        }
+        else
+        {
+            if (SingerListPanel.Parent is Panel currentParent)
+                currentParent.Children.Remove(SingerListPanel);
+            if (!SingerListHome.Children.Contains(SingerListPanel))
+                SingerListHome.Children.Add(SingerListPanel);
+            Grid.SetRow(SingerListPanel, 0);
+            Grid.SetColumn(SingerListPanel, 0);
+
+            KaraokeFocusSingerHost.Visibility = Visibility.Collapsed;
+            if (!_karaokeOnlyMode) MusicDeckBPanel.Visibility = Visibility.Visible;
+            SingerListRow.MinHeight = 105;
+            SingerListRow.Height = new GridLength(1, GridUnitType.Star);
+
+            if (KaraokePreviewPanel.Visibility == Visibility.Visible)
+            {
+                KaraokePreviewSplitterRow.Height = new GridLength(8);
+                KaraokePreviewSplitter.Visibility = Visibility.Visible;
+                KaraokePreviewRow.Height = new GridLength(Math.Clamp(_lastPreviewHeight, 80, 650));
+            }
+
+            if (!_karaokeOnlyMode)
+            {
+                HostModeText.Text = _singleDeckMode ? "KARAOKE + SINGLE MUSIC DECK" : "KARAOKE + MUSIC MODE";
+                SearchStatus.Text = _singleDeckMode ? "Single Deck mode • Deck 2 is a side list" : "Karaoke + Music Mode";
+            }
+        }
+
+        ClampFixedRowsToViewport();
+        if (saveImmediately && IsLoaded) SaveMainLayout();
+    }
+
     private void SetKaraokeOnlyMode(bool enabled, bool stopMusic, bool saveImmediately)
     {
+        if (enabled && _karaokeFocusMode)
+            SetKaraokeFocusMode(false, stopDeck2: false, saveImmediately: false);
+
         _karaokeOnlyMode = enabled;
         if (KaraokeOnlyModeMenuItem is not null) KaraokeOnlyModeMenuItem.IsChecked = enabled;
 
@@ -960,6 +1083,7 @@ public partial class MainWindow : Window
             SearchStatus.Text = _singleDeckMode ? "Single Deck mode • Deck 2 is a side list" : "Karaoke + Music Mode";
         }
 
+        ApplyConsoleSkinLayout();
         ClampFixedRowsToViewport();
         if (saveImmediately && IsLoaded) SaveMainLayout();
     }
@@ -1015,7 +1139,9 @@ public partial class MainWindow : Window
         DeckBPlayerRow.Height = GridLength.Auto;
         KaraokeDeckRow.Height = GridLength.Auto;
         if (KaraokePreviewPanel.Visibility == Visibility.Visible)
-            KaraokePreviewRow.Height = new GridLength(120);
+            KaraokePreviewRow.Height = _karaokeFocusMode
+                ? new GridLength(1, GridUnitType.Star)
+                : new GridLength(120);
         SettingsAutoFit.MaxWidth = Math.Max(100, width - 24);
         SettingsAutoFit.MaxHeight = Math.Max(100, height - 40);
     }
@@ -1246,7 +1372,16 @@ public partial class MainWindow : Window
 
         var karaokeTotal = MediaDuration(KaraokeMedia);
         if (karaokeTotal <= TimeSpan.Zero && _pitchAudio.TotalTime > TimeSpan.Zero) karaokeTotal = _pitchAudio.TotalTime;
-        UpdateTimeText(KaraokeMedia.Position, karaokeTotal, KaraokeTimeText, KaraokeProgress);
+        UpdateTimeTextOnly(KaraokeMedia.Position, karaokeTotal, KaraokeTimeText);
+        if (!_karaokeSeekDragging)
+        {
+            KaraokeProgress.Maximum = Math.Max(1.0, karaokeTotal.TotalSeconds);
+            KaraokeProgress.Value = karaokeTotal > TimeSpan.Zero
+                ? Math.Clamp(KaraokeMedia.Position.TotalSeconds, 0.0, karaokeTotal.TotalSeconds)
+                : 0.0;
+            KaraokeProgress.IsEnabled = karaokeTotal > TimeSpan.Zero;
+        }
+        UpdateQueueTimeEstimate();
     }
 
     private static void UpdateMediaTime(MediaElement media, TextBlock text, Slider seek, bool dragging)
@@ -1285,6 +1420,75 @@ public partial class MainWindow : Window
         text.Text = total > TimeSpan.Zero
             ? $"ELAPSED {FormatPlayerTime(position)}  •  REMAINING {FormatPlayerTime(remaining)}  •  TOTAL {FormatPlayerTime(total)}"
             : $"ELAPSED {FormatPlayerTime(position)}  •  REMAINING --:--  •  TOTAL --:--";
+    }
+
+    private TimeSpan KaraokeDuration()
+    {
+        var total = MediaDuration(KaraokeMedia);
+        if (total <= TimeSpan.Zero && _pitchAudio.TotalTime > TimeSpan.Zero) total = _pitchAudio.TotalTime;
+        if (total <= TimeSpan.Zero && _activeSingerSong?.DurationSeconds is double queuedSeconds && queuedSeconds > 0)
+            total = TimeSpan.FromSeconds(queuedSeconds);
+        if (total <= TimeSpan.Zero && _currentKaraokeRecord?.DurationSeconds is double recordSeconds && recordSeconds > 0)
+            total = TimeSpan.FromSeconds(recordSeconds);
+        return total;
+    }
+
+    private void KaraokeSeek_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        => _karaokeSeekDragging = true;
+
+    private void KaraokeSeek_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        _karaokeSeekDragging = false;
+        SeekKaraoke(KaraokeProgress.Value);
+    }
+
+    private void KaraokeSeek_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (!_karaokeSeekDragging) return;
+        UpdateTimeTextOnly(TimeSpan.FromSeconds(e.NewValue), KaraokeDuration(), KaraokeTimeText);
+    }
+
+    private void KaraokeSeek_KeyUp(object sender, KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Left or Key.Right or Key.Home or Key.End or Key.PageUp or Key.PageDown)) return;
+        SeekKaraoke(KaraokeProgress.Value);
+    }
+
+    private void KaraokeBack5_Click(object sender, RoutedEventArgs e)
+        => SeekKaraoke(KaraokeMedia.Position.TotalSeconds - 5);
+
+    private void KaraokeForward5_Click(object sender, RoutedEventArgs e)
+        => SeekKaraoke(KaraokeMedia.Position.TotalSeconds + 5);
+
+    private void SeekKaraoke(double seconds)
+    {
+        if (_karaokePackage is null || KaraokeMedia.Source is null)
+        {
+            SearchStatus.Text = "Load a karaoke track before seeking.";
+            return;
+        }
+
+        var total = KaraokeDuration();
+        if (total <= TimeSpan.Zero)
+        {
+            SearchStatus.Text = "Karaoke duration is not available yet.";
+            return;
+        }
+
+        var target = TimeSpan.FromSeconds(Math.Clamp(seconds, 0.0, total.TotalSeconds));
+        KaraokeMedia.Position = target;
+        if (_pitchAudio.IsLoaded) _pitchAudio.Position = target;
+
+        RenderCdgAtCurrentPosition(force: true);
+
+        if (_karaokePackage.Kind == KaraokePackageKind.Video && _karaokePresentationActive)
+        {
+            _audience?.PlayVideo(target);
+            if (_karaokePaused || !_karaokePlaying) _audience?.PauseVideo();
+        }
+
+        UpdatePlayerTimeDisplays(force: true);
+        SearchStatus.Text = $"Karaoke positioned at {target:hh\\:mm\\:ss}.";
     }
 
     private void MusicSeek_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -1386,10 +1590,11 @@ public partial class MainWindow : Window
         if (SearchKaraokeButton is null || SearchMusicButton is null || SearchMusicVideoButton is null) return;
         // Karaoke results leave the singer rotation visible as a drop target. Music
         // results move over the centre so both music playlists remain reachable.
-        Grid.SetColumn(SearchResultsOverlay, IsMusicSearchMode ? 2 : 0);
+        PositionSkinSearch();
         SetButtonActive(SearchKaraokeButton, _searchMediaKind == "Karaoke");
         SetButtonActive(SearchMusicButton, _searchMediaKind == "Music");
         SetButtonActive(SearchMusicVideoButton, _searchMediaKind == "MusicVideo");
+        SearchDurationColumn.Visibility = _searchMediaKind == "Karaoke" ? Visibility.Visible : Visibility.Collapsed;
         SearchGrid.SelectionMode = IsMusicSearchMode ? DataGridSelectionMode.Extended : DataGridSelectionMode.Single;
         SearchSelectAllButton.Visibility = IsMusicSearchMode ? Visibility.Visible : Visibility.Collapsed;
         SearchResultsTitle.Text = _searchMediaKind == "MusicVideo" ? "MUSIC VIDEO SEARCH RESULTS" : _searchMediaKind.ToUpperInvariant() + " SEARCH RESULTS";
@@ -1405,6 +1610,8 @@ public partial class MainWindow : Window
         _searchCts?.Cancel();
         _searchCts?.Dispose();
         _searchCts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        var token = _searchCts.Token;
+        var kind = _searchMediaKind;
         var text = SearchBox.Text.Trim();
         if (text.Length < 2)
         {
@@ -1416,14 +1623,55 @@ public partial class MainWindow : Window
 
         try
         {
-            await Task.Delay(120, _searchCts.Token);
-            var rows = await _library.SearchByKindAsync(text, _searchMediaKind, 300, _searchCts.Token);
+            await Task.Delay(120, token);
+            var rows = await _library.SearchByKindAsync(text, kind, 300, token);
+            token.ThrowIfCancellationRequested();
             SearchGrid.ItemsSource = rows;
             SearchResultsOverlay.Visibility = Visibility.Visible;
-            SearchStatus.Text = $"{rows.Count} {_searchMediaKind.ToLowerInvariant()} results";
+            SearchStatus.Text = $"{rows.Count} {kind.ToLowerInvariant()} results";
+
+            if (kind == "Karaoke" && rows.Count > 0)
+            {
+                SearchStatus.Text = $"{rows.Count} karaoke results • reading track lengths…";
+                var withDurations = await PopulateSearchDurationsAsync(rows, token);
+                token.ThrowIfCancellationRequested();
+                SearchGrid.ItemsSource = withDurations;
+                SearchStatus.Text = $"{withDurations.Count} karaoke results";
+            }
         }
         catch (OperationCanceledException) { }
-        catch (Exception ex) { SearchStatus.Text = "Search error: " + ex.Message; }
+        catch (Exception ex) { if (!token.IsCancellationRequested) SearchStatus.Text = "Search error: " + ex.Message; }
+    }
+
+    private async Task<IReadOnlyList<SongRecord>> PopulateSearchDurationsAsync(IReadOnlyList<SongRecord> rows, CancellationToken token)
+    {
+        // Cap probing so broad searches stay responsive. Narrow searches such as a song title
+        // normally resolve every result. Cached values are returned instantly on later searches.
+        const int probeLimit = 80;
+        var result = rows.ToArray();
+        for (var i = 0; i < result.Length && i < probeLimit; i++)
+        {
+            token.ThrowIfCancellationRequested();
+            if (result[i].DurationSeconds is double known && known > 0) continue;
+            var seconds = await MediaDurationProbe.TryReadSecondsAsync(result[i].FilePath, token);
+            if (seconds is not double duration || duration <= 0) continue;
+            result[i] = result[i] with { DurationSeconds = duration };
+            try { await _library.SaveDurationAsync(result[i].Id, duration, token); }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { App.WriteDiagnostic("DURATION CACHE", ex.ToString()); }
+        }
+        return result;
+    }
+
+    private async Task<SongRecord> EnsureSongDurationAsync(SongRecord song, CancellationToken token)
+    {
+        if (song.DurationSeconds is double known && known > 0) return song;
+        var seconds = await MediaDurationProbe.TryReadSecondsAsync(song.FilePath, token);
+        if (seconds is not double duration || duration <= 0) return song;
+        try { await _library.SaveDurationAsync(song.Id, duration, token); }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex) { App.WriteDiagnostic("DURATION CACHE", ex.ToString()); }
+        return song with { DurationSeconds = duration };
     }
 
     private void SearchClose_Click(object sender, RoutedEventArgs e)
@@ -1746,9 +1994,14 @@ public partial class MainWindow : Window
         if (e.NewItems is not null)
             foreach (SingerQueueEntry singer in e.NewItems) singer.PropertyChanged += QueueSinger_PropertyChanged;
         MarkLiveShowStateDirty();
+        UpdateQueueTimeEstimate();
     }
 
-    private void QueueSinger_PropertyChanged(object? sender, PropertyChangedEventArgs e) => MarkLiveShowStateDirty();
+    private void QueueSinger_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        MarkLiveShowStateDirty();
+        UpdateQueueTimeEstimate();
+    }
 
     private void MarkLiveShowStateDirty()
     {
@@ -1760,6 +2013,7 @@ public partial class MainWindow : Window
 
     private void SaveLiveShowStateNow(bool cleanShutdown)
     {
+        if (!_showRecoveryReady) return;
         _liveShowStateSaveTimer.Stop();
         _liveShowStateDirty = false;
         if (_restoringLiveShowState) return;
@@ -1798,6 +2052,7 @@ public partial class MainWindow : Window
                     SongTitle = song.SongTitle,
                     Artist = song.Artist,
                     FilePath = song.FilePath,
+                    DurationSeconds = song.DurationSeconds,
                     KeyChange = song.KeyChange,
                     CdgSyncSeconds = song.CdgSyncSeconds
                 }).ToList()
@@ -1867,6 +2122,7 @@ public partial class MainWindow : Window
                         SongTitle = savedSong.SongTitle,
                         Artist = savedSong.Artist,
                         FilePath = savedSong.FilePath,
+                        DurationSeconds = savedSong.DurationSeconds,
                         KeyChange = savedSong.KeyChange,
                         CdgSyncSeconds = savedSong.CdgSyncSeconds
                     });
@@ -1888,6 +2144,7 @@ public partial class MainWindow : Window
             _restoringLiveShowState = false;
         }
         UpdateAudienceNext();
+        _ = HydrateQueueDurationsAsync();
         MarkLiveShowStateDirty(); // Marks this running session as not-clean until Hazz closes normally.
     }
 
@@ -1950,13 +2207,16 @@ public partial class MainWindow : Window
 
     private async Task<bool> AddSongToSingerAsync(SingerQueueEntry singer, SongRecord song, bool warnAboutDuplicate = true)
     {
+        if (!await EnsureIndexedSongAvailableAsync(song)) return false;
         if (warnAboutDuplicate && !await ConfirmDuplicateRequestAsync(singer, song.Id, song.Artist, song.Title)) return false;
+        song = await EnsureSongDurationAsync(song, _lifetime.Token);
         singer.Songs.Add(new SingerSongEntry
         {
             SongId = song.Id,
             SongTitle = song.Title,
             Artist = song.Artist,
             FilePath = song.FilePath,
+            DurationSeconds = song.DurationSeconds,
             KeyChange = song.PreferredKey,
             CdgSyncSeconds = song.CdgSyncSeconds
         });
@@ -2191,6 +2451,7 @@ public partial class MainWindow : Window
                 ? DragDropEffects.Copy : DragDropEffects.None;
         }
         else e.Effects = DragDropEffects.None;
+        DragEdgeScroll.Update((ItemsControl)sender, e);
         e.Handled = true;
     }
 
@@ -2322,10 +2583,10 @@ public partial class MainWindow : Window
         EnsureAudienceWindow().MakeWindowed();
     }
 
-    private void OverlayChanged(object sender, RoutedEventArgs e) { if (IsLoaded) ApplyOverlaySettings(); }
-    private void OverlayChanged(object sender, TextChangedEventArgs e) { if (IsLoaded) ApplyOverlaySettings(); }
-    private void OverlayChanged(object sender, SelectionChangedEventArgs e) { if (IsLoaded) ApplyOverlaySettings(); }
-    private void OverlayChanged(object sender, RoutedPropertyChangedEventArgs<double> e) { if (IsLoaded) ApplyOverlaySettings(); }
+    private void OverlayChanged(object sender, RoutedEventArgs e) { if (IsLoaded && !_restoringMainLayout) ApplyOverlaySettings(); }
+    private void OverlayChanged(object sender, TextChangedEventArgs e) { if (IsLoaded && !_restoringMainLayout) ApplyOverlaySettings(); }
+    private void OverlayChanged(object sender, SelectionChangedEventArgs e) { if (IsLoaded && !_restoringMainLayout) ApplyOverlaySettings(); }
+    private void OverlayChanged(object sender, RoutedPropertyChangedEventArgs<double> e) { if (IsLoaded && !_restoringMainLayout) ApplyOverlaySettings(); }
 
     private AudienceOverlaySettings CurrentOverlaySettings()
     {
@@ -2403,6 +2664,80 @@ public partial class MainWindow : Window
         _audience?.Apply(CurrentOverlaySettings());
         _audience?.SetKaraokeActive(_karaokePresentationActive);
         if (_kamikazeBannerRequested) _audience?.ShowKamikazeBanner();
+    }
+
+    private void UpdateQueueTimeEstimate()
+    {
+        if (QueueTimeText is null) return;
+        double seconds = 0;
+        var queuedRequests = 0;
+        var unknown = 0;
+        var heldExcluded = 0;
+
+        foreach (var singer in _queue)
+        {
+            if (singer.IsHeld)
+            {
+                heldExcluded += singer.Songs.Count;
+                continue;
+            }
+            foreach (var song in singer.Songs)
+            {
+                queuedRequests++;
+                if (song.DurationSeconds is double duration && duration > 0) seconds += duration;
+                else { seconds += 240; unknown++; } // conservative four-minute estimate until duration is known
+            }
+        }
+
+        // The currently singing track was checked out of the singer queue at PLAY,
+        // so add only the remaining portion here to represent time until the show is clear.
+        if (_karaokePlaying || _karaokePaused)
+        {
+            var total = KaraokeDuration();
+            if (total > TimeSpan.Zero)
+                seconds += Math.Max(0, (total - KaraokeMedia.Position).TotalSeconds);
+        }
+
+        var totalTime = TimeSpan.FromSeconds(Math.Max(0, seconds));
+        var text = totalTime.TotalHours >= 1
+            ? $"{(int)totalTime.TotalHours}h {totalTime.Minutes:00}m"
+            : $"{Math.Max(0, (int)Math.Ceiling(totalTime.TotalMinutes))}m";
+        QueueTimeText.Text = $"REMAINING {(unknown > 0 ? "~" : "")}{text}";
+        QueueTimeText.ToolTip = $"{queuedRequests} queued request(s)" +
+                                (unknown > 0 ? $" • {unknown} length(s) estimated at 4 minutes" : "") +
+                                (heldExcluded > 0 ? $" • {heldExcluded} held request(s) excluded" : "") +
+                                ". Includes the remaining time of the song currently playing.";
+    }
+
+    private async Task HydrateQueueDurationsAsync()
+    {
+        try
+        {
+            foreach (var queuedSong in _queue.SelectMany(singer => singer.Songs).ToArray())
+            {
+                _lifetime.Token.ThrowIfCancellationRequested();
+                if (queuedSong.DurationSeconds is double known && known > 0) continue;
+                SongRecord? librarySong = null;
+                if (!string.IsNullOrWhiteSpace(queuedSong.FilePath))
+                    librarySong = await _library.FindByFilePathAsync(queuedSong.FilePath, _lifetime.Token);
+                if (librarySong is not null && librarySong.DurationSeconds is double cached && cached > 0)
+                {
+                    queuedSong.DurationSeconds = cached;
+                    continue;
+                }
+                var seconds = await MediaDurationProbe.TryReadSecondsAsync(queuedSong.FilePath, _lifetime.Token);
+                if (seconds is not double duration || duration <= 0) continue;
+                queuedSong.DurationSeconds = duration;
+                if (queuedSong.SongId is long songId && songId > 0)
+                {
+                    try { await _library.SaveDurationAsync(songId, duration, _lifetime.Token); }
+                    catch (Exception ex) when (ex is not OperationCanceledException) { App.WriteDiagnostic("DURATION CACHE", ex.ToString()); }
+                }
+            }
+            UpdateQueueTimeEstimate();
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { App.WriteDiagnostic("QUEUE DURATION", ex.ToString()); }
     }
 
     private void UpdateAudienceNext()
@@ -2637,7 +2972,18 @@ public partial class MainWindow : Window
             }
             ReplaceKaraokePackage(candidate, candidateDecoder, preserveAlternativeCycle);
             candidate = null;
-            try { _currentKaraokeRecord = await _library.FindByFilePathAsync(path, _lifetime.Token); }
+            try
+            {
+                _currentKaraokeRecord = await _library.FindByFilePathAsync(path, _lifetime.Token);
+                if (_currentKaraokeRecord is not null &&
+                    (_currentKaraokeRecord.DurationSeconds is not double cachedDuration || cachedDuration <= 0) &&
+                    _pitchAudio.TotalTime > TimeSpan.Zero)
+                {
+                    var seconds = _pitchAudio.TotalTime.TotalSeconds;
+                    await _library.SaveDurationAsync(_currentKaraokeRecord.Id, seconds, _lifetime.Token);
+                    _currentKaraokeRecord = _currentKaraokeRecord with { DurationSeconds = seconds };
+                }
+            }
             catch { _currentKaraokeRecord = null; }
             KaraokeNowText.Text = _karaokePackage?.DisplayTitle ?? Path.GetFileNameWithoutExtension(path);
             return true;
@@ -3086,7 +3432,9 @@ public partial class MainWindow : Window
             var randomSong = await PickRandomKaraokeSongAsync(_kamikazeLastPath, token);
             if (randomSong is null)
             {
-                MessageBox.Show("No playable karaoke tracks were found in the indexed Karaoke library. Import or rescan your karaoke folders first.",
+                MessageBox.Show(!string.IsNullOrWhiteSpace(_kamikazeFolderPath)
+                    ? "No supported songs were found in the chosen Kamikaze folder. Add songs directly to that folder, or choose another folder under SHOW > Kamikaze song source. Subfolders are excluded; the full library was not used."
+                    : "No playable karaoke tracks were found in the indexed Karaoke library. Import or rescan your karaoke folders first.",
                     "Kamikaze Karaoke", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -3102,6 +3450,7 @@ public partial class MainWindow : Window
                 SongTitle = randomSong.Title,
                 Artist = randomSong.Artist,
                 FilePath = randomSong.FilePath,
+                DurationSeconds = randomSong.DurationSeconds,
                 KeyChange = randomSong.PreferredKey,
                 CdgSyncSeconds = randomSong.CdgSyncSeconds
             };
@@ -3159,6 +3508,9 @@ public partial class MainWindow : Window
 
     private async Task<SongRecord?> PickRandomKaraokeSongAsync(string? excludePath, CancellationToken cancellationToken)
     {
+        if (!string.IsNullOrWhiteSpace(_kamikazeFolderPath))
+            return await PickFolderKaraokeSongAsync(excludePath, cancellationToken);
+
         // IMPORTANT: do not use BrowseAsync with a random OFFSET here. OFFSET + ORDER BY Artist
         // can walk/sort a huge part of a multi-million-row library and previously froze WPF's UI.
         // The repository now jumps to a random indexed song ID and reads only a tiny candidate window.
@@ -3667,10 +4019,7 @@ public partial class MainWindow : Window
         // Cue checks have their own one-second timer. Keep this fast timer for fades.
         UpdatePlayerTimeDisplays();
         if (WindowState != WindowState.Minimized)
-        {
-            UpdateDeckLedDisplays();
             UpdateIlluminatedButtons();
-        }
         if (_quickSearchMusicVideo && _quickSearchMusicActive && !_karaokePresentationActive)
         {
             _audience?.SetMusicTempo(QuickMusicMedia.Tempo);
@@ -3730,7 +4079,9 @@ public partial class MainWindow : Window
         ref string previousMessage,
         double elapsed)
     {
-        if (!viewport.IsVisible) return;
+        if (!viewport.IsVisible || WindowState == WindowState.Minimized) return;
+        var viewportWidth = viewport.ActualWidth;
+        if (double.IsNaN(viewportWidth) || viewportWidth <= 1) return;
         var item = CurrentMusicItemFor(deck);
         var deckNumber = deck == MusicDeckId.Deck1 ? 1 : 2;
         string message;
@@ -3752,14 +4103,20 @@ public partial class MainWindow : Window
         {
             previousMessage = message;
             textBlock.Text = message + "     ◆     ";
-            textBlock.Measure(new Size(double.PositiveInfinity, viewport.ActualHeight > 0 ? viewport.ActualHeight : 48));
-            position = Math.Max(0, viewport.ActualWidth);
+            textBlock.Measure(new Size(double.PositiveInfinity, viewport.ActualHeight > 1 ? viewport.ActualHeight : 48));
+            position = viewportWidth;
         }
 
-        if (double.IsNaN(position)) position = Math.Max(0, viewport.ActualWidth);
-        position -= 68 * elapsed;
+        if (double.IsNaN(position)) position = viewportWidth;
         var textWidth = Math.Max(textBlock.ActualWidth, textBlock.DesiredSize.Width);
-        if (position < -textWidth) position = Math.Max(0, viewport.ActualWidth);
+        if (double.IsNaN(textWidth) || textWidth <= 1)
+        {
+            textBlock.Measure(new Size(double.PositiveInfinity, 48));
+            textWidth = textBlock.DesiredSize.Width;
+            if (textWidth <= 1) return;
+        }
+        position -= 68 * Math.Max(0, elapsed);
+        if (position < -textWidth) position = viewportWidth;
         transform.X = position;
     }
 
@@ -3946,6 +4303,19 @@ public partial class MainWindow : Window
         _resumeMusicIndex = -1;
         _resumeMusicItem = null;
 
+        // Karaoke Focus and Single Deck mode intentionally make Deck 2 a holding list.
+        // Never capture that non-playable side list as the post-karaoke resume target.
+        if (_singleDeckMode)
+        {
+            if (HasTracks(MusicDeckId.Deck1))
+            {
+                _resumeMusicDeck = MusicDeckId.Deck1;
+                _resumeMusicItem = GetScheduledItem(MusicDeckId.Deck1);
+                _resumeMusicIndex = _resumeMusicItem is null ? -1 : PlaylistFor(MusicDeckId.Deck1).Items.IndexOf(_resumeMusicItem);
+            }
+            return;
+        }
+
         // During an active crossfade both current tracks have already started and
         // will therefore be consumed when karaoke takes over. Resume from the next
         // still-unplayed item on the incoming deck instead of replaying either one.
@@ -4034,6 +4404,17 @@ public partial class MainWindow : Window
 
         var deck = _resumeMusicDeck;
         var index = -1;
+
+        // A saved/recovered resume target from an older build may still point at Deck 2.
+        // In single-deck layouts Deck 2 is a side list and StartDeckAt deliberately refuses it,
+        // so normalise the handoff back to the playable Deck 1 before validating the index.
+        if (_singleDeckMode && deck == MusicDeckId.Deck2)
+        {
+            deck = MusicDeckId.Deck1;
+            _resumeMusicItem = GetScheduledItem(MusicDeckId.Deck1);
+            _resumeMusicIndex = _resumeMusicItem is null ? -1 : PlaylistFor(MusicDeckId.Deck1).Items.IndexOf(_resumeMusicItem);
+        }
+
         if (deck != MusicDeckId.None && _resumeMusicItem is not null)
             index = PlaylistFor(deck).Items.IndexOf(_resumeMusicItem);
         if (index < 0) index = _resumeMusicIndex;
@@ -5028,6 +5409,7 @@ public partial class MainWindow : Window
             e.Effects = DragDropEffects.Copy;
         else
             e.Effects = DragDropEffects.None;
+        DragEdgeScroll.Update((ItemsControl)sender, e);
         e.Handled = true;
     }
 

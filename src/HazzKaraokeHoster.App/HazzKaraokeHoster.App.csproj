@@ -10,6 +10,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
+    <ApplicationIcon>Assets\HazzKaraokeHoster.ico</ApplicationIcon>
     <VlcWindowsX64Enabled>true</VlcWindowsX64Enabled>
     <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
     <VlcWindowsArm64Enabled>false</VlcWindowsArm64Enabled>
@@ -28,4 +29,9 @@
     <ProjectReference Include="..\HazzKaraokeHoster.Data\HazzKaraokeHoster.Data.csproj" />
     <ProjectReference Include="..\HazzKaraokeHoster.Playback\HazzKaraokeHoster.Playback.csproj" />
   </ItemGroup>
+  <!-- The release project publishes an already-built app. VideoLAN's normal
+       BeforeBuild hook is skipped by NoBuild, so register its content before
+       publish assigns paths as well. This serves both distribution formats. -->
+  <Target Name="IncludeVlcContentWhenPublishing" BeforeTargets="AssignTargetPaths"
+          DependsOnTargets="CollectVlcFilesToCopyWindows" />
 </Project>

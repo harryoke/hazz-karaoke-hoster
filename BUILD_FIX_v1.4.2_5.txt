@@ -1,0 +1,14 @@
+HAZZ KARAOKE HOSTER v1.4.2 - BUILD FIX 5
+==============================================
+
+Stale karaoke library entry cleanup
+-----------------------------------
+- Karaoke/Music search results now have right-click actions to remove selected entries from the Hazz library database.
+- Database removal NEVER deletes the ZIP/CDG/MP3/video file from disk.
+- The context menu can remove all missing files in the current search result set in one operation.
+- Assigning a karaoke result whose indexed file no longer exists now offers to remove that stale database entry immediately.
+- Deleting a song row keeps FTS5 in sync through the existing songs_ad trigger.
+- Singer/music history text is preserved; foreign-key song_id values become NULL where appropriate.
+- Existing physical files can be re-indexed later by normal library watching/rescanning.
+
+Baseline: v1.4.2 UserFeedbackTest BuildFix4.

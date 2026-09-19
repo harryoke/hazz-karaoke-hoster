@@ -6,12 +6,37 @@ namespace HazzKaraokeHoster.App;
 public partial class App : System.Windows.Application
 {
     private static readonly object LogGate = new();
+    private bool _packageCheck;
     private static readonly string LogDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Hazz Karaoke Hoster", "Logs");
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        if (e.Args.Length == 2 && e.Args[0] == "--package-check")
+        {
+            _packageCheck = true;
+            var code = 0;
+            try
+            {
+                var vlcPath = Path.Combine(AppContext.BaseDirectory, "libvlc", "win-x64");
+                if (!Directory.Exists(Path.Combine(vlcPath, "plugins")))
+                    throw new DirectoryNotFoundException("Bundled VLC plugins missing: " + vlcPath);
+                LibVLCSharp.Shared.Core.Initialize(vlcPath);
+                using var vlc = new LibVLCSharp.Shared.LibVLC("--no-audio", "--no-video-title-show");
+                using var player = new LibVLCSharp.Shared.MediaPlayer(vlc);
+                using var database = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+                database.Open();
+                using var command = database.CreateCommand();
+                command.CommandText = "SELECT sqlite_version()";
+                File.WriteAllText(e.Args[1], "PASS: bundled VLC runtime/plugins and SQLite loaded.\n" +
+                    "SQLite: " + command.ExecuteScalar() + "\nRuntime directory: " + AppContext.BaseDirectory);
+            }
+            catch (Exception ex) { code = 1; File.WriteAllText(e.Args[1], ex.ToString()); }
+            // Exit before WPF processes its queued StartupUri navigation. This diagnostic mode must never construct the live host.
+            Environment.Exit(code);
+            return;
+        }
         base.OnStartup(e);
         _ = BrokenMediaRegistry.InitializeAsync(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hazz Karaoke Hoster", "broken-media.json"));
         DispatcherUnhandledException += App_DispatcherUnhandledException;
@@ -23,7 +48,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        WriteDiagnostic("EXIT", $"Hazz Karaoke Hoster exited with code {e.ApplicationExitCode}.");
+        if (!_packageCheck) WriteDiagnostic("EXIT", $"Hazz Karaoke Hoster exited with code {e.ApplicationExitCode}.");
         base.OnExit(e);
     }
 

@@ -1,3 +1,7 @@
+# v1.5
+
+Folder-only Kamikaze, drag-edge scrolling, skins and optional single EXE; reconciled v1.4.2 fixes. See Documentation/RELEASE_v1.5.md for instructions and validation scope.
+
 # v1.4
 
 Music handover choices, real waveforms with click-to-seek, venue singer photos on the host and audience displays, and yellow favourite stars in search. See [v1.4 instructions](Documentation/RELEASE_v1.4.md).

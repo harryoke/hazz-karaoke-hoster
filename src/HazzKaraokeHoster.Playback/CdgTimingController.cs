@@ -7,8 +7,8 @@ public sealed class CdgTimingController
     public const double MaxSeconds = 10.0;
 
     /// <summary>
-    /// Timeline shift applied to the CD+G graphics. Negative values mean the
-    /// graphics are shown earlier; positive values mean they are shown later.
+    /// Offset added to the CD+G clock. Positive values advance the graphics;
+    /// negative values delay them.
     /// </summary>
     public double OffsetSeconds { get; private set; }
     public event EventHandler<double>? OffsetChanged;
@@ -28,8 +28,8 @@ public sealed class CdgTimingController
 
     /// <summary>
     /// Returns the CD+G stream time corresponding to the current audio time.
-    /// A -0.25s timeline shift therefore advances the graphics clock by 0.25s.
+    /// A +0.25s offset advances the graphics clock by 0.25s.
     /// </summary>
     public TimeSpan GetGraphicsTime(TimeSpan audioTime)
-        => audioTime - TimeSpan.FromSeconds(OffsetSeconds);
+        => audioTime + TimeSpan.FromSeconds(OffsetSeconds);
 }

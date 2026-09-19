@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using HazzKaraokeHoster.Core;
 using HazzKaraokeHoster.Core.Interfaces;
 using HazzKaraokeHoster.Core.Models;
 using Point = System.Windows.Point;
@@ -165,6 +166,7 @@ public partial class SingerSongsWindow : Window
             e.Effects = DragDropEffects.Move;
         else
             e.Effects = DragDropEffects.None;
+        DragEdgeScroll.Update((ItemsControl)sender, e);
         e.Handled = true;
     }
 
@@ -252,6 +254,60 @@ public partial class SingerSongsWindow : Window
         HistorySearchBox.Focus();
     }
 
+    private void HistoryExportCsv_Click(object sender, RoutedEventArgs e)
+    {
+        var rows = HistoryGrid.Items.OfType<SingerHistoryEntry>().ToArray();
+        if (rows.Length == 0)
+        {
+            StatusText.Text = "There is no singer history to export.";
+            return;
+        }
+
+        var safeSingerName = string.Concat(_singer.SingerName.Select(ch =>
+            Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch)).Trim();
+        if (string.IsNullOrWhiteSpace(safeSingerName)) safeSingerName = "Singer";
+
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export Singer History",
+            Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+            DefaultExt = ".csv",
+            AddExtension = true,
+            FileName = $"{safeSingerName}-history-{DateTime.Now:yyyyMMdd-HHmm}.csv"
+        };
+        if (dialog.ShowDialog(this) != true) return;
+
+        static string Csv(object? value)
+        {
+            var text = value?.ToString() ?? string.Empty;
+            return "\"" + text.Replace("\"", "\"\"") + "\"";
+        }
+
+        try
+        {
+            using var writer = new StreamWriter(dialog.FileName, false, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            writer.WriteLine("Singer,Last Sung,Times Sung,Title,Artist,Key Change,CDG Sync Seconds,File Path");
+            foreach (var row in rows)
+            {
+                writer.WriteLine(string.Join(",",
+                    Csv(_singer.SingerName),
+                    Csv(row.SungAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")),
+                    Csv(row.TimesSung),
+                    Csv(row.Title),
+                    Csv(row.Artist),
+                    Csv(row.KeyChange),
+                    Csv(row.CdgSyncSeconds.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)),
+                    Csv(row.FilePath)));
+            }
+
+            StatusText.Text = $"Exported {rows.Length:N0} history row{(rows.Length == 1 ? string.Empty : "s")} to {Path.GetFileName(dialog.FileName)}.";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = "Could not export singer history: " + ex.Message;
+        }
+    }
+
     private async Task RequeueHistoryAsync(SingerHistoryEntry history, int insertIndex)
     {
         try
@@ -286,12 +342,24 @@ public partial class SingerSongsWindow : Window
                 return;
             }
 
+            double? durationSeconds = song?.DurationSeconds;
+            if (durationSeconds is not double knownDuration || knownDuration <= 0)
+            {
+                durationSeconds = await MediaDurationProbe.TryReadSecondsAsync(path);
+                if (durationSeconds is double probed && probed > 0 && song?.Id is long durationSongId)
+                {
+                    try { await _library.SaveDurationAsync(durationSongId, probed); }
+                    catch { /* Duration caching must never prevent a singer request. */ }
+                }
+            }
+
             var entry = new SingerSongEntry
             {
                 SongId = song?.Id ?? history.SongId,
                 SongTitle = string.IsNullOrWhiteSpace(history.Title) ? song?.Title ?? string.Empty : history.Title,
                 Artist = string.IsNullOrWhiteSpace(history.Artist) ? song?.Artist ?? string.Empty : history.Artist,
                 FilePath = path,
+                DurationSeconds = durationSeconds,
                 KeyChange = history.KeyChange,
                 CdgSyncSeconds = history.CdgSyncSeconds
             };

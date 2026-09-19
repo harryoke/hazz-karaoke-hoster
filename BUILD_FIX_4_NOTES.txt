@@ -1,0 +1,57 @@
+HAZZ KARAOKE HOSTER v1.4.2 - BUILD FIX 4
+=========================================
+
+KARAOKE FILENAME INDEXING FIX
+-----------------------------
+Fixes letter-only Zoom Pop Box catalogue codes such as:
+
+    ZPBINDIE - Blur - Parklife.zip
+
+Previous v1.4.x parsing required a catalogue token to contain/end in a digit,
+so ZPBINDIE was incorrectly indexed as the artist and "Blur - Parklife" as
+the title.
+
+Build Fix 4 now parses the example as:
+
+    Maker:  ZPB
+    Disc:   ZPBINDIE
+    Artist: Blur
+    Title:  Parklife
+
+Numeric catalogue codes remain unchanged, e.g.:
+
+    ZMP3G04 - Adamski - Killer.zip
+      Maker: ZMP
+      Disc: ZMP3G04
+      Artist: Adamski
+      Title: Killer
+
+The new rule is deliberately limited to known ZPB catalogue codes. It does
+not treat every all-uppercase first token as a disc code, so ordinary names
+such as "ABBA - The Winner Takes It All - Live.zip" remain artist/title data.
+
+EXISTING DATABASE REPAIR
+------------------------
+On first startup of this build, the database performs a narrow one-time repair
+for already-indexed Karaoke rows that match the old ZPB failure pattern:
+- maker and disc are blank
+- artist starts ZPB
+- title still contains " - "
+- filename starts with the same ZPB token
+
+Those rows are reparsed and updated in place, including FTS search data via the
+existing songs update trigger. A full karaoke-library rescan is therefore not
+required just to correct existing ZPBINDIE rows.
+
+REGRESSION CHECK
+----------------
+BUILD-v1.4.2-USER-FEEDBACK-TEST.cmd now runs KaraokeFilenameChecks before
+publishing. It checks:
+- numeric code ZMP3G04 remains correct
+- ZPBINDIE is parsed correctly
+- ABBA three-part filenames are not misclassified
+- an old incorrectly stored ZPBINDIE row is repaired on startup
+
+This build is based directly on v1.4.2 BuildFix3 and retains its playback,
+LED marquee, duration, queue-time, search punctuation, settings-protection,
+karoake-seek, CSV export and Karaoke Focus fixes.

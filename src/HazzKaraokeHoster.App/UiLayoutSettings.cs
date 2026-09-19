@@ -1,10 +1,13 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace HazzKaraokeHoster.App;
 
 internal sealed class UiLayoutSettings
 {
     public Dictionary<string, HazzKaraokeHoster.Core.Models.TextStrokeSettings> AudienceTextStrokes { get; set; } = new();
+    public string KamikazeFolderPath { get; set; } = string.Empty;
+    public string ConsoleSkin { get; set; } = "Classic";
     public double HostTextScale { get; set; } = 1;
     public bool UseLibVlcAudienceVideo { get; set; }
     public bool SmoothCdgPicture { get; set; } = true;
@@ -38,6 +41,12 @@ internal sealed class UiLayoutSettings
     public bool WindowMaximized { get; set; } = false;
     public bool KaraokeOnlyMode { get; set; } = false;
     public bool SingleDeckMode { get; set; } = false;
+    public bool KaraokeFocusMode { get; set; } = false;
+
+    // Preserve settings added by newer/test builds (for example skin selection)
+    // even when this build does not yet have a strongly typed property for them.
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? ExtensionData { get; set; }
 
     // Audience artwork is stored with the host UI settings so it survives restarts.
     public bool AudienceBackgroundEnabled { get; set; } = false;
@@ -87,34 +96,121 @@ internal sealed class UiLayoutSettings
 
 internal static class UiLayoutSettingsStore
 {
-    private static readonly string SettingsPath = Path.Combine(
+    private static readonly string SettingsFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Hazz Karaoke Hoster", "ui-layout.json");
+        "Hazz Karaoke Hoster");
+    private static readonly string SettingsPath = Path.Combine(SettingsFolder, "ui-layout.json");
+    private static readonly string PreSessionBackupPath = Path.Combine(SettingsFolder, "ui-layout.pre-session.json");
+    private static bool _sessionBackupCreated;
+
+    private static bool _canSave = true;
+    private static readonly object Gate = new();
 
     public static UiLayoutSettings Load()
     {
-        try
+        lock (Gate)
         {
-            if (!File.Exists(SettingsPath)) return new UiLayoutSettings();
-            return JsonSerializer.Deserialize<UiLayoutSettings>(File.ReadAllText(SettingsPath)) ?? new UiLayoutSettings();
+            try
+            {
+                var settings = LoadFrom(SettingsPath);
+                _canSave = true;
+                // A small, one-time recovery point, never rotated away by
+                // repeated saves while trying different skins.
+                try
+                {
+                    if (File.Exists(SettingsPath) && !File.Exists(SettingsPath + ".before-skin-settings"))
+                        File.Copy(SettingsPath, SettingsPath + ".before-skin-settings");
+                }
+                catch { /* A backup failure must not discard successfully loaded settings. */ }
+                return settings;
+            }
+            catch
+            {
+                // A read error must not turn into a destructive defaults save.
+                _canSave = false;
+                return new UiLayoutSettings();
+            }
         }
-        catch
+    }
+
+    internal static UiLayoutSettings LoadFrom(string path)
+    {
+        var candidates = new[] { path, path + ".previous", Path.ChangeExtension(path, ".backup.json"), Path.ChangeExtension(path, ".pre-session.json") };
+        if (!candidates.Any(File.Exists)) return new UiLayoutSettings();
+        foreach (var candidate in candidates)
         {
-            return new UiLayoutSettings();
+            try
+            {
+                if (!File.Exists(candidate)) continue;
+                var settings = JsonSerializer.Deserialize<UiLayoutSettings>(File.ReadAllText(candidate));
+                if (settings != null) return settings;
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (JsonException) { }
         }
+        throw new IOException("The interface settings and recovery copy could not be read. Existing files have been preserved.");
+    }
+
+    public static void SaveConsoleSkin(string skin)
+    {
+        lock (Gate)
+        {
+            if (!_canSave) return;
+            try { PreserveSessionBackup(); SaveSkinTo(SettingsPath, skin); }
+            catch { /* Keep the existing settings if the file is unavailable. */ }
+        }
+    }
+
+    internal static void SaveSkinTo(string path, string skin)
+    {
+        // Preserve every field, including options written by a newer build.
+        var document = JsonSerializer.SerializeToNode(LoadFrom(path))!.AsObject();
+        document["ConsoleSkin"] = skin;
+        WriteAtomic(path, document.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
     }
 
     public static void Save(UiLayoutSettings settings)
     {
+        lock (Gate)
+        {
+            if (!_canSave) return;
+            try { PreserveSessionBackup(); SaveTo(SettingsPath, settings); }
+            catch { /* Do not interrupt playback when storage is unavailable. */ }
+        }
+    }
+
+    private static void PreserveSessionBackup()
+    {
+        if (_sessionBackupCreated) return;
+        // LoadFrom already refuses unreadable settings. Back up the recovered
+        // model rather than copying a damaged primary over the session copy.
+        var settings = LoadFrom(SettingsPath);
+        Directory.CreateDirectory(SettingsFolder);
+        File.WriteAllText(PreSessionBackupPath, JsonSerializer.Serialize(settings));
+        _sessionBackupCreated = true;
+    }
+
+    internal static void SaveTo(string path, UiLayoutSettings settings)
+        => WriteAtomic(path, JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
+
+    private static void WriteAtomic(string path, string json)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
-            var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(SettingsPath, json);
+            File.WriteAllText(temp, json);
+            if (File.Exists(path))
+            {
+                // Do not replace a good recovery copy with malformed JSON.
+                bool valid;
+                try { using var original = JsonDocument.Parse(File.ReadAllText(path)); valid = original.RootElement.ValueKind == JsonValueKind.Object; }
+                catch (JsonException) { valid = false; }
+                File.Replace(temp, path, valid ? path + ".previous" : path + ".unreadable", true);
+            }
+            else File.Move(temp, path);
         }
-        catch
-        {
-            // Layout persistence must never be allowed to interfere with a live show or shutdown.
-        }
+        finally { if (File.Exists(temp)) File.Delete(temp); }
     }
 }

@@ -1,0 +1,35 @@
+HAZZ KARAOKE HOSTER v1.4.2 — USER FEEDBACK TEST
+=================================================
+
+Built on the working v1.4.1 recovery source. All v1.4.1 fixes remain in place.
+
+1. KARAOKE SEARCH — TRACK LENGTH
+- Karaoke search results now include a Length column.
+- Durations are read in the background only for relevant search results and cached in SQLite.
+- ZIP karaoke is handled by reading its matching audio member; loose CDG uses its matching audio file.
+- Broad searches are capped to 80 fresh duration probes so search remains responsive; cached values appear immediately.
+- This makes it easy to distinguish short/long editions such as American Pie.
+
+2. LIVE KARAOKE TIME REMAINING
+- Singer-list header now shows REMAINING time for the current show queue.
+- Includes the remaining portion of the currently playing karaoke song plus every non-held queued request.
+- Held singer requests are excluded.
+- Unknown lengths temporarily use a conservative 4-minute estimate and the display is prefixed with ~.
+- Existing/restored venue and live-show queues are hydrated with real track durations in the background where possible.
+- Queue duration metadata is preserved in live-show recovery and venue roster snapshots.
+
+3. WINDOWS APP ICON
+- Added a multi-resolution Hazz Karaoke Hoster .ico generated from the existing Hazz branding.
+- The WPF project now sets ApplicationIcon so the EXE/desktop shortcut looks like the Hazz application rather than a generic executable.
+
+4. RETAINED v1.4.1 FIXES
+- Singer/audience settings protection.
+- Punctuation-safe SQLite FTS5 search.
+- Karaoke seek slider and ±5 second controls.
+- Karaoke Focus layout.
+- Singer History CSV export.
+
+BUILD
+-----
+Run BUILD-RECOVERY-TEST.cmd in Visual Studio 2026 / .NET 10 Windows environment.
+The output folder is RELEASE\HazzKaraokeHoster_v1.4.2_UserFeedbackTest.
