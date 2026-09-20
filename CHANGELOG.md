@@ -1,3 +1,7 @@
+# v1.6
+
+Karaoke Fit/Stretch in Windows and VLC; separate rotation/message switches; second independently styled scroller with opposite-edge and inset safeguards; display-settings Close button clipping corrected. See Documentation/RELEASE_v1.6.md.
+
 # v1.5
 
 Folder-only Kamikaze, drag-edge scrolling, skins and optional single EXE; reconciled v1.4.2 fixes. See Documentation/RELEASE_v1.5.md for instructions and validation scope.

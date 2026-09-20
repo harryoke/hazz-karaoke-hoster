@@ -2,7 +2,7 @@ Hazz Karaoke Hoster v0.90
 
 Audience Display Settings now includes SHOW DURING MUSIC VIDEOS with independent options for:
 - Permanent logo
-- Rotation / venue scroller
+- Both scrollers
 - Next singers
 - Kamikaze message
 

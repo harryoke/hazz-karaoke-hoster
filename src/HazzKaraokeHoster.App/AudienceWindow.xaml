@@ -39,6 +39,9 @@
   <Border x:Name="ScrollerPanel" Panel.ZIndex="111" Background="#D0000000" VerticalAlignment="Bottom" Height="52" ClipToBounds="True">
    <Canvas x:Name="ScrollerCanvas"><local:StrokeTextBlock x:Name="ScrollerText" Text="" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center"/></Canvas>
   </Border>
+  <Border x:Name="SecondScrollerPanel" Panel.ZIndex="112" Background="#D0000000" VerticalAlignment="Top" Height="52" ClipToBounds="True" Visibility="Collapsed">
+   <Canvas><local:StrokeTextBlock x:Name="SecondScrollerText" FontSize="30" FontWeight="SemiBold"/></Canvas>
+  </Border>
   </Grid>
  </Grid>
 </Window>

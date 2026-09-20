@@ -1,4 +1,4 @@
-Current release: v1.5. See [v1.5 instructions](RELEASE_v1.5.md) for drag-edge scrolling, folder-only Kamikaze, skin choices, saved-data protection and new playback controls.
+Current release: v1.6. [Audience sizing and two-scroller instructions](RELEASE_v1.6.md). The features below remain available.
 
 # Venue profiles
 

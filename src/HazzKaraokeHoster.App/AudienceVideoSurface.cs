@@ -19,6 +19,19 @@ public sealed class AudienceVideoSurface : Grid
     private TimeSpan _requestedPosition;
     private bool _started, _starting, _playing, _closed, _fallback;
     private int _generation;
+    private bool _stretchToFill;
+    public bool StretchToFill
+    {
+        get => _stretchToFill;
+        set { _stretchToFill = value; ApplySizing(); }
+    }
+    private void ApplySizing()
+    {
+        _windows.Stretch = _stretchToFill ? Stretch.Fill : Stretch.Uniform;
+        if (NativeActive)
+            _player!.AspectRatio = _stretchToFill && ActualWidth > 0 && ActualHeight > 0
+                ? $"{(int)Math.Round(ActualWidth)}:{(int)Math.Round(ActualHeight)}" : null;
+    }
     public bool UseLibVlc { get; set; }
     private double _tempo = 1;
     public double Tempo
@@ -45,6 +58,7 @@ public sealed class AudienceVideoSurface : Grid
     {
         // VideoView transfers Content to its foreground window and resets its
         // own Content to null. Keep a stable host so clearing really detaches.
+        SizeChanged += (_, _) => ApplySizing();
         _view.Content = _overlayHost;
         Children.Add(_windows); Children.Add(_view);
         _windows.MediaOpened += (_, _) => { _windows.Position = _requestedPosition; _windows.SpeedRatio = _tempo; };
@@ -110,6 +124,7 @@ public sealed class AudienceVideoSurface : Grid
         if (!NativeActive) return;
         if (!_started && _requestedPosition > TimeSpan.Zero) _player!.Time = (long)_requestedPosition.TotalMilliseconds;
         _starting = false; _started = true;
+        ApplySizing();
         if (_player!.SetRate((float)_tempo) == -1) { UseWindows("LibVLC refused the selected tempo."); return; }
         if (!_playing) _player!.SetPause(true);
     });

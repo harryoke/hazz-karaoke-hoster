@@ -9,7 +9,7 @@ using HazzKaraokeHoster.Core.Models;
 internal static class Check
 {
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
         var early = new SingerQueueEntry { SingerName = "Early" };
         var newcomer = new SingerQueueEntry { SingerName = "New" };
@@ -183,7 +183,54 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
             var data = new byte[bitmap.PixelWidth * bitmap.PixelHeight * 4]; bitmap.CopyPixels(data, bitmap.PixelWidth * 4, 0);
             Require(Enumerable.Range(0, bitmap.PixelWidth * bitmap.PixelHeight).Any(i => i % bitmap.PixelWidth > w * 0.75 && data[i * 4] > 100), "NEXT SINGERS loses its final word at a rounded width");
         }
+        var second = (Border)audience.FindName("SecondScrollerPanel");
+        var firstText = (StrokeTextBlock)audience.FindName("ScrollerText");
+        var secondText = (StrokeTextBlock)audience.FindName("SecondScrollerText");
+        var karaokeVideo = (AudienceVideoSurface)audience.FindName("AudienceMedia");
+        foreach (var stretch in new[] { false, true, false })
+        {
+            audience.Apply(new AudienceOverlaySettings { KaraokeSizing = stretch ? "Stretch" : "Fit" });
+            Require(cdg.Stretch == (stretch ? Stretch.Fill : Stretch.Uniform), "CDG sizing not applied");
+            Require(((MediaElement)karaokeVideo.Children[0]).Stretch == cdg.Stretch && karaokeVideo.StretchToFill == stretch, "Karaoke video sizing not applied");
+            Require(windowsVideo.Stretch == Stretch.Uniform, "Karaoke sizing changed music video sizing");
+        }
+        foreach (var rotation in new[] { false, true })
+        foreach (var message in new[] { false, true })
+        {
+            audience.Apply(new AudienceOverlaySettings { ScrollerRotationEnabled = rotation, ScrollerMessageEnabled = message, ScrollerText = "Venue only" });
+            var content = string.Concat(firstText.Inlines.OfType<System.Windows.Documents.Run>().Select(x => x.Text));
+            Require(content.Contains(longName) == rotation && content.Contains("Venue only") == message, "Scroller switches did not independently filter content");
+            Require((scroller.Visibility == Visibility.Visible) == (rotation || message), "Empty primary scroller not hidden");
+        }
+        foreach (var edge in new[] { "Top", "Bottom" })
+        foreach (var height in new[] { 300, 600, 1080 })
+        {
+            audience.Height = height;
+            audience.Apply(new AudienceOverlaySettings { ScrollerPosition = edge, SecondScrollerEnabled = true, SecondScrollerText = "Drinks offers", ScrollerFontSize = 120, SecondScrollerFontSize = 120, ScrollerEdgeInset = 250, SecondScrollerInset = 250 });
+            audience.UpdateLayout();
+            audience.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            audience.UpdateLayout();
+            Require(second.Visibility == Visibility.Visible && second.VerticalAlignment != scroller.VerticalAlignment, "Scrollers share an edge");
+            var root = (Grid)audience.FindName("Root");
+            var a = scroller.TransformToAncestor(root).TransformBounds(new Rect(scroller.RenderSize));
+            var b = second.TransformToAncestor(root).TransformBounds(new Rect(second.RenderSize));
+            Require(!a.IntersectsWith(b) && a.Top >= 0 && b.Top >= 0 && a.Bottom <= root.ActualHeight + 1 && b.Bottom <= root.ActualHeight + 1, "Scroller bands overlap or leave screen");
+        }
+        audience.Apply(new AudienceOverlaySettings { ScrollerEnabled = false, SecondScrollerEnabled = true, SecondScrollerText = "Independent" });
+        audience.UpdateLayout();
+        var previousLeft = Canvas.GetLeft(secondText);
+        System.Threading.Thread.Sleep(35);
+        typeof(AudienceWindow).GetMethod("TickScroller", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(audience, null);
+        Require(scroller.Visibility == Visibility.Collapsed && Canvas.GetLeft(secondText) < previousLeft, "Second scroller stops when primary disabled");
+        audience.SetKaraokeActive(true);
+        Require(second.Visibility == Visibility.Collapsed, "Second scroller covers karaoke");
+        audience.SetKaraokeActive(false);
+        Require(second.Visibility == Visibility.Visible, "Second scroller not restored after karaoke");
+        audience.Apply(new AudienceOverlaySettings { SecondScrollerEnabled = true, SecondScrollerText = " " });
+        Require(second.Visibility == Visibility.Collapsed, "Blank second message should hide its band");
+        Console.WriteLine("PASS: independent scrollers, edge/overlap safety, secondary-only motion, karaoke sizing and retained audience behavior.");
         audience.Close();
+        if (args.Contains("--audience-only")) return;
 
         var main = new MainWindow();
         typeof(MainWindow).GetMethod("ApplyHostTextScale", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(main, new object[] { 1.5 });

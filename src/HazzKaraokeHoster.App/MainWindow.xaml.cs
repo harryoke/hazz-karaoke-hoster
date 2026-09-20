@@ -141,6 +141,7 @@ public partial class MainWindow : Window
     private string _audienceNextSingerColor = "#FFFFFFFF";
     private string _audienceNextSongColor = "#FFD8E2EF";
     private string _audienceRotationScrollerColor = "#FFFFFFFF";
+    private string _secondScrollerColor = "#FFFFD34D";
     private string _audienceVenueScrollerColor = "#FFFFD34D";
     private string _audienceKamikazeColor = "#FFFFD34D";
     private bool _kamikazeBannerRequested;
@@ -190,6 +191,7 @@ public partial class MainWindow : Window
         {
             NextFontCombo.Items.Add(font);
             ScrollerFontCombo.Items.Add(font);
+            SecondScrollerFontCombo.Items.Add(font);
             KamikazeFontCombo.Items.Add(font);
         }
 
@@ -197,6 +199,7 @@ public partial class MainWindow : Window
             .FirstOrDefault(x => string.Equals(x?.ToString(), "Segoe UI", StringComparison.OrdinalIgnoreCase))
             ?? NextFontCombo.Items.Cast<object>().FirstOrDefault();
         ScrollerFontCombo.SelectedItem = NextFontCombo.SelectedItem;
+        SecondScrollerFontCombo.SelectedItem = NextFontCombo.SelectedItem;
         KamikazeFontCombo.SelectedItem = KamikazeFontCombo.Items.Cast<object>()
             .FirstOrDefault(x => string.Equals(x?.ToString(), "Segoe UI Black", StringComparison.OrdinalIgnoreCase))
             ?? NextFontCombo.SelectedItem;
@@ -608,12 +611,23 @@ public partial class MainWindow : Window
         SelectComboItemByContent(NextSizeCombo, Math.Clamp(settings.AudienceNextSingerFontSize, 32, 192).ToString("0"), "48");
         SelectComboItemByContent(NextHeadingSizeCombo, Math.Clamp(settings.AudienceNextHeadingFontSize, 20, 128).ToString("0"), "36");
         SelectComboItemByContent(PositionCombo, settings.AudienceNextSingerPosition, "BottomCenter");
+        ScrollerRotationCheck.IsChecked = settings.AudienceScrollerRotationEnabled;
+        ScrollerMessageCheck.IsChecked = settings.AudienceScrollerMessageEnabled;
+        SecondScrollerCheck.IsChecked = settings.AudienceSecondScrollerEnabled;
+        SecondScrollerTextBox.Text = settings.AudienceSecondScrollerText ?? "";
+        SecondScrollerFontCombo.SelectedItem = SecondScrollerFontCombo.Items.Cast<object>().FirstOrDefault(x => x?.ToString() == settings.AudienceSecondScrollerFontFamily) ?? SecondScrollerFontCombo.SelectedItem;
+        SecondScrollerSizeSlider.Value = double.IsFinite(settings.AudienceSecondScrollerFontSize) ? Math.Clamp(settings.AudienceSecondScrollerFontSize, 16, 120) : 30;
+        SecondScrollerSpeedSlider.Value = double.IsFinite(settings.AudienceSecondScrollerSpeed) ? Math.Clamp(settings.AudienceSecondScrollerSpeed, 40, 250) : 110;
+        SecondScrollerInsetSlider.Value = double.IsFinite(settings.AudienceSecondScrollerInset) ? Math.Clamp(settings.AudienceSecondScrollerInset, 0, 250) : 0;
+        _secondScrollerColor = NormalizeColor(settings.AudienceSecondScrollerColor, "#FFFFD34D");
+        UpdateAudienceColorButton(SecondScrollerColorButton, _secondScrollerColor);
+        SelectComboItemByContent(KaraokeSizingCombo, settings.AudienceKaraokeSizing, "Fit");
         ScrollerCheck.IsChecked = settings.AudienceScrollerEnabled;
         ScrollerTextBox.Text = settings.AudienceScrollerText ?? string.Empty;
         ScrollerFontCombo.SelectedItem = ScrollerFontCombo.Items.Cast<object>()
             .FirstOrDefault(x => string.Equals(x?.ToString(), settings.AudienceScrollerFontFamily, StringComparison.OrdinalIgnoreCase))
             ?? ScrollerFontCombo.SelectedItem;
-        SelectComboItemByContent(ScrollerSizeCombo, Math.Clamp(settings.AudienceScrollerFontSize, 22, 42).ToString("0"), "30");
+        ScrollerSizeSlider.Value = double.IsFinite(settings.AudienceScrollerFontSize) ? Math.Clamp(settings.AudienceScrollerFontSize, 16, 120) : 30;
         ScrollerSpeedSlider.Value = Math.Clamp(settings.AudienceScrollerPixelsPerSecond, ScrollerSpeedSlider.Minimum, ScrollerSpeedSlider.Maximum);
         SelectComboItemByContent(ScrollerPositionCombo, settings.AudienceScrollerPosition, "Bottom");
         ScrollerInsetSlider.Value = double.IsFinite(settings.AudienceScrollerEdgeInset) ? Math.Clamp(settings.AudienceScrollerEdgeInset, 0, 250) : 0;
@@ -698,10 +712,20 @@ public partial class MainWindow : Window
             AudienceNextSingerFontSize = double.TryParse((NextSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var nextSize) ? nextSize : 48,
             AudienceNextHeadingFontSize = double.TryParse((NextHeadingSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var headingSize) ? headingSize : 36,
             AudienceNextSingerPosition = (PositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "BottomCenter",
+            AudienceScrollerRotationEnabled = ScrollerRotationCheck.IsChecked == true,
+            AudienceScrollerMessageEnabled = ScrollerMessageCheck.IsChecked == true,
+            AudienceSecondScrollerEnabled = SecondScrollerCheck.IsChecked == true,
+            AudienceSecondScrollerText = SecondScrollerTextBox.Text,
+            AudienceSecondScrollerFontFamily = SecondScrollerFontCombo.SelectedItem?.ToString() ?? "Segoe UI",
+            AudienceSecondScrollerFontSize = SecondScrollerSizeSlider.Value,
+            AudienceSecondScrollerSpeed = SecondScrollerSpeedSlider.Value,
+            AudienceSecondScrollerInset = SecondScrollerInsetSlider.Value,
+            AudienceSecondScrollerColor = _secondScrollerColor,
+            AudienceKaraokeSizing = (KaraokeSizingCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Fit",
             AudienceScrollerEnabled = ScrollerCheck.IsChecked == true,
             AudienceScrollerText = ScrollerTextBox.Text,
             AudienceScrollerFontFamily = ScrollerFontCombo.SelectedItem?.ToString() ?? "Segoe UI",
-            AudienceScrollerFontSize = double.TryParse((ScrollerSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var scrollerSize) ? scrollerSize : 30,
+            AudienceScrollerFontSize = ScrollerSizeSlider.Value,
             AudienceScrollerPixelsPerSecond = ScrollerSpeedSlider.Value,
             AudienceScrollerPosition = (ScrollerPositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Bottom",
             AudienceScrollerEdgeInset = ScrollerInsetSlider.Value,
@@ -1244,6 +1268,9 @@ public partial class MainWindow : Window
 
     private void RotationScrollerColor_Click(object sender, RoutedEventArgs e)
         => ChooseAudienceColor(ref _audienceRotationScrollerColor, RotationScrollerColorButton);
+
+    private void SecondScrollerColor_Click(object sender, RoutedEventArgs e)
+        => ChooseAudienceColor(ref _secondScrollerColor, SecondScrollerColorButton);
 
     private void VenueScrollerColor_Click(object sender, RoutedEventArgs e)
         => ChooseAudienceColor(ref _audienceVenueScrollerColor, VenueScrollerColorButton);
@@ -2605,10 +2632,20 @@ public partial class MainWindow : Window
             NextSingerFontSize = ComboNumber(NextSizeCombo, 48),
             NextHeadingFontSize = ComboNumber(NextHeadingSizeCombo, 36),
             NextSingerPosition = pos,
+            ScrollerRotationEnabled = ScrollerRotationCheck.IsChecked == true,
+            ScrollerMessageEnabled = ScrollerMessageCheck.IsChecked == true,
+            SecondScrollerEnabled = SecondScrollerCheck.IsChecked == true,
+            SecondScrollerText = SecondScrollerTextBox.Text,
+            SecondScrollerFontFamily = SecondScrollerFontCombo.SelectedItem?.ToString() ?? "Segoe UI",
+            SecondScrollerFontSize = SecondScrollerSizeSlider.Value,
+            SecondScrollerSpeed = SecondScrollerSpeedSlider.Value,
+            SecondScrollerInset = SecondScrollerInsetSlider.Value,
+            SecondScrollerColor = _secondScrollerColor,
+            KaraokeSizing = (KaraokeSizingCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Fit",
             ScrollerEnabled = ScrollerCheck.IsChecked == true,
             ScrollerText = ScrollerTextBox.Text,
             ScrollerFontFamily = ScrollerFontCombo.SelectedItem?.ToString() ?? "Segoe UI",
-            ScrollerFontSize = ComboNumber(ScrollerSizeCombo, 30),
+            ScrollerFontSize = ScrollerSizeSlider.Value,
             ScrollerPixelsPerSecond = ScrollerSpeedSlider.Value,
             ScrollerPosition = (ScrollerPositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Bottom",
             ScrollerEdgeInset = ScrollerInsetSlider.Value,

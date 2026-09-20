@@ -20,6 +20,16 @@ public sealed class AudienceOverlaySettings
     public double NextSingerFontSize { get; set; } = 48;
     public double NextHeadingFontSize { get; set; } = 36;
     public OverlayPosition NextSingerPosition { get; set; } = OverlayPosition.BottomCenter;
+    public bool ScrollerRotationEnabled { get; set; } = true;
+    public bool ScrollerMessageEnabled { get; set; } = true;
+    public bool SecondScrollerEnabled { get; set; } = false;
+    public string SecondScrollerText { get; set; } = "";
+    public string SecondScrollerFontFamily { get; set; } = "Segoe UI";
+    public double SecondScrollerFontSize { get; set; } = 30;
+    public double SecondScrollerSpeed { get; set; } = 110;
+    public double SecondScrollerInset { get; set; } = 0;
+    public string SecondScrollerColor { get; set; } = "#FFFFD34D";
+    public string KaraokeSizing { get; set; } = "Fit";
     public bool ScrollerEnabled { get; set; } = true;
     public string ScrollerText { get; set; } = "WELCOME TO KARAOKE WITH HAZZ";
     public string ScrollerFontFamily { get; set; } = "Segoe UI";

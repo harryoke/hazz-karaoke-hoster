@@ -106,6 +106,27 @@ internal static class Check
    }
    records.Add($"{skin}/{mode}/{scale}: PASS — same {all.Length} controls, 1920/1366/1024 widths");
   }
+  // Inspect the actual audience settings popup without running host startup.
+  engine.Apply("Classic",false,false);
+  Find<CheckBox>("SecondScrollerCheck").IsChecked=true;
+  Find<TextBox>("SecondScrollerTextBox").Text="VENUE DRINKS OFFERS • ASK AT THE BAR";
+  foreach(var name in new[]{"ScrollerFontCombo","SecondScrollerFontCombo"}) { Find<ComboBox>(name).Items.Add("Segoe UI"); Find<ComboBox>(name).SelectedIndex=0; }
+  var settingsFit=Find<Viewbox>("SettingsAutoFit");
+  foreach(var scale in new[]{1d,1.5})
+  {
+   foreach(var key in w.Resources.Keys.OfType<string>().Where(k=>k.StartsWith("HostFont")).ToArray())
+    w.Resources[key]=double.Parse(key[8..].Replace('_','.'),System.Globalization.CultureInfo.InvariantCulture)*scale;
+   settingsFit.Measure(new Size(1000,1600));settingsFit.Arrange(new Rect(settingsFit.DesiredSize));settingsFit.UpdateLayout();
+   var border=(Border)settingsFit.Child;
+   foreach(var name in new[]{"CloseAudienceSettingsButton","KaraokeSizingCombo","ScrollerRotationCheck","ScrollerMessageCheck","ScrollerSizeSlider","SecondScrollerTextBox","SecondScrollerFontCombo","SecondScrollerSizeSlider","SecondScrollerSpeedSlider","SecondScrollerInsetSlider","SecondScrollerColorButton","BackgroundGifSpeedSlider"})
+   {
+    var control=Find<FrameworkElement>(name);var b=control.TransformToAncestor(border).TransformBounds(new Rect(control.RenderSize));
+    Require(b.Width>0 && b.Left>=0 && b.Right<=border.ActualWidth+1 && b.Bottom<=border.ActualHeight+1,name+" clipped in settings at "+scale);
+   }
+   var bitmap=new RenderTargetBitmap((int)Math.Ceiling(settingsFit.ActualWidth),(int)Math.Ceiling(settingsFit.ActualHeight),96,96,PixelFormats.Pbgra32);bitmap.Render(settingsFit);
+   var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(bitmap));using var file=File.Create(Path.Combine(args[1],$"AudienceSettings-{scale}.png"));png.Save(file);
+  }
+  Console.WriteLine("PASS: new audience controls and existing GIF controls fit at both GUI text sizes.");
   File.WriteAllLines(Path.Combine(args[1],"checks.txt"),records);
   Console.WriteLine(string.Join(Environment.NewLine,records));
  }

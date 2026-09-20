@@ -437,7 +437,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="{DynamicResource HostFont10_5}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_6EC1E4}" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="{DynamicResource SkinSurface_22303C}" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v1.5" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
+     <TextBlock Text="v1.6" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
     </Border>
    </StackPanel>
 
@@ -1072,7 +1072,7 @@
        <ComboBox x:Name="SingerPhotoFitCombo" Width="115" SelectedIndex="0" SelectionChanged="OverlayChanged" ToolTip="How the square singer photo tile fits the original picture">
         <ComboBoxItem Content="Fit"/><ComboBoxItem Content="Fill / crop"/><ComboBoxItem Content="Stretch"/><ComboBoxItem Content="Center"/>
        </ComboBox>
-       <TextBlock Text="Next 4 and rotation scroller are automatically hidden during karaoke playback." Foreground="{DynamicResource SkinInk_D0DAE4}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+       <TextBlock Text="Next singers and both scrollers are hidden during karaoke playback." Foreground="{DynamicResource SkinInk_D0DAE4}" VerticalAlignment="Center" Margin="10,0,0,0"/>
       </WrapPanel>
       <WrapPanel Grid.Row="2" Margin="0,2">
        <TextBlock Text="Singer font" VerticalAlignment="Center" Margin="4"/>
@@ -1097,14 +1097,19 @@
 
       <Grid Grid.Row="4" Margin="0,4">
        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-       <CheckBox x:Name="ScrollerCheck" Content="Full singer rotation scroller" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged" ToolTip="Always scrolls the complete current singer rotation with position numbers."/>
-       <TextBox x:Name="ScrollerTextBox" Grid.Column="1" Text="WELCOME TO KARAOKE WITH HAZZ • PLEASE HAVE YOUR NEXT SONG READY •" TextChanged="OverlayChanged" ToolTip="Optional venue message appended after the complete numbered singer rotation."/>
+       <CheckBox x:Name="ScrollerCheck" Content="Primary scroller" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged" ToolTip="Enable the first scrolling bar. Choose rotation, message, or both below."/>
+       <TextBox x:Name="ScrollerTextBox" Grid.Column="1" Text="WELCOME TO KARAOKE WITH HAZZ • PLEASE HAVE YOUR NEXT SONG READY •" TextChanged="OverlayChanged" ToolTip="Custom message for the primary scrolling bar."/>
       </Grid>
-      <WrapPanel Grid.Row="5" Margin="0,2,0,9">
+      <StackPanel Grid.Row="5" Margin="0,2,0,9">
+      <WrapPanel><CheckBox x:Name="ScrollerRotationCheck" Content="Show singer rotation" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged"/>
+       <CheckBox x:Name="ScrollerMessageCheck" Content="Show custom message" IsChecked="True" Checked="OverlayChanged" Unchecked="OverlayChanged"/>
+       <TextBlock Text="Karaoke playback sizing" VerticalAlignment="Center" Margin="12,0,4,0"/>
+       <ComboBox x:Name="KaraokeSizingCombo" Width="110" SelectionChanged="OverlayChanged" ToolTip="Fit preserves proportions. Stretch fills the audience screen, changing proportions. Applies to CD+G and karaoke video."><ComboBoxItem Content="Fit" IsSelected="True"/><ComboBoxItem Content="Stretch"/></ComboBox>
+      </WrapPanel><WrapPanel>
        <TextBlock Text="Scroller font" VerticalAlignment="Center" Margin="4"/>
        <ComboBox x:Name="ScrollerFontCombo" Width="180" SelectionChanged="OverlayChanged"/>
        <TextBlock Text="Size" VerticalAlignment="Center" Margin="4"/>
-       <ComboBox x:Name="ScrollerSizeCombo" Width="82" SelectionChanged="OverlayChanged"><ComboBoxItem Content="22"/><ComboBoxItem Content="26"/><ComboBoxItem Content="30" IsSelected="True"/><ComboBoxItem Content="36"/><ComboBoxItem Content="42"/></ComboBox>
+       <Slider x:Name="ScrollerSizeSlider" Width="110" Minimum="16" Maximum="120" Value="30" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OverlayChanged"/><TextBlock Text="{Binding ElementName=ScrollerSizeSlider, Path=Value, StringFormat={}{0:0} px}" VerticalAlignment="Center"/>
        <TextBlock Text="Speed" VerticalAlignment="Center" Margin="4"/>
        <Slider x:Name="ScrollerSpeedSlider" Minimum="40" Maximum="250" Value="110" Width="150" ValueChanged="OverlayChanged" VerticalAlignment="Center"/>
        <TextBlock x:Name="ScrollerSpeedText" MinWidth="75" VerticalAlignment="Center" Text="110 px/s" Margin="6,0,0,0"/>
@@ -1114,6 +1119,19 @@
        <Slider x:Name="ScrollerInsetSlider" Width="160" Minimum="0" Maximum="250" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="OverlayChanged" ToolTip="Move the scroller inward if the TV crops the screen edge. Zero restores the original position."/>
        <TextBlock Text="{Binding ElementName=ScrollerInsetSlider, Path=Value, StringFormat={}{0:0} px}" VerticalAlignment="Center" Margin="6,0"/>
       </WrapPanel>
+      <Grid Margin="0,6,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+       <CheckBox x:Name="SecondScrollerCheck" Content="Second message scroller" Checked="OverlayChanged" Unchecked="OverlayChanged"/>
+       <TextBox x:Name="SecondScrollerTextBox" Grid.Column="1" TextChanged="OverlayChanged" ToolTip="Independent message, such as drinks offers. Always uses the opposite edge to the primary scroller."/>
+      </Grid>
+      <WrapPanel>
+       <TextBlock Text="Second font" VerticalAlignment="Center" Margin="4"/><ComboBox x:Name="SecondScrollerFontCombo" Width="180" SelectionChanged="OverlayChanged"/>
+       <TextBlock Text="Size" VerticalAlignment="Center" Margin="4"/><Slider x:Name="SecondScrollerSizeSlider" Width="110" Minimum="16" Maximum="120" Value="30" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OverlayChanged"/><TextBlock Text="{Binding ElementName=SecondScrollerSizeSlider, Path=Value, StringFormat={}{0:0} px}" VerticalAlignment="Center"/>
+       <TextBlock Text="Speed" VerticalAlignment="Center" Margin="4"/><Slider x:Name="SecondScrollerSpeedSlider" Width="150" Minimum="40" Maximum="250" Value="110" ValueChanged="OverlayChanged"/><TextBlock Text="{Binding ElementName=SecondScrollerSpeedSlider, Path=Value, StringFormat={}{0:0} px/s}" VerticalAlignment="Center"/>
+       <Button x:Name="SecondScrollerColorButton" Content="SECOND COLOUR" Click="SecondScrollerColor_Click"/>
+       <TextBlock Text="Move away from edge" VerticalAlignment="Center" Margin="12,0,4,0"/><Slider x:Name="SecondScrollerInsetSlider" Width="160" Minimum="0" Maximum="250" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="OverlayChanged"/><TextBlock Text="{Binding ElementName=SecondScrollerInsetSlider, Path=Value, StringFormat={}{0:0} px}" VerticalAlignment="Center"/>
+      </WrapPanel>
+      <TextBlock Text="Second scroller uses the opposite edge. Insets are limited automatically to prevent overlap." TextWrapping="Wrap" Margin="4"/>
+      </StackPanel>
 
       <Border Grid.Row="6" BorderBrush="{DynamicResource SkinEdge_3C4A58}" BorderThickness="1,1,1,0" Margin="0,2,0,8"/>
 
@@ -1161,7 +1179,7 @@
 
       <Border Grid.Row="10" BorderBrush="{DynamicResource SkinEdge_596B7A}" BorderThickness="1" CornerRadius="5" Padding="8" Margin="0,10,0,0" Background="{DynamicResource SkinSurface_151F29}">
        <StackPanel>
-        <TextBlock Text="SHOW DURING MUSIC VIDEOS" FontWeight="Bold" Margin="3,0,3,6"/><WrapPanel><CheckBox x:Name="MusicVideoShowLogoCheck" Content="Permanent logo" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/><CheckBox x:Name="MusicVideoShowScrollerCheck" Content="Rotation / venue scroller" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/><CheckBox x:Name="MusicVideoShowSingersCheck" Content="Next singers" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/><CheckBox x:Name="MusicVideoShowKamikazeCheck" Content="Kamikaze message" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/></WrapPanel><TextBlock Text="Unchecked items are hidden during music videos. Checked items use their normal display settings." TextWrapping="Wrap" Margin="3,0,3,10"/>        <TextBlock Text="KAMIKAZE KARAOKE AUDIENCE MESSAGE" FontWeight="Bold" Foreground="{DynamicResource SkinInk_F4F7FA}" Margin="3,0,3,6"/>
+        <TextBlock Text="SHOW DURING MUSIC VIDEOS" FontWeight="Bold" Margin="3,0,3,6"/><WrapPanel><CheckBox x:Name="MusicVideoShowLogoCheck" Content="Permanent logo" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/><CheckBox x:Name="MusicVideoShowScrollerCheck" Content="Both scrollers" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/><CheckBox x:Name="MusicVideoShowSingersCheck" Content="Next singers" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/><CheckBox x:Name="MusicVideoShowKamikazeCheck" Content="Kamikaze message" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/></WrapPanel><TextBlock Text="Unchecked items are hidden during music videos. Checked items use their normal display settings." TextWrapping="Wrap" Margin="3,0,3,10"/>        <TextBlock Text="KAMIKAZE KARAOKE AUDIENCE MESSAGE" FontWeight="Bold" Foreground="{DynamicResource SkinInk_F4F7FA}" Margin="3,0,3,6"/>
         <WrapPanel>
          <TextBlock Text="Text" VerticalAlignment="Center" Margin="4"/>
          <TextBox x:Name="KamikazeTextBox" Width="240" Text="KAMIKAZE KARAOKE!" TextChanged="OverlayChanged"/>
@@ -1177,11 +1195,12 @@
        </StackPanel>
       </Border>
 
-      <DockPanel Grid.Row="11" Margin="0,12,0,0" LastChildFill="True">
+      <Grid Grid.Row="11" Margin="0,12,0,0">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
        <TextBlock Text="Settings update live. This panel stays open until CLOSE is pressed or you click elsewhere in Hazz."
                   Foreground="{DynamicResource SkinInk_CAD5DF}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="4,0,12,0"/>
-       <Button DockPanel.Dock="Right" Content="CLOSE" Style="{StaticResource StopButtonStyle}" Width="100" Click="CloseDisplaySettings_Click"/>
-      </DockPanel>
+       <Button x:Name="CloseAudienceSettingsButton" Grid.Column="1" Content="CLOSE" Style="{StaticResource StopButtonStyle}" MinWidth="100" Click="CloseDisplaySettings_Click"/>
+      </Grid>
      </Grid>
     </ScrollViewer>
    </Border>

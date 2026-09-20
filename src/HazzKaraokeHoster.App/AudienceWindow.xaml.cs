@@ -60,6 +60,8 @@ public partial class AudienceWindow : Window
     private double _singerPhotoSize = 64;
     private string _singerPhotoFit = "Fit";
     private bool _hasNextSinger;
+    private bool _rotationEnabled = true, _messageEnabled = true, _secondEnabled;
+    private double _secondSpeed = 110, _secondInset;
     private bool _scrollerEnabled = true;
     private bool _scrollerAtTop;
     private double _scrollerEdgeInset;
@@ -210,10 +212,22 @@ public partial class AudienceWindow : Window
         _nextFontSize = double.IsFinite(s.NextSingerFontSize) ? Math.Clamp(s.NextSingerFontSize, 32, 192) : 48;
         _nextSingerPosition = s.NextSingerPosition;
 
+        _rotationEnabled = s.ScrollerRotationEnabled;
+        _messageEnabled = s.ScrollerMessageEnabled;
+        AudienceCdgImage.Stretch = s.KaraokeSizing == "Stretch" ? Stretch.Fill : Stretch.Uniform;
+        AudienceMedia.StretchToFill = s.KaraokeSizing == "Stretch";
+        _secondEnabled = s.SecondScrollerEnabled && !string.IsNullOrWhiteSpace(s.SecondScrollerText);
+        _secondSpeed = double.IsFinite(s.SecondScrollerSpeed) ? Math.Clamp(s.SecondScrollerSpeed, 20, 500) : 110;
+        _secondInset = double.IsFinite(s.SecondScrollerInset) ? Math.Clamp(s.SecondScrollerInset, 0, 250) : 0;
+        SecondScrollerText.Text = s.SecondScrollerText ?? "";
+        SecondScrollerText.FontFamily = new FontFamily(string.IsNullOrWhiteSpace(s.SecondScrollerFontFamily) ? "Segoe UI" : s.SecondScrollerFontFamily);
+        SecondScrollerText.FontSize = double.IsFinite(s.SecondScrollerFontSize) ? Math.Clamp(s.SecondScrollerFontSize, 16, 120) : 30;
+        SecondScrollerText.Foreground = BrushFromHex(s.SecondScrollerColor, Brushes.Gold);
+        SecondScrollerText.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         _scrollerEnabled = s.ScrollerEnabled;
         _venueMessage = s.ScrollerText?.Trim() ?? string.Empty;
         ScrollerText.FontFamily = new FontFamily(s.ScrollerFontFamily);
-        ScrollerText.FontSize = s.ScrollerFontSize;
+        ScrollerText.FontSize = double.IsFinite(s.ScrollerFontSize) ? Math.Clamp(s.ScrollerFontSize, 16, 120) : 30;
         _speed = Math.Clamp(s.ScrollerPixelsPerSecond, 20, 500);
         _scrollerAtTop = string.Equals(s.ScrollerPosition, "Top", StringComparison.OrdinalIgnoreCase);
         ScrollerPanel.VerticalAlignment = _scrollerAtTop ? VerticalAlignment.Top : VerticalAlignment.Bottom;
@@ -365,7 +379,7 @@ public partial class AudienceWindow : Window
     {
         ScrollerText.Inlines.Clear();
 
-        if (_rotation.Count > 0)
+        if (_rotationEnabled && _rotation.Count > 0)
         {
             for (var i = 0; i < _rotation.Count; i++)
             {
@@ -374,14 +388,14 @@ public partial class AudienceWindow : Window
                 ScrollerText.Inlines.Add(StrokeRun($"{item.Position}. {item.SingerName}", _rotationScrollerBrush, "Rotation"));
             }
         }
-        else
+        else if (_rotationEnabled)
         {
             ScrollerText.Inlines.Add(StrokeRun("Singer rotation empty", _rotationScrollerBrush, "Rotation"));
         }
 
-        if (!string.IsNullOrWhiteSpace(_venueMessage))
+        if (_messageEnabled && !string.IsNullOrWhiteSpace(_venueMessage))
         {
-            ScrollerText.Inlines.Add(StrokeRun("   ◆   ", _venueScrollerBrush, "Venue"));
+            if (ScrollerText.Inlines.Count > 0) ScrollerText.Inlines.Add(StrokeRun("   ◆   ", _venueScrollerBrush, "Venue"));
             ScrollerText.Inlines.Add(StrokeRun(_venueMessage, _venueScrollerBrush, "Venue"));
         }
 
@@ -428,7 +442,11 @@ public partial class AudienceWindow : Window
         NextSingerPanel.Visibility = (!musicVideoVisible || _musicVideoShowSingers) && !_karaokeActive && !_kamikazeVisible && _showNextSinger && _hasNextSinger
             ? Visibility.Visible
             : Visibility.Collapsed;
-        ScrollerPanel.Visibility = (!musicVideoVisible || _musicVideoShowScroller) && !_karaokeActive && !_kamikazeVisible && _scrollerEnabled ? Visibility.Visible : Visibility.Collapsed;
+        ScrollerPanel.Visibility = (!musicVideoVisible || _musicVideoShowScroller) && !_karaokeActive && !_kamikazeVisible && _scrollerEnabled && ScrollerText.Inlines.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        SecondScrollerPanel.Visibility = (!musicVideoVisible || _musicVideoShowScroller) && !_karaokeActive && !_kamikazeVisible && _secondEnabled ? Visibility.Visible : Visibility.Collapsed;
+        LayoutScrollers();
+        Position(_nextSingerPosition);
+        FitSingerPanel();
     }
 
     private static Brush BrushFromHex(string? value, Brush fallback)
@@ -630,12 +648,11 @@ public partial class AudienceWindow : Window
             OverlayPosition.TopLeft or OverlayPosition.TopCenter or OverlayPosition.TopRight => System.Windows.VerticalAlignment.Top,
             _ => System.Windows.VerticalAlignment.Bottom
         };
-        var atTop = p is OverlayPosition.TopLeft or OverlayPosition.TopCenter or OverlayPosition.TopRight;
         NextSingerPanel.Margin = new Thickness(
             30,
-            atTop && _scrollerAtTop ? ScrollerPanel.Height + 22 + _scrollerEdgeInset : 30,
+            ScrollerClearance(true),
             30,
-            !atTop && !_scrollerAtTop ? ScrollerPanel.Height + 22 + _scrollerEdgeInset : 30);
+            ScrollerClearance(false));
     }
 
     private void ResetScroller()
@@ -644,20 +661,55 @@ public partial class AudienceWindow : Window
         ScrollerText.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
         Canvas.SetLeft(ScrollerText, Math.Max(ActualWidth, 10));
         Canvas.SetTop(ScrollerText, Math.Max(0, (ScrollerPanel.ActualHeight - ScrollerText.DesiredSize.Height) / 2));
+        LayoutScrollers();
+        Canvas.SetLeft(SecondScrollerText, Math.Max(ActualWidth, 10));
+        Position(_nextSingerPosition);
         _lastSeconds = _clock.Elapsed.TotalSeconds;
+    }
+
+    private double ScrollerClearance(bool top)
+    {
+        var result = 30d;
+        foreach (var bar in new[] { ScrollerPanel, SecondScrollerPanel })
+            if (bar.Visibility == Visibility.Visible && (bar.VerticalAlignment == VerticalAlignment.Top) == top)
+                result = Math.Max(result, bar.Height + 22 + (top ? bar.Margin.Top : bar.Margin.Bottom));
+        return result;
+    }
+
+    private void LayoutScrollers()
+    {
+        if (SecondScrollerPanel is null) return;
+        // Each bar stays inside its own half of the audience area, including inset.
+        var half = Math.Max(1, (Root.ActualHeight > 0 ? Root.ActualHeight : Math.Max(Height, 2)) / 2 - 2);
+        Place(ScrollerPanel, ScrollerText, _scrollerAtTop, _scrollerEdgeInset);
+        Place(SecondScrollerPanel, SecondScrollerText, !_scrollerAtTop, _secondInset);
+        void Place(Border bar, StrokeTextBlock text, bool top, double inset)
+        {
+            text.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            bar.Height = Math.Min(half, Math.Max(52, text.DesiredSize.Height + 8));
+            inset = Math.Min(inset, Math.Max(0, half - bar.Height));
+            bar.VerticalAlignment = top ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+            bar.Margin = top ? new Thickness(0, inset, 0, 0) : new Thickness(0, 0, 0, inset);
+            Canvas.SetTop(text, Math.Max(0, (bar.Height - text.DesiredSize.Height) / 2));
+        }
     }
 
     private void TickScroller()
     {
-        if (ScrollerPanel.Visibility != Visibility.Visible) return;
         var now = _clock.Elapsed.TotalSeconds;
         var dt = Math.Clamp(now - _lastSeconds, 0, 0.1);
         _lastSeconds = now;
-        var left = Canvas.GetLeft(ScrollerText);
-        if (double.IsNaN(left)) left = ActualWidth;
-        left -= _speed * dt;
-        if (left + ScrollerText.ActualWidth < 0) left = Math.Max(ActualWidth, 10);
-        Canvas.SetLeft(ScrollerText, left);
+        Advance(ScrollerPanel, ScrollerText, _speed);
+        Advance(SecondScrollerPanel, SecondScrollerText, _secondSpeed);
+        void Advance(Border bar, StrokeTextBlock text, double speed)
+        {
+            if (bar.Visibility != Visibility.Visible) return;
+            var left = Canvas.GetLeft(text);
+            if (double.IsNaN(left)) left = ActualWidth;
+            left -= speed * dt;
+            if (left + text.ActualWidth < 0) left = Math.Max(ActualWidth, 10);
+            Canvas.SetLeft(text, left);
+        }
     }
 
     private void TickScrollerSafe()

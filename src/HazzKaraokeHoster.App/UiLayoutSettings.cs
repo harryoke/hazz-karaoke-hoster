@@ -78,6 +78,16 @@ internal sealed class UiLayoutSettings
     public double AudienceNextSingerFontSize { get; set; } = 48;
     public double AudienceNextHeadingFontSize { get; set; } = 36;
     public string AudienceNextSingerPosition { get; set; } = "BottomCenter";
+    public bool AudienceScrollerRotationEnabled { get; set; } = true;
+    public bool AudienceScrollerMessageEnabled { get; set; } = true;
+    public bool AudienceSecondScrollerEnabled { get; set; } = false;
+    public string AudienceSecondScrollerText { get; set; } = "";
+    public string AudienceSecondScrollerFontFamily { get; set; } = "Segoe UI";
+    public double AudienceSecondScrollerFontSize { get; set; } = 30;
+    public double AudienceSecondScrollerSpeed { get; set; } = 110;
+    public double AudienceSecondScrollerInset { get; set; } = 0;
+    public string AudienceSecondScrollerColor { get; set; } = "#FFFFD34D";
+    public string AudienceKaraokeSizing { get; set; } = "Fit";
     public bool AudienceScrollerEnabled { get; set; } = true;
     public string AudienceScrollerText { get; set; } = "WELCOME TO KARAOKE WITH HAZZ • PLEASE HAVE YOUR NEXT SONG READY •";
     public string AudienceScrollerFontFamily { get; set; } = "Segoe UI";

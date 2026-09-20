@@ -12,6 +12,9 @@ var queues=new MusicDeckQueueState { Deck1 = new() { new() { FilePath="song-a.mp
 MusicDeckQueueStateStore.SaveTo(queuesPath,queues);
 var preserved=new Dictionary<string,byte[]> { [favouritesPath]=File.ReadAllBytes(favouritesPath),[queuesPath]=File.ReadAllBytes(queuesPath) };
 var settings=new UiLayoutSettings {
+ AudienceKaraokeSizing="Stretch", AudienceScrollerRotationEnabled=false, AudienceScrollerMessageEnabled=true,
+ AudienceSecondScrollerEnabled=true, AudienceSecondScrollerText="Drinks offers", AudienceSecondScrollerFontFamily="Arial",
+ AudienceSecondScrollerFontSize=96, AudienceSecondScrollerSpeed=180, AudienceSecondScrollerInset=80, AudienceSecondScrollerColor="#FF00FF00",
  KamikazeFolderPath=@"D:\Five-song pool",
  AudienceBackgroundEnabled=true, AudienceBackgroundFolderPath=@"D:\Venue images",
  AudienceLogoEnabled=true, AudienceLogoImagePath=@"D:\Venue logo.png",

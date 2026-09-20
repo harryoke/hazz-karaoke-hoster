@@ -24,6 +24,16 @@ internal static class Program
                 await Task.Delay(4500);
                 Check(video.NativeActive != AudienceVideoSurface.WindowsRequested, "requested backend active");
                 Check(video.Position.TotalSeconds > 1, "playback clock advances");
+                foreach (var fill in new[] { true, false, true })
+                {
+                    video.StretchToFill = fill;
+                    window.Width = fill ? 800 : 640;
+                    window.UpdateLayout();
+                    await Task.Delay(300);
+                    var player = typeof(AudienceVideoSurface).GetField("_player", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(video) as LibVLCSharp.Shared.MediaPlayer;
+                    if (video.NativeActive) Check(fill ? !string.IsNullOrEmpty(player!.AspectRatio) : string.IsNullOrEmpty(player!.AspectRatio), "VLC fit/stretch aspect applied");
+                    Check(((System.Windows.Controls.MediaElement)video.Children[0]).Stretch == (fill ? System.Windows.Media.Stretch.Fill : System.Windows.Media.Stretch.Uniform), "Windows sizing preserved for fallback");
+                }
                 window.PauseVideo(); await Task.Delay(700);
                 var paused = video.Position;
                 await Task.Delay(800);
