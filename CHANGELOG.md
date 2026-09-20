@@ -1,3 +1,9 @@
+# v1.7
+
+Made For KJ/DJ's By A KJ/DJ
+
+Video AV Sync, full audience preview and optional transparent CD+G backgrounds with opacity controls and saved song overrides. Existing v1.6 features retained. See Documentation/RELEASE_v1.7.md.
+
 # v1.6
 
 Karaoke Fit/Stretch in Windows and VLC; separate rotation/message switches; second independently styled scroller with opposite-edge and inset safeguards; display-settings Close button clipping corrected. See Documentation/RELEASE_v1.6.md.

@@ -54,6 +54,29 @@ public partial class AudienceWindow : Window
     private bool _videoPlaying;
     private bool _musicVideoPlaying;
     private bool _karaokeActive;
+    private CdgPresentationSettings _cdgPresentation = new();
+    private double _videoSyncOffset;
+    private bool _videoWaiting;
+    private DateTime _lastVideoCorrection;
+    public double VideoSyncOffsetSeconds
+    {
+        get => _videoSyncOffset;
+        set { _videoSyncOffset = double.IsFinite(value) ? Math.Clamp(value, -10, 10) : 0; }
+    }
+    public TimeSpan AdjustedVideoPosition(TimeSpan audioPosition)
+    {
+        var seconds = Math.Max(0, audioPosition.TotalSeconds + _videoSyncOffset);
+        if (AudienceMedia.Duration is { } duration && duration.TotalSeconds > 0)
+            seconds = Math.Min(seconds, Math.Max(0, duration.TotalSeconds - 0.01));
+        return TimeSpan.FromSeconds(seconds);
+    }
+    public void RepositionVideo(TimeSpan audioPosition)
+    {
+        if (AudienceMedia.Source is null) return;
+        AudienceMedia.Position = AdjustedVideoPosition(audioPosition);
+        _videoWaiting = audioPosition.TotalSeconds + _videoSyncOffset < 0;
+        if (_videoPlaying) { if (_videoWaiting) AudienceMedia.Pause(); else AudienceMedia.Play(); }
+    }
     private bool _showNextSinger = true;
     private bool _showNextSong = true;
     private bool _showSingerPhotos = true;
@@ -89,6 +112,7 @@ public partial class AudienceWindow : Window
     public AudienceWindow()
     {
         InitializeComponent();
+        IsVisibleChanged += (_, _) => { if (IsVisible) { Root.Width = double.NaN; Root.Height = double.NaN; } };
         AudienceMedia.BackendChanged += (_, _) => UpdateOverlayLayerVisibility();
         MusicVideoMedia.BackendChanged += (_, _) => UpdateOverlayLayerVisibility();
         _ticker.Tick += (_, _) => TickScrollerSafe();
@@ -200,6 +224,7 @@ public partial class AudienceWindow : Window
 
     public void Apply(AudienceOverlaySettings s)
     {
+        _cdgPresentation = s.CdgPresentation ?? new();
         _textStrokes = s.TextStrokes ?? new();
         SetTextStroke(NextSingerHeadingText, "Heading");
         SetTextStroke(KamikazeTextBlock, "Kamikaze");
@@ -281,11 +306,11 @@ public partial class AudienceWindow : Window
 
     private void FitSingerPanel()
     {
-        if (SingerTextContent is null || ActualWidth <= 0 || ActualHeight <= 0) return;
+        if (SingerTextContent is null || Root.ActualWidth <= 0 || Root.ActualHeight <= 0) return;
         var margin = NextSingerPanel.Margin;
-        NextSingerPanel.MaxWidth = Math.Max(1, ActualWidth - margin.Left - margin.Right);
+        NextSingerPanel.MaxWidth = Math.Max(1, Root.ActualWidth - margin.Left - margin.Right);
         SingerTextContent.Width = Math.Max(1, NextSingerPanel.MaxWidth - 44);
-        SingerTextFit.MaxHeight = Math.Max(1, ActualHeight - margin.Top - margin.Bottom - 28);
+        SingerTextFit.MaxHeight = Math.Max(1, Root.ActualHeight - margin.Top - margin.Bottom - 28);
     }
 
     private void RenderNextSingers()
@@ -418,15 +443,20 @@ public partial class AudienceWindow : Window
         MoveNativeOverlays(_karaokeActive && AudienceMedia.Source is not null && AudienceMedia.NativeActive ? AudienceMedia
             : !_karaokeActive && MusicVideoMedia.Source is not null && MusicVideoMedia.NativeActive ? MusicVideoMedia : null);
         var musicVideoVisible = !_karaokeActive && MusicVideoMedia.Source is not null;
-        SingerBackgroundGif.Visibility = !musicVideoVisible && !_karaokeActive && _backgroundImageEnabled && _backgroundGifPath.Length > 0
+        var transparentCdg = _karaokeActive && AudienceCdgImage.Source is not null && _cdgPresentation.Enabled;
+        var backgroundVisible = !musicVideoVisible && (!_karaokeActive || transparentCdg);
+        var backdropOpacity = transparentCdg && double.IsFinite(_cdgPresentation.BackgroundOpacity) ? Math.Clamp(_cdgPresentation.BackgroundOpacity, 0, 1) : 1;
+        SingerBackgroundImage.Opacity = SingerBackgroundGif.Opacity = SingerBackgroundVideo.Opacity = backdropOpacity;
+        AudienceCdgImage.Opacity = transparentCdg && double.IsFinite(_cdgPresentation.LyricsOpacity) ? Math.Clamp(_cdgPresentation.LyricsOpacity, 0, 1) : 1;
+        SingerBackgroundGif.Visibility = backgroundVisible && _backgroundImageEnabled && _backgroundGifPath.Length > 0
             ? Visibility.Visible : Visibility.Collapsed;
-        SingerBackgroundVideo.Visibility = !musicVideoVisible && !_karaokeActive && _backgroundImageEnabled && SingerBackgroundVideo.Source is not null
+        SingerBackgroundVideo.Visibility = backgroundVisible && _backgroundImageEnabled && SingerBackgroundVideo.Source is not null
             ? Visibility.Visible : Visibility.Collapsed;
         MusicVideoMedia.Visibility = musicVideoVisible
             ? Visibility.Visible : Visibility.Collapsed;
-        // Singer-view artwork and informational overlays are deliberately hidden during karaoke.
+        // Informational overlays hide during karaoke; transparent CDG may retain the artwork.
         // The logo is different: if enabled it remains above CD+G/video for the whole show.
-        SingerBackgroundImage.Visibility = !musicVideoVisible && !_karaokeActive && _backgroundImageEnabled && SingerBackgroundImage.Source is not null
+        SingerBackgroundImage.Visibility = backgroundVisible && _backgroundImageEnabled && SingerBackgroundImage.Source is not null
             ? Visibility.Visible
             : Visibility.Collapsed;
         AudienceLogoImage.Visibility = (!musicVideoVisible || _musicVideoShowLogo) && _logoEnabled && AudienceLogoImage.Source is not null
@@ -537,9 +567,11 @@ public partial class AudienceWindow : Window
     public void PlayVideo(TimeSpan position)
     {
         if (AudienceMedia.Source is null) return;
-        AudienceMedia.Position = position;
+        AudienceMedia.Position = AdjustedVideoPosition(position);
         AudienceMedia.Play();
         _videoPlaying = true;
+        _videoWaiting = position.TotalSeconds + _videoSyncOffset < 0;
+        if (_videoWaiting) AudienceMedia.Pause();
     }
 
     public void PauseVideo()
@@ -560,6 +592,15 @@ public partial class AudienceWindow : Window
     public void SyncVideo(TimeSpan hostPosition)
     {
         if (!_videoPlaying || AudienceMedia.Source is null) return;
+        if (hostPosition.TotalSeconds + _videoSyncOffset < 0)
+        {
+            if (!_videoWaiting) { AudienceMedia.Position = TimeSpan.Zero; AudienceMedia.Pause(); _videoWaiting = true; }
+            return;
+        }
+        if (_videoWaiting) { _videoWaiting = false; AudienceMedia.Position = AdjustedVideoPosition(hostPosition); AudienceMedia.Play(); }
+        if ((DateTime.UtcNow - _lastVideoCorrection).TotalMilliseconds < 500) return;
+        _lastVideoCorrection = DateTime.UtcNow;
+        hostPosition = AdjustedVideoPosition(hostPosition);
         var drift = Math.Abs((AudienceMedia.Position - hostPosition).TotalMilliseconds);
         if (drift > 250) AudienceMedia.Position = hostPosition;
     }
@@ -659,10 +700,10 @@ public partial class AudienceWindow : Window
     {
         if (ScrollerText is null || ScrollerPanel is null) return;
         ScrollerText.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
-        Canvas.SetLeft(ScrollerText, Math.Max(ActualWidth, 10));
+        Canvas.SetLeft(ScrollerText, Math.Max(Root.ActualWidth, 10));
         Canvas.SetTop(ScrollerText, Math.Max(0, (ScrollerPanel.ActualHeight - ScrollerText.DesiredSize.Height) / 2));
         LayoutScrollers();
-        Canvas.SetLeft(SecondScrollerText, Math.Max(ActualWidth, 10));
+        Canvas.SetLeft(SecondScrollerText, Math.Max(Root.ActualWidth, 10));
         Position(_nextSingerPosition);
         _lastSeconds = _clock.Elapsed.TotalSeconds;
     }
@@ -705,9 +746,9 @@ public partial class AudienceWindow : Window
         {
             if (bar.Visibility != Visibility.Visible) return;
             var left = Canvas.GetLeft(text);
-            if (double.IsNaN(left)) left = ActualWidth;
+            if (double.IsNaN(left)) left = Root.ActualWidth;
             left -= speed * dt;
-            if (left + text.ActualWidth < 0) left = Math.Max(ActualWidth, 10);
+            if (left + text.ActualWidth < 0) left = Math.Max(Root.ActualWidth, 10);
             Canvas.SetLeft(text, left);
         }
     }

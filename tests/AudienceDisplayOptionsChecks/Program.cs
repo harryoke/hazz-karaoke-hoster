@@ -229,6 +229,55 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
         audience.Apply(new AudienceOverlaySettings { SecondScrollerEnabled = true, SecondScrollerText = " " });
         Require(second.Visibility == Visibility.Collapsed, "Blank second message should hide its band");
         Console.WriteLine("PASS: independent scrollers, edge/overlap safety, secondary-only motion, karaoke sizing and retained audience behavior.");
+        audience.VideoSyncOffsetSeconds = 1.25;
+        Require(audience.AdjustedVideoPosition(TimeSpan.FromSeconds(10)).TotalSeconds == 11.25, "Positive AVS must advance video");
+        audience.VideoSyncOffsetSeconds = -1.25;
+        Require(audience.AdjustedVideoPosition(TimeSpan.FromSeconds(10)).TotalSeconds == 8.75 && audience.AdjustedVideoPosition(TimeSpan.Zero) == TimeSpan.Zero, "Negative AVS/clamping failed");
+        audience.VideoSyncOffsetSeconds = 0;
+        var backgroundPixels = Enumerable.Range(0,16).SelectMany(_ => new byte[]{0,0,255,255}).ToArray();
+        var red = System.Windows.Media.Imaging.BitmapSource.Create(4,4,96,96,PixelFormats.Bgra32,null,backgroundPixels,16);
+        var artPath = Path.Combine(Path.GetTempPath(),"hazz-v17-"+Guid.NewGuid()+".png");
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(red));using(var file=File.Create(artPath)) encoder.Save(file);
+        var transparent = System.Windows.Media.Imaging.BitmapSource.Create(4,4,96,96,PixelFormats.Bgra32,null,new byte[64],16);
+        audience.Apply(new AudienceOverlaySettings { BackgroundImageEnabled=true, BackgroundImagePath=artPath, CdgPresentation=new() { Enabled=true, BackgroundOpacity=0.4, LyricsOpacity=0.7 } });
+        audience.ShowCdg(transparent);audience.SetKaraokeActive(true);
+        Require(image.Visibility==Visibility.Visible && image.Opacity==0.4 && cdg.Opacity==0.7, "Transparent CDG background/opacity not shown");
+        audience.Apply(new AudienceOverlaySettings { BackgroundImageEnabled=true, BackgroundImagePath=artPath });
+        Require(image.Visibility==Visibility.Collapsed && cdg.Opacity==1, "Original CDG mode not restored");
+        audience.ClearKaraokeVisual();audience.SetKaraokeActive(false);
+        audience.Apply(new AudienceOverlaySettings { BackgroundImageEnabled=true, BackgroundImagePath=artPath, ShowNextSinger=false, ScrollerEnabled=false });
+        using (var preview = new AudiencePreview { GetAudience = () => audience })
+        {
+            var previewWindow = new Window { Content=preview, Width=640, Height=400, ShowActivated=false, ShowInTaskbar=false };
+            previewWindow.Show();previewWindow.UpdateLayout();preview.Refresh();previewWindow.UpdateLayout();
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(640,400,96,96,PixelFormats.Pbgra32);bitmap.Render(preview);
+            var previewPixels = new byte[640*400*4];bitmap.CopyPixels(previewPixels,640*4,0);
+            Require(previewPixels[(180*640+300)*4+2]>200,"Preview did not show idle audience background");
+            audience.Hide();preview.Refresh();previewWindow.UpdateLayout();
+            Require(audience.PreviewScene.ActualWidth>0 && audience.PreviewScene.ActualHeight>0,"Preview-only scene layout incorrect");
+            var hidden = new AudienceWindow();
+            hidden.Apply(new AudienceOverlaySettings { BackgroundImageEnabled=true, BackgroundImagePath=artPath, ShowNextSinger=false, ScrollerEnabled=false });
+            preview.GetAudience=()=>hidden;preview.Refresh();previewWindow.UpdateLayout();preview.Refresh();
+            bitmap.Clear();bitmap.Render(preview);bitmap.CopyPixels(previewPixels,640*4,0);
+            Require(previewPixels[(180*640+300)*4+2]>200,"Preview must show background without ever opening audience window");
+            hidden.Apply(new AudienceOverlaySettings { BackgroundImageEnabled=true, BackgroundImagePath=artPath, BackgroundStretchMode="Stretch", ShowNextSinger=true, ScrollerEnabled=true, ScrollerText="WELCOME TO HAZZ KARAOKE", SecondScrollerEnabled=true, SecondScrollerText="VENUE OFFERS — ASK AT THE BAR" });
+            hidden.SetSingerRotation(new[] { new AudienceSingerDisplayItem { Position=1, SingerName="Alex", SongText="Dancing Queen", PhotoPath=artPath }, new AudienceSingerDisplayItem { Position=2, SingerName="Sam", SongText="Your next song" } },true);
+            var navyBytes=Enumerable.Range(0,16).SelectMany(_=>new byte[]{70,40,18,255}).ToArray();
+            ((Image)hidden.FindName("SingerBackgroundImage")).Source=System.Windows.Media.Imaging.BitmapSource.Create(4,4,96,96,PixelFormats.Bgra32,null,navyBytes,16);
+            Canvas.SetLeft((StrokeTextBlock)hidden.FindName("ScrollerText"),20);
+            Canvas.SetLeft((StrokeTextBlock)hidden.FindName("SecondScrollerText"),20);
+            hidden.PreviewScene.UpdateLayout();preview.Refresh();previewWindow.UpdateLayout();
+            bitmap.Clear();bitmap.Render(preview);bitmap.CopyPixels(previewPixels,640*4,0);
+            Require(Enumerable.Range(0,640*400).Count(i=>previewPixels[i*4]>180 && previewPixels[i*4+1]>180 && previewPixels[i*4+2]>180)>50,"Preview omitted singer/scroller text");
+            Require(Walk((StackPanel)hidden.FindName("NextSingersStack")).OfType<Image>().Any(x=>x.Source is not null),"Singer photo missing from shared preview scene");
+            if(args.Length>1) { var previewEncoder=new System.Windows.Media.Imaging.PngBitmapEncoder();previewEncoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));using var output=File.Create(args[1]);previewEncoder.Save(output); }
+            hidden.Width=900;hidden.Height=500;hidden.Show();hidden.UpdateLayout();preview.Refresh();
+            Require(double.IsNaN(hidden.PreviewScene.Width) && hidden.PreviewScene.ActualWidth>700,"Opening audience display must restore normal responsive layout");
+            preview.Dispose();hidden.Close();
+            previewWindow.Close();
+        }
+        File.Delete(artPath);
+        Console.WriteLine("PASS: AVS calculations, transparent CDG background/opacity, full idle preview and hidden audience layout.");
         audience.Close();
         if (args.Contains("--audience-only")) return;
 

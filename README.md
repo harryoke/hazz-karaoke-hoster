@@ -1,16 +1,22 @@
 # Hazz Karaoke Hoster
 
+Made For KJ/DJ's By A KJ/DJ
+
 Free-to-use Windows software for hosting karaoke nights, playing background music and showing music videos on a separate audience screen.
 
 Hazz brings a karaoke player, singer rotation and two music decks into one console, with tools for organising large libraries and preparing the next track during a live show.
 
-![Hazz Karaoke Hoster v1.6 console with two music decks, karaoke controls, singer rotation and sound-device settings](Documentation/Images/console_v1.6.png)
+![Hazz Karaoke Hoster v1.7 console with two music decks, karaoke controls, singer rotation and sound-device settings](Documentation/Images/console_v1.7.png)
 
-*v1.6 Classic console shown with illustrative sample rows.*
+*v1.7 Classic console shown with illustrative sample rows.*
 
 **[Download for Windows](https://github.com/harryoke/hazz-karaoke-hoster/releases/latest)** · **[Official website](https://harryoke.github.io/hazz-karaoke-hoster/)** · **[User guide](Documentation/V1_MANUAL.md)**
 
-## New in v1.6
+## New in v1.7
+
+Video AV Sync with saved track defaults; a complete, muted audience preview; optional CD+G background transparency with separate opacity sliders and per-song overrides. [Read the v1.7 instructions](Documentation/RELEASE_v1.7.md).
+
+## Retained from v1.6
 
 Fit/Stretch karaoke playback; independent singer-rotation and custom-message switches; a second scrolling message with its own font, size, speed, colour and edge inset. The two bars stay on opposite edges. [Read the v1.6 guide](Documentation/RELEASE_v1.6.md).
 

@@ -40,6 +40,33 @@ internal static class Program
                 Check(Math.Abs((video.Position - paused).TotalMilliseconds) < 300, "pause holds position");
                 window.PlayVideo(TimeSpan.FromSeconds(30)); await Task.Delay(2000);
                 Check(video.Position.TotalSeconds is > 29 and < 35, "seek and resume");
+                window.VideoSyncOffsetSeconds=1;
+                window.RepositionVideo(TimeSpan.FromSeconds(30));await Task.Delay(400);
+                Check(video.Position.TotalSeconds is >30.7 and <32,"positive AVS advances picture");
+                window.VideoSyncOffsetSeconds=-1;
+                window.RepositionVideo(TimeSpan.FromSeconds(30));await Task.Delay(400);
+                Check(video.Position.TotalSeconds is >28.7 and <30,"negative AVS delays picture");
+                window.PlayVideo(TimeSpan.Zero);await Task.Delay(600);
+                Check(video.Position.TotalSeconds<0.3,"negative AVS holds first frame until audio catches up");
+                window.SyncVideo(TimeSpan.FromSeconds(1.2));await Task.Delay(600);
+                Check(video.Position.TotalSeconds>0.3,"negative AVS resumes after initial hold");
+                window.VideoSyncOffsetSeconds=0;
+                window.PlayVideo(TimeSpan.FromSeconds(10));await Task.Delay(600);
+                using(var preview=new AudiencePreview { GetAudience=()=>window })
+                {
+                    var host=new Window { Content=preview, Width=480, Height=300, ShowActivated=false };
+                    host.Show();await Task.Delay(1500);preview.Refresh();
+                    var mirror=(AudienceVideoSurface)typeof(AudiencePreview).GetField("_video",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!.GetValue(preview)!;
+                    Check(mirror is not null && mirror.Source==video.Source && Math.Abs((mirror.Position-video.Position).TotalSeconds)<1,"full preview mirrors video clock");
+                    var silent=(System.Windows.Controls.MediaElement)mirror!.Children[0];
+                    Check(silent.IsMuted && silent.Volume==0,"preview Windows layer is silent");
+                    if(mirror.NativeActive)
+                    {
+                        var native=(LibVLCSharp.Shared.MediaPlayer)typeof(AudienceVideoSurface).GetField("_player",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!.GetValue(mirror)!;
+                        Check(native.Mute,"preview VLC layer is silent");
+                    }
+                    preview.Dispose();host.Close();
+                }
                 if (!AudienceVideoSurface.WindowsRequested)
                 {
                     window.SetVideoEnginePreference(false);

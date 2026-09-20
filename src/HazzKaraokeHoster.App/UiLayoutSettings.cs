@@ -5,6 +5,9 @@ namespace HazzKaraokeHoster.App;
 
 internal sealed class UiLayoutSettings
 {
+    public Dictionary<string, double> SavedAvSync { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public HazzKaraokeHoster.Core.Models.CdgPresentationSettings CdgPresentation { get; set; } = new();
+    public Dictionary<string, HazzKaraokeHoster.Core.Models.CdgPresentationSettings> CdgSongPresentation { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, HazzKaraokeHoster.Core.Models.TextStrokeSettings> AudienceTextStrokes { get; set; } = new();
     public string KamikazeFolderPath { get; set; } = string.Empty;
     public string ConsoleSkin { get; set; } = "Classic";
@@ -180,13 +183,13 @@ internal static class UiLayoutSettingsStore
         WriteAtomic(path, document.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    public static void Save(UiLayoutSettings settings)
+    public static bool Save(UiLayoutSettings settings)
     {
         lock (Gate)
         {
-            if (!_canSave) return;
-            try { PreserveSessionBackup(); SaveTo(SettingsPath, settings); }
-            catch { /* Do not interrupt playback when storage is unavailable. */ }
+            if (!_canSave) return false;
+            try { PreserveSessionBackup(); SaveTo(SettingsPath, settings); return true; }
+            catch { return false; /* Do not interrupt playback when storage is unavailable. */ }
         }
     }
 

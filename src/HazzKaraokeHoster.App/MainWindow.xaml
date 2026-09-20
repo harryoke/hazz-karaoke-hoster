@@ -437,7 +437,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="{DynamicResource HostFont10_5}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_6EC1E4}" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="{DynamicResource SkinSurface_22303C}" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v1.6" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
+     <TextBlock Text="v1.7" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
     </Border>
    </StackPanel>
 
@@ -724,12 +724,12 @@
         </Border>
         <Border Grid.Column="1" Background="{DynamicResource SkinSurface_0F161E}" BorderBrush="{DynamicResource SkinEdge_354655}" BorderThickness="1" CornerRadius="4" Padding="5" Margin="3">
          <StackPanel>
-          <TextBlock Text="CD+G SYNC · + ADVANCES · − DELAYS" HorizontalAlignment="Center" FontSize="{DynamicResource HostFont12}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_9FB0C1}"/>
+          <TextBlock Text="CDG / VIDEO AV SYNC · + ADVANCES · − DELAYS" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" FontSize="{DynamicResource HostFont12}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_9FB0C1}"/>
           <WrapPanel HorizontalAlignment="Center">
            <Button Content="−0.25s" Style="{StaticResource LoadButtonStyle}" Click="CdgEarlier_Click"/>
            <TextBlock x:Name="CdgSyncText" Text="0.00s" FontSize="{DynamicResource HostFont22}" Width="78" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold"/>
            <Button Content="+0.25s" Style="{StaticResource LoadButtonStyle}" Click="CdgLater_Click"/>
-           <Button Content="RESET" Style="{StaticResource PauseButtonStyle}" Click="CdgReset_Click"/>
+           <Button Content="RESET" Style="{StaticResource PauseButtonStyle}" Click="CdgReset_Click"/><Button Content="SAVE" Style="{StaticResource LoadButtonStyle}" Click="SaveAvSync_Click" ToolTip="Save this CDG/video sync correction for this song. Reset then Save restores zero."/>
           </WrapPanel>
          </StackPanel>
         </Border>
@@ -779,7 +779,7 @@
        <Grid>
         <TextBlock x:Name="QueueTimeText" Text="REMAINING 0m" FontSize="{DynamicResource HostFont11}" FontWeight="SemiBold" Foreground="{DynamicResource SkinInk_AFC3D5}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" ToolTip="Estimated time to finish the current karaoke song plus all queued requests. Unknown track lengths use a 4-minute estimate."/>
         <TextBlock Text="KARAOKE SINGERS LIST" FontSize="{DynamicResource HostFont17}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-        <Button x:Name="PreviewToggleButton" Content="HIDE PREVIEW" Style="{StaticResource CompactHeaderButtonStyle}" Background="#67428B" BorderBrush="#B58AE0" HorizontalAlignment="Right" VerticalAlignment="Center" Click="TogglePreview_Click" ToolTip="Show or hide the host karaoke preview and give the singer list more space."/>
+        <Button x:Name="PreviewToggleButton" Content="HIDE PREVIEW" Style="{StaticResource CompactHeaderButtonStyle}" Background="#67428B" BorderBrush="#B58AE0" HorizontalAlignment="Right" VerticalAlignment="Center" Click="TogglePreview_Click" ToolTip="Show or hide the complete audience display preview."/>
        </Grid>
       </Border>
      <Grid Grid.Row="1" Margin="7,5,7,3">
@@ -863,12 +863,13 @@
      <Grid>
       <Grid.RowDefinitions><RowDefinition Height="Auto" MinHeight="34"/><RowDefinition Height="*"/></Grid.RowDefinitions>
       <Border Background="{DynamicResource SkinSurface_19232D}" CornerRadius="5,5,0,0">
-       <TextBlock Text="KARAOKE PREVIEW" FontSize="{DynamicResource HostFont15}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource SkinInk_C7D3DF}"/>
+       <TextBlock Text="AUDIENCE PREVIEW" FontSize="{DynamicResource HostFont15}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource SkinInk_C7D3DF}"/>
       </Border>
       <Grid Grid.Row="1" Margin="5" ClipToBounds="True" Background="Black">
        <MediaElement x:Name="KaraokeMedia" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" Volume="0.9" IsHitTestVisible="False"/>
        <Image x:Name="CdgPreview" Stretch="Uniform" Visibility="Collapsed" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
-       <TextBlock x:Name="KaraokePreviewLabel" Text="NO KARAOKE LOADED" Foreground="#B9C6D3" FontSize="{DynamicResource HostFont23}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+       <local:AudiencePreview x:Name="FullAudiencePreview" Panel.ZIndex="20"/>
+       <TextBlock Panel.ZIndex="-1" x:Name="KaraokePreviewLabel" Text="NO KARAOKE LOADED" Foreground="#B9C6D3" FontSize="{DynamicResource HostFont23}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
       </Grid>
      </Grid>
     </Border>
@@ -1130,6 +1131,19 @@
        <Button x:Name="SecondScrollerColorButton" Content="SECOND COLOUR" Click="SecondScrollerColor_Click"/>
        <TextBlock Text="Move away from edge" VerticalAlignment="Center" Margin="12,0,4,0"/><Slider x:Name="SecondScrollerInsetSlider" Width="160" Minimum="0" Maximum="250" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="OverlayChanged"/><TextBlock Text="{Binding ElementName=SecondScrollerInsetSlider, Path=Value, StringFormat={}{0:0} px}" VerticalAlignment="Center"/>
       </WrapPanel>
+      <WrapPanel Margin="0,8,0,0">
+       <CheckBox x:Name="TransparentCdgCheck" Content="Transparent CD+G background" Checked="CdgPresentationChanged" Unchecked="CdgPresentationChanged"/>
+       <TextBlock Text="Remove colour" VerticalAlignment="Center" Margin="4"/>
+       <ComboBox x:Name="CdgColourCombo" Width="130" SelectionChanged="CdgPresentationChanged" ToolTip="Auto follows the CD+G background colour. Choose a numbered palette colour if Auto removes the wrong areas."><ComboBoxItem Content="Auto" IsSelected="True"/><ComboBoxItem Content="Palette 0"/><ComboBoxItem Content="Palette 1"/><ComboBoxItem Content="Palette 2"/><ComboBoxItem Content="Palette 3"/><ComboBoxItem Content="Palette 4"/><ComboBoxItem Content="Palette 5"/><ComboBoxItem Content="Palette 6"/><ComboBoxItem Content="Palette 7"/><ComboBoxItem Content="Palette 8"/><ComboBoxItem Content="Palette 9"/><ComboBoxItem Content="Palette 10"/><ComboBoxItem Content="Palette 11"/><ComboBoxItem Content="Palette 12"/><ComboBoxItem Content="Palette 13"/><ComboBoxItem Content="Palette 14"/><ComboBoxItem Content="Palette 15"/></ComboBox>
+       <Button Content="RESTORE ORIGINAL" Click="RestoreCdgOriginal_Click"/>
+      </WrapPanel>
+      <WrapPanel>
+       <TextBlock Text="Background opacity" VerticalAlignment="Center" Margin="4"/><Slider x:Name="CdgBackgroundOpacitySlider" Minimum="0" Maximum="1" Value="0.6" Width="130" ValueChanged="CdgPresentationChanged"/><TextBlock Text="{Binding ElementName=CdgBackgroundOpacitySlider, Path=Value, StringFormat={}{0:P0}}" VerticalAlignment="Center"/>
+       <TextBlock Text="Lyrics opacity" VerticalAlignment="Center" Margin="12,0,4,0"/><Slider x:Name="CdgLyricsOpacitySlider" Minimum="0" Maximum="1" Value="1" Width="130" ValueChanged="CdgPresentationChanged"/><TextBlock Text="{Binding ElementName=CdgLyricsOpacitySlider, Path=Value, StringFormat={}{0:P0}}" VerticalAlignment="Center"/>
+       <Button Content="SAVE FOR THIS SONG" Click="SaveCdgPresentation_Click"/>
+       <Button Content="USE DEFAULTS" Click="ClearCdgPresentation_Click"/>
+      </WrapPanel>
+      <TextBlock Text="CD+G only. Artwork using the removed colour may also disappear. Enable Singer-view background below to use your image, GIF, video or slideshow." TextWrapping="Wrap" Margin="4"/>
       <TextBlock Text="Second scroller uses the opposite edge. Insets are limited automatically to prevent overlap." TextWrapping="Wrap" Margin="4"/>
       </StackPanel>
 

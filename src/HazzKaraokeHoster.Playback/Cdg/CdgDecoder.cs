@@ -24,6 +24,7 @@ public sealed class CdgDecoder
     private int _horizontalOffset;
     private int _verticalOffset;
 
+    public int BackgroundColour { get; private set; }
     public long FrameVersion { get; private set; }
     public int TotalPackets => _packets.Length / PacketSize;
     public TimeSpan Duration => TimeSpan.FromSeconds(TotalPackets / (double)PacketsPerSecond);
@@ -37,6 +38,7 @@ public sealed class CdgDecoder
 
     public void Reset()
     {
+        BackgroundColour = 0;
         Array.Clear(_pixels);
         Array.Fill(_palette, 0xFF000000u);
         _decodedPacketCount = 0;
@@ -67,13 +69,14 @@ public sealed class CdgDecoder
     }
 
     /// <summary>Copies the current 300x216 frame into a BGRA32 buffer.</summary>
-    public void CopyBgra32(byte[] destination)
+    public void CopyBgra32(byte[] destination, int? transparentColour = null)
     {
         ArgumentNullException.ThrowIfNull(destination);
         var required = Width * Height * 4;
         if (destination.Length < required)
             throw new ArgumentException($"Destination buffer must contain at least {required} bytes.", nameof(destination));
 
+        var transparentIndex = transparentColour is int selected ? (selected < 0 ? BackgroundColour : Math.Clamp(selected, 0, 15)) : -1;
         var o = 0;
         for (var y = 0; y < Height; y++)
         {
@@ -84,7 +87,7 @@ public sealed class CdgDecoder
                 var sourceX = (x + _horizontalOffset) % Width;
                 var index = _pixels[sourceY * Width + sourceX] & 0x0F;
                 var argb = _palette[index];
-                var alpha = _alpha[index];
+                var alpha = index == transparentIndex ? (byte)0 : _alpha[index];
                 destination[o++] = (byte)argb;          // B
                 destination[o++] = (byte)(argb >> 8);   // G
                 destination[o++] = (byte)(argb >> 16);  // R
@@ -127,7 +130,7 @@ public sealed class CdgDecoder
         var repeat = data[1] & 0x0F;
         // The same memory-preset command is commonly repeated for reliability.
         // Only the first repeat needs to clear the screen.
-        if (repeat == 0) Array.Fill(_pixels, color);
+        if (repeat == 0) { BackgroundColour = color; Array.Fill(_pixels, color); }
     }
 
     private void BorderPreset(ReadOnlySpan<byte> data)

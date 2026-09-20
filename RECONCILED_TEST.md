@@ -1,4 +1,4 @@
-Historical development notes. Current release: v1.6; use Documentation/RELEASE_v1.6.md.
+Historical development notes. Current release: v1.7; use Documentation/RELEASE_v1.7.md.
 
 # Hazz Karaoke Hoster v1.4.2 — Reconciled Test
 

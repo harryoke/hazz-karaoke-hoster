@@ -12,6 +12,9 @@ var queues=new MusicDeckQueueState { Deck1 = new() { new() { FilePath="song-a.mp
 MusicDeckQueueStateStore.SaveTo(queuesPath,queues);
 var preserved=new Dictionary<string,byte[]> { [favouritesPath]=File.ReadAllBytes(favouritesPath),[queuesPath]=File.ReadAllBytes(queuesPath) };
 var settings=new UiLayoutSettings {
+ SavedAvSync=new() { [@"D:\song.mp4"]=-1.25 },
+ CdgPresentation=new() { Enabled=true, BackgroundColour=3, BackgroundOpacity=0.45, LyricsOpacity=0.85 },
+ CdgSongPresentation=new() { [@"D:\song.zip"]=new() { Enabled=true, BackgroundColour=7 } },
  AudienceKaraokeSizing="Stretch", AudienceScrollerRotationEnabled=false, AudienceScrollerMessageEnabled=true,
  AudienceSecondScrollerEnabled=true, AudienceSecondScrollerText="Drinks offers", AudienceSecondScrollerFontFamily="Arial",
  AudienceSecondScrollerFontSize=96, AudienceSecondScrollerSpeed=180, AudienceSecondScrollerInset=80, AudienceSecondScrollerColor="#FF00FF00",

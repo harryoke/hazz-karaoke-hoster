@@ -1,4 +1,6 @@
-Current release: v1.6. [Audience sizing and two-scroller instructions](RELEASE_v1.6.md). The features below remain available.
+Current release: v1.7. Made For KJ/DJ's By A KJ/DJ
+
+[AV Sync, full preview and transparent CD+G guide](RELEASE_v1.7.md).
 
 # Venue profiles
 

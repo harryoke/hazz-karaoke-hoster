@@ -46,7 +46,7 @@ internal static class Check
    if(el.Name.LocalName=="EventSetter") { el.Remove();continue; }
    foreach(var a in el.Attributes().ToArray())
     if(!a.IsNamespaceDeclaration && a.Name.NamespaceName=="" &&
-       (System.Text.RegularExpressions.Regex.IsMatch(a.Value,@"^[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]+$") || a.Value=="OverlayChanged")) a.Remove();
+       (System.Text.RegularExpressions.Regex.IsMatch(a.Value,@"^[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]+$") || a.Value=="OverlayChanged" || a.Value=="CdgPresentationChanged")) a.Remove();
    if(el.Name.LocalName=="Image" && el.Attribute("Source") is {} source)
     source.Value=Path.GetFullPath(Path.Combine(Path.GetDirectoryName(args[0])!, source.Value));
   }
@@ -118,7 +118,7 @@ internal static class Check
     w.Resources[key]=double.Parse(key[8..].Replace('_','.'),System.Globalization.CultureInfo.InvariantCulture)*scale;
    settingsFit.Measure(new Size(1000,1600));settingsFit.Arrange(new Rect(settingsFit.DesiredSize));settingsFit.UpdateLayout();
    var border=(Border)settingsFit.Child;
-   foreach(var name in new[]{"CloseAudienceSettingsButton","KaraokeSizingCombo","ScrollerRotationCheck","ScrollerMessageCheck","ScrollerSizeSlider","SecondScrollerTextBox","SecondScrollerFontCombo","SecondScrollerSizeSlider","SecondScrollerSpeedSlider","SecondScrollerInsetSlider","SecondScrollerColorButton","BackgroundGifSpeedSlider"})
+   foreach(var name in new[]{"TransparentCdgCheck","CdgColourCombo","CdgBackgroundOpacitySlider","CdgLyricsOpacitySlider","CloseAudienceSettingsButton","KaraokeSizingCombo","ScrollerRotationCheck","ScrollerMessageCheck","ScrollerSizeSlider","SecondScrollerTextBox","SecondScrollerFontCombo","SecondScrollerSizeSlider","SecondScrollerSpeedSlider","SecondScrollerInsetSlider","SecondScrollerColorButton","BackgroundGifSpeedSlider"})
    {
     var control=Find<FrameworkElement>(name);var b=control.TransformToAncestor(border).TransformBounds(new Rect(control.RenderSize));
     Require(b.Width>0 && b.Left>=0 && b.Right<=border.ActualWidth+1 && b.Bottom<=border.ActualHeight+1,name+" clipped in settings at "+scale);

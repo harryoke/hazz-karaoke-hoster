@@ -41,3 +41,15 @@ if (args.Length == 2)
     using var output = File.Create(args[1]); png.Save(output);
     Console.WriteLine("Rendered actual song at 11 seconds.");
 }
+var custom = new CdgDecoder();
+var tile = new byte[16]; tile[0]=3; tile[1]=7; tile[2]=2; tile[3]=2; tile[4]=32;
+custom.Load(Packet(1,3,0).Concat(Packet(6,tile)).ToArray());custom.Seek(TimeSpan.FromSeconds(1));
+custom.CopyBgra32(result,-1);
+if(custom.BackgroundColour!=3 || result[3]!=0 || result[(24*CdgDecoder.Width+12)*4+3]!=255) throw new Exception("Auto key must remove preset background and preserve contrasting tile pixels");
+custom.CopyBgra32(result,7);
+if(result[3]!=255 || result[(24*CdgDecoder.Width+12)*4+3]!=0) throw new Exception("Manual palette key");
+custom.CopyBgra32(result);
+if(result[3]!=255) throw new Exception("Disable key must restore original alpha");
+custom.Seek(TimeSpan.Zero);
+if(custom.BackgroundColour!=0) throw new Exception("Seek must reset automatic background colour");
+Console.WriteLine("PASS: automatic/manual colour key, original alpha restoration and seek reset.");

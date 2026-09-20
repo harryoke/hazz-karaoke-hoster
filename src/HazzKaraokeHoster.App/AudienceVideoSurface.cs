@@ -83,6 +83,8 @@ public sealed class AudienceVideoSurface : Grid
             BackendChanged?.Invoke(this, EventArgs.Empty);
         }
     }
+    public TimeSpan? Duration => NativeActive ? (_player!.Length > 0 ? TimeSpan.FromMilliseconds(_player.Length) : null)
+        : _windows.NaturalDuration.HasTimeSpan ? _windows.NaturalDuration.TimeSpan : null;
     public TimeSpan Position
     {
         get => NativeActive ? (_started && _player!.Time >= 0 ? TimeSpan.FromMilliseconds(_player.Time) : _requestedPosition) : _windows.Position;

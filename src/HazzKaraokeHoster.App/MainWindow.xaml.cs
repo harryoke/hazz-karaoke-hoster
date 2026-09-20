@@ -117,7 +117,7 @@ public partial class MainWindow : Window
     private bool _karaokePaused;
     private bool _karaokePresentationActive;
     private bool _karaokeSeekDragging;
-    private DateTime _lastAudienceVideoSyncUtc = DateTime.MinValue;
+
     private DateTime _lastPitchSyncUtc = DateTime.MinValue;
     private SingerQueueEntry? _activeSinger;
     private SingerSongEntry? _activeSingerSong;
@@ -207,6 +207,7 @@ public partial class MainWindow : Window
 
         _cdgTiming.OffsetChanged += (_, value) => Dispatcher.Invoke(() =>
         {
+            if (_audience is not null) { _audience.VideoSyncOffsetSeconds = value; _audience.RepositionVideo(KaraokeMedia.Position); }
             CdgSyncText.Text = $"{value:+0.00;-0.00;0.00}s";
             if (_activeSingerSong is not null) _activeSingerSong.CdgSyncSeconds = value;
             MarkLiveShowStateDirty();
@@ -276,6 +277,7 @@ public partial class MainWindow : Window
         Loaded += async (_, _) =>
         {
             RestoreMainLayout();
+            FullAudiencePreview.GetAudience = () => EnsureAudienceWindow(show: false);
             RestoreMusicDeckQueues();
             ClampFixedRowsToViewport();
             _lastLedUpdateUtc = DateTime.UtcNow;
@@ -340,6 +342,7 @@ public partial class MainWindow : Window
             KaraokeMedia.Close();
             _pitchAudio.Dispose();
             _karaokePackage?.Dispose();
+            FullAudiencePreview.Dispose();
             _audience?.Close();
             _musicArchiveWindow?.Close();
             _libraryBrowserWindow?.Close();
@@ -611,6 +614,8 @@ public partial class MainWindow : Window
         SelectComboItemByContent(NextSizeCombo, Math.Clamp(settings.AudienceNextSingerFontSize, 32, 192).ToString("0"), "48");
         SelectComboItemByContent(NextHeadingSizeCombo, Math.Clamp(settings.AudienceNextHeadingFontSize, 20, 128).ToString("0"), "36");
         SelectComboItemByContent(PositionCombo, settings.AudienceNextSingerPosition, "BottomCenter");
+        _savedAvSync = new(settings.SavedAvSync ?? new(), StringComparer.OrdinalIgnoreCase);
+        RestoreCdgPresentation(settings);
         ScrollerRotationCheck.IsChecked = settings.AudienceScrollerRotationEnabled;
         ScrollerMessageCheck.IsChecked = settings.AudienceScrollerMessageEnabled;
         SecondScrollerCheck.IsChecked = settings.AudienceSecondScrollerEnabled;
@@ -643,13 +648,13 @@ public partial class MainWindow : Window
         ApplyOverlaySettings();
     }
 
-    private void SaveMainLayout()
+    private bool SaveMainLayout()
     {
-        if (!_mainLayoutReady || _restoringMainLayout) return;
+        if (!_mainLayoutReady || _restoringMainLayout) return false;
         RememberClassicWidths();
         var preservedSettings = UiLayoutSettingsStore.Load();
         var totalWidth = Math.Max(1.0, MainLeftColumn.ActualWidth + MainCenterColumn.ActualWidth + MainRightColumn.ActualWidth);
-        UiLayoutSettingsStore.Save(new UiLayoutSettings
+        return UiLayoutSettingsStore.Save(new UiLayoutSettings
         {
             AudienceTextStrokes = _audienceTextStrokes,
             HostTextScale = _hostTextScale,
@@ -712,6 +717,9 @@ public partial class MainWindow : Window
             AudienceNextSingerFontSize = double.TryParse((NextSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var nextSize) ? nextSize : 48,
             AudienceNextHeadingFontSize = double.TryParse((NextHeadingSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var headingSize) ? headingSize : 36,
             AudienceNextSingerPosition = (PositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "BottomCenter",
+            SavedAvSync = new(_savedAvSync, StringComparer.OrdinalIgnoreCase),
+            CdgPresentation = _cdgDefaults with { },
+            CdgSongPresentation = new(_cdgSongPresentation, StringComparer.OrdinalIgnoreCase),
             AudienceScrollerRotationEnabled = ScrollerRotationCheck.IsChecked == true,
             AudienceScrollerMessageEnabled = ScrollerMessageCheck.IsChecked == true,
             AudienceSecondScrollerEnabled = SecondScrollerCheck.IsChecked == true,
@@ -2539,14 +2547,15 @@ public partial class MainWindow : Window
         DisplayCombo.SelectedIndex = _displayTargets.Count > 1 ? 1 : 0;
     }
 
-    private AudienceWindow EnsureAudienceWindow()
+    private AudienceWindow EnsureAudienceWindow(bool show = true)
     {
-        if (_audience is { IsLoaded: true }) return _audience;
+        if (_audience is not null) { if (show && !_audience.IsVisible) _audience.Show(); return _audience; }
         _audience = new AudienceWindow();
         _audience.SetVideoEnginePreference(_useLibVlcAudienceVideo);
         _audience.SetCdgSmoothing(_smoothCdgPicture);
         _audience.Closed += (_, _) => _audience = null;
-        _audience.Show();
+        if (show) _audience.Show();
+        _audience.VideoSyncOffsetSeconds = _cdgTiming.OffsetSeconds;
         ApplyOverlaySettings();
         UpdateAudienceNext();
         ApplyCurrentKaraokeVisualToAudience();
@@ -2632,6 +2641,7 @@ public partial class MainWindow : Window
             NextSingerFontSize = ComboNumber(NextSizeCombo, 48),
             NextHeadingFontSize = ComboNumber(NextHeadingSizeCombo, 36),
             NextSingerPosition = pos,
+            CdgPresentation = CaptureCdgPresentation(),
             ScrollerRotationEnabled = ScrollerRotationCheck.IsChecked == true,
             ScrollerMessageEnabled = ScrollerMessageCheck.IsChecked == true,
             SecondScrollerEnabled = SecondScrollerCheck.IsChecked == true,
@@ -2902,10 +2912,14 @@ public partial class MainWindow : Window
             return false;
         }
 
+        // Loading resets the live sync control and applies the track default.
+        // Preserve this queued singer's own correction across those change events.
+        var singerSync = song.CdgSyncSeconds;
         _activeSinger = singer;
         _activeSingerSong = song;
         _activeSingerSongCheckedOut = false;
         var loaded = await LoadKaraokeAsync(song.FilePath);
+        song.CdgSyncSeconds = singerSync;
         if (!loaded)
         {
             _activeSinger = null;
@@ -2916,7 +2930,7 @@ public partial class MainWindow : Window
         _keyChange = Math.Clamp(song.KeyChange, -6, 6);
         KeyText.Text = $"{_keyChange:+0;-0;0}";
         _pitchAudio.SetSemitones(_keyChange);
-        _cdgTiming.Set(song.CdgSyncSeconds);
+        _cdgTiming.Set(singerSync);
         SetKaraokeTempo(_pitchAudio.IsLoaded ? LoadTempo(song.FilePath, TempoSinger) : 1);
         KaraokeNowText.Text = $"{singer.SingerName} — {song.SongTitle}" + (string.IsNullOrWhiteSpace(song.Artist) ? string.Empty : $" — {song.Artist}");
         QueueList.SelectedItem = singer;
@@ -3022,6 +3036,7 @@ public partial class MainWindow : Window
                 }
             }
             catch { _currentKaraokeRecord = null; }
+            _cdgTiming.Set(SavedSync(path, _currentKaraokeRecord?.CdgSyncSeconds ?? 0));
             KaraokeNowText.Text = _karaokePackage?.DisplayTitle ?? Path.GetFileNameWithoutExtension(path);
             return true;
         }
@@ -3053,6 +3068,7 @@ public partial class MainWindow : Window
         var previous = _karaokePackage;
         _karaokePackage = package;
         _cdgDecoder = decoder;
+        LoadCdgPresentationForSong(package.SourcePath);
         _cdgTiming.Reset();
         _keyChange = 0;
         KeyText.Text = "0";
@@ -3401,7 +3417,7 @@ public partial class MainWindow : Window
             _keyChange = singerKey;
             KeyText.Text = $"{_keyChange:+0;-0;0}";
             _pitchAudio.SetSemitones(_keyChange);
-            _cdgTiming.Set(candidate.CdgSyncSeconds);
+            _cdgTiming.Set(SavedSync(candidate.FilePath, candidate.CdgSyncSeconds));
             if (AutoSkipSilenceCheck?.IsChecked == true)
                 await SkipSilenceAsync(autoStart: true);
             if (_activeSingerSong is not null)
@@ -3515,7 +3531,7 @@ public partial class MainWindow : Window
                     _keyChange = Math.Clamp(assigned.KeyChange, -6, 6);
                     KeyText.Text = $"{_keyChange:+0;-0;0}";
                     _pitchAudio.SetSemitones(_keyChange);
-                    _cdgTiming.Set(assigned.CdgSyncSeconds);
+                    _cdgTiming.Set(SavedSync(assigned.FilePath, assigned.CdgSyncSeconds));
                     KaraokeNowText.Text = $"KAMIKAZE • {singer.SingerName} — {assigned.SongTitle}" +
                         (string.IsNullOrWhiteSpace(assigned.Artist) ? string.Empty : $" — {assigned.Artist}");
                     // Keep the random selection visually hidden until PLAY. The audience sees
@@ -3652,12 +3668,7 @@ public partial class MainWindow : Window
 
         if (_karaokePackage?.Kind == KaraokePackageKind.Video && _karaokePlaying && _audience is not null)
         {
-            var now = DateTime.UtcNow;
-            if ((now - _lastAudienceVideoSyncUtc).TotalSeconds >= 2)
-            {
-                _lastAudienceVideoSyncUtc = now;
-                _audience.SyncVideo(KaraokeMedia.Position);
-            }
+            _audience.SyncVideo(KaraokeMedia.Position);
         }
     }
 
@@ -3668,7 +3679,8 @@ public partial class MainWindow : Window
         _cdgDecoder.Seek(graphicsTime);
         if (!force && _cdgDecoder.FrameVersion == _lastRenderedCdgVersion) return;
 
-        _cdgDecoder.CopyBgra32(_cdgFrameBuffer);
+        var presentation = CaptureCdgPresentation();
+        _cdgDecoder.CopyBgra32(_cdgFrameBuffer, presentation.Enabled ? presentation.BackgroundColour : null);
         _cdgBitmap.WritePixels(
             new Int32Rect(0, 0, CdgDecoder.Width, CdgDecoder.Height),
             _cdgFrameBuffer,
