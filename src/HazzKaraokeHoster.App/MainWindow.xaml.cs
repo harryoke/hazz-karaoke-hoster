@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
@@ -1174,8 +1174,15 @@ public partial class MainWindow : Window
             KaraokePreviewRow.Height = _karaokeFocusMode
                 ? new GridLength(1, GridUnitType.Star)
                 : new GridLength(120);
-        SettingsAutoFit.MaxWidth = Math.Max(100, width - 24);
-        SettingsAutoFit.MaxHeight = Math.Max(100, height - 40);
+        // Keep settings at the chosen font size; scroll instead of shrinking the panel.
+        // WPF limits popups to 75% of the monitor height. Stay below that limit.
+        var monitor = System.Windows.Forms.Screen.FromHandle(
+            new System.Windows.Interop.WindowInteropHelper(this).Handle);
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var monitorHeight = monitor.WorkingArea.Height / dpi.DpiScaleY;
+        AudienceSettingsPanel.Width = Math.Min(900, Math.Max(100, width - 24));
+        AudienceSettingsPanel.MaxHeight = Math.Max(100, Math.Min(height - 40,
+            monitorHeight * 0.70));
     }
 
     private void HostViewport_SizeChanged(object sender, SizeChangedEventArgs e) => ClampFixedRowsToViewport();
@@ -1183,6 +1190,7 @@ public partial class MainWindow : Window
 
     private void DisplaySettingsMenu_Click(object sender, RoutedEventArgs e)
     {
+        ClampFixedRowsToViewport();
         DisplaySettingsPopup.IsOpen = true;
     }
 

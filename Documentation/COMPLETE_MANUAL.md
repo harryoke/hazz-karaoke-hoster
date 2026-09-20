@@ -2,6 +2,8 @@
 
 Made For KJ/DJ's By A KJ/DJ
 
+Audience settings on smaller screens: open DISPLAY > Audience Settings. Controls keep your chosen GUI text size instead of shrinking to fit the whole panel. Use the mouse wheel or the vertical scrollbar to reach the lower settings. CLOSE stays visible at the bottom. At 1366×768 you do not need to reduce Windows scaling to use this panel.
+
 Version 1.7 adds video AV Sync, a complete audience preview and optional transparent CD+G backgrounds. Existing playback, singer history, venue profiles, two scrollers and Fit/Stretch controls remain available. Transparency starts off.
 
 ## Correct karaoke video timing with AV Sync

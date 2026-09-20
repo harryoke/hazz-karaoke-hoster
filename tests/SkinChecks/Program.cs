@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Xml.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -111,18 +111,30 @@ internal static class Check
   Find<CheckBox>("SecondScrollerCheck").IsChecked=true;
   Find<TextBox>("SecondScrollerTextBox").Text="VENUE DRINKS OFFERS • ASK AT THE BAR";
   foreach(var name in new[]{"ScrollerFontCombo","SecondScrollerFontCombo"}) { Find<ComboBox>(name).Items.Add("Segoe UI"); Find<ComboBox>(name).SelectedIndex=0; }
-  var settingsFit=Find<Viewbox>("SettingsAutoFit");
+  var settingsFit=Find<Border>("AudienceSettingsPanel");
+  var scroll=Find<ScrollViewer>("AudienceSettingsScroll");
   foreach(var scale in new[]{1d,1.5})
   {
    foreach(var key in w.Resources.Keys.OfType<string>().Where(k=>k.StartsWith("HostFont")).ToArray())
     w.Resources[key]=double.Parse(key[8..].Replace('_','.'),System.Globalization.CultureInfo.InvariantCulture)*scale;
-   settingsFit.Measure(new Size(1000,1600));settingsFit.Arrange(new Rect(settingsFit.DesiredSize));settingsFit.UpdateLayout();
-   var border=(Border)settingsFit.Child;
+   settingsFit.Width=900;settingsFit.MaxHeight=500;
+   settingsFit.Measure(new Size(1366,728));settingsFit.Arrange(new Rect(settingsFit.DesiredSize));settingsFit.UpdateLayout();
+   var border=settingsFit;
+   Require(scroll.ScrollableHeight>0,"Small-screen settings must scroll rather than shrink");
+   Require(settingsFit.ActualHeight<=500,"Settings exceed small-screen bounds");
    foreach(var name in new[]{"TransparentCdgCheck","CdgColourCombo","CdgBackgroundOpacitySlider","CdgLyricsOpacitySlider","CloseAudienceSettingsButton","KaraokeSizingCombo","ScrollerRotationCheck","ScrollerMessageCheck","ScrollerSizeSlider","SecondScrollerTextBox","SecondScrollerFontCombo","SecondScrollerSizeSlider","SecondScrollerSpeedSlider","SecondScrollerInsetSlider","SecondScrollerColorButton","BackgroundGifSpeedSlider"})
    {
-    var control=Find<FrameworkElement>(name);var b=control.TransformToAncestor(border).TransformBounds(new Rect(control.RenderSize));
-    Require(b.Width>0 && b.Left>=0 && b.Right<=border.ActualWidth+1 && b.Bottom<=border.ActualHeight+1,name+" clipped in settings at "+scale);
+    var control=Find<FrameworkElement>(name);
+    if(name!="CloseAudienceSettingsButton") {
+     var content=(FrameworkElement)scroll.Content;
+     var y=control.TransformToAncestor(content).Transform(new Point()).Y;
+     scroll.ScrollToVerticalOffset(y);settingsFit.UpdateLayout();
+    }
+    var b=control.TransformToAncestor(border).TransformBounds(new Rect(control.RenderSize));
+    Require(Math.Abs(b.Height-control.ActualHeight)<0.1,name+" was shrunk");
+    Require(b.Width>0 && b.Left>=0 && b.Right<=border.ActualWidth+1 && b.Top>=0 && b.Bottom<=border.ActualHeight+1,name+" clipped in settings at "+scale);
    }
+   scroll.ScrollToTop();settingsFit.UpdateLayout();
    var bitmap=new RenderTargetBitmap((int)Math.Ceiling(settingsFit.ActualWidth),(int)Math.Ceiling(settingsFit.ActualHeight),96,96,PixelFormats.Pbgra32);bitmap.Render(settingsFit);
    var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(bitmap));using var file=File.Create(Path.Combine(args[1],$"AudienceSettings-{scale}.png"));png.Save(file);
   }

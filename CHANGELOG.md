@@ -540,3 +540,5 @@ New since v0.90:
 
 Validation: compilation, automated audio-processing and audience/interface regression checks, and ZIP integrity checks passed. Physical multi-device listening, hot-unplug and multi-hour playback testing remain outstanding. A successful cue check verifies opening, not every part of a media file. Per-player limiting does not guarantee the combined output of an external mixer cannot overload.
 
+
+- Fixed tiny Audience Settings on 1366×768 screens: readable scrolling controls, fixed Close button and larger-text dropdown/button sizing.
