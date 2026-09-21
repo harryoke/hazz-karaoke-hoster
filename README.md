@@ -1,6 +1,8 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.71** — fixes audience-preview rendering failures when switching skins. Start normally; no compatibility launcher is required. See [v1.71 release notes](Documentation/RELEASE_v1.71.md). The v1.7 feature instructions remain applicable.
+Current release: **v1.72** — nine custom Sound FX pads, independent output/volume and optional Kamikaze sound with music ducking. [Sound FX instructions](Documentation/RELEASE_v1.72.md).
+
+Previous release: **v1.71** — fixes audience-preview rendering failures when switching skins. Start normally; no compatibility launcher is required. See [v1.71 release notes](Documentation/RELEASE_v1.71.md). The v1.7 feature instructions remain applicable.
 
 Made For KJ/DJ's By A KJ/DJ
 

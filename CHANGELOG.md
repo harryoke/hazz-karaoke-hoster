@@ -1,5 +1,10 @@
 # v1.7
 
+## v1.72
+- Nine named, coloured Sound FX pads with saved files, per-pad volume/ducking, bank audio output and Stop FX.
+- Optional Kamikaze-linked sound after successful selection; suppressed during karaoke performance.
+- Independent attenuation preserves faders/crossfades and restores music after end, stop or failure.
+
 ## v1.71
 - Fixed reproduced audience-preview rendering failure during skin/window changes using bounded snapshots and muted video mirroring.
 - Passed 60 live skin/size changes and user confirmation on the affected PC.

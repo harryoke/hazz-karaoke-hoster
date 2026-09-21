@@ -277,6 +277,7 @@ public partial class MainWindow : Window
         Loaded += async (_, _) =>
         {
             RestoreMainLayout();
+            InitializeSoundFx();
             FullAudiencePreview.GetAudience = () => EnsureAudienceWindow(show: false);
             RestoreMusicDeckQueues();
             ClampFixedRowsToViewport();
@@ -342,6 +343,7 @@ public partial class MainWindow : Window
             KaraokeMedia.Close();
             _pitchAudio.Dispose();
             _karaokePackage?.Dispose();
+            DisposeSoundFx();
             FullAudiencePreview.Dispose();
             _audience?.Close();
             _musicArchiveWindow?.Close();
@@ -3523,6 +3525,8 @@ public partial class MainWindow : Window
 
             ApplyOverlaySettings();
             _audience?.ShowKamikazeBanner();
+            if (!_karaokePresentationActive && !_karaokePlaying && !_karaokePaused && _soundFx.KamikazeSlot is >= 0 and < 9)
+                _ = PlaySoundFxAsync(_soundFx.KamikazeSlot, true);
             UpdateAudienceNext();
             QueueList.SelectedItem = singer;
             QueueList.ScrollIntoView(singer);

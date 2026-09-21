@@ -1,4 +1,4 @@
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
 using NAudio.Wave.SampleProviders;
@@ -34,11 +34,18 @@ public class RoutedMusicElement : MediaElement
     private Uri? _audioSource;
     private bool _muted;
     private double _volume = 0.5;
+    private double _attenuation = 1;
+    // Independent of deck faders, so temporary FX ducking cannot restore stale volumes.
+    public double Attenuation
+    {
+        get => _attenuation;
+        set { _attenuation = double.IsFinite(value) ? Math.Clamp(value, 0, 1) : 1; base.Volume = _volume * _attenuation; UpdateGain(); }
+    }
     public event Action<Exception>? RoutingFailed;
-    public new double Volume { get => _volume; set { _volume = value; base.Volume = value; UpdateGain(); } }
+    public new double Volume { get => _volume; set { _volume = value; base.Volume = value * _attenuation; UpdateGain(); } }
     public new bool IsMuted { get => _muted; set { _muted = value; base.IsMuted = _output is not null || value; UpdateGain(); } }
     public new TimeSpan Position { get => base.Position; set { base.Position = value; if (_reader is not null) _tempoAudio?.Seek(() => _reader.CurrentTime = value); } }
-    private void UpdateGain() { if (_gain is not null) _gain.Volume = _muted ? 0 : (float)Math.Clamp(_volume, 0, 1); }
+    private void UpdateGain() { if (_gain is not null) _gain.Volume = _muted ? 0 : (float)Math.Clamp(_volume * _attenuation, 0, 1); }
     public new void Play()
     {
 
