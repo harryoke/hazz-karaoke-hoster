@@ -1,5 +1,7 @@
 # Hazz Karaoke Hoster v1.7 display and sync guide
 
+Current release: **v1.71** — fixes audience-preview rendering failures when switching skins. Start normally; no compatibility launcher is required. See [v1.71 release notes](RELEASE_v1.71.md). The v1.7 feature instructions remain applicable.
+
 Made For KJ/DJ's By A KJ/DJ
 
 Audience settings on smaller screens: open DISPLAY > Audience Settings. Controls keep your chosen GUI text size instead of shrinking to fit the whole panel. Use the mouse wheel or the vertical scrollbar to reach the lower settings. CLOSE stays visible at the bottom. At 1366×768 you do not need to reduce Windows scaling to use this panel.

@@ -1,5 +1,7 @@
 # Hazz Karaoke Hoster
 
+Current release: **v1.71** — fixes audience-preview rendering failures when switching skins. Start normally; no compatibility launcher is required. See [v1.71 release notes](Documentation/RELEASE_v1.71.md). The v1.7 feature instructions remain applicable.
+
 Made For KJ/DJ's By A KJ/DJ
 
 Free-to-use Windows software for hosting karaoke nights, playing background music and showing music videos on a separate audience screen.

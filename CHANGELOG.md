@@ -1,5 +1,10 @@
 # v1.7
 
+## v1.71
+- Fixed reproduced audience-preview rendering failure during skin/window changes using bounded snapshots and muted video mirroring.
+- Passed 60 live skin/size changes and user confirmation on the affected PC.
+- Normal hardware rendering and existing audience output remain enabled.
+
 Made For KJ/DJ's By A KJ/DJ
 
 Video AV Sync, full audience preview and optional transparent CD+G backgrounds with opacity controls and saved song overrides. Existing v1.6 features retained. See Documentation/RELEASE_v1.7.md.

@@ -59,6 +59,37 @@ internal static class Check
    for(int i=0;i<7;i++) Find<ListBox>(name).Items.Add(new { NumberText=(i+1).ToString(), DisplayArtist=new[]{"ABBA","Queen","The Killers"}[i%3], DisplayTitle=new[]{"Dancing Queen","Don't Stop Me Now","Mr. Brightside"}[i%3], DurationText="03:45", IsFavourite=i==0, IsNowPlaying=i==1, IsPlayedThisSession=i==2 });
   for(int i=0;i<5;i++) Find<DataGrid>("QueueList").Items.Add(new { SingerName=new[]{"Alex","Sam","Chris","Taylor","Jamie"}[i], StatusText="Ready", NextSongTitle="Example karaoke song", NextArtist="Example artist", SongCount=2, NextKey=0, NextSync=0d });
   var engine=new ConsoleSkinLayout(w);
+  if(args.Contains("--render-stress"))
+  {
+   var audience=new AudienceWindow();
+   var preview=Find<AudiencePreview>("FullAudiencePreview");
+   if(!args.Contains("--no-preview")) preview.GetAudience=()=>audience;
+   var folder=args.First(x=>x.StartsWith("--assets=")).Substring(9);
+   var assets=Directory.GetFiles(folder).OrderBy(x=>x).ToArray();
+   w.Width=1100;w.Height=720;w.ShowActivated=false;w.ShowInTaskbar=false;w.Show();
+   var frame=new System.Windows.Threading.DispatcherFrame();int ticks=0;
+   var timer=new System.Windows.Threading.DispatcherTimer { Interval=TimeSpan.FromMilliseconds(500) };
+   timer.Tick+=(_,_)=> {
+    engine.Apply(new[]{"Classic","Midnight","Copper","Daylight"}[ticks%4],false,false);
+    if(ticks%6==0) {
+     var path=assets[(ticks/6)%assets.Length];Console.WriteLine("ASSET: "+path);
+     audience.Apply(new HazzKaraokeHoster.Core.Models.AudienceOverlaySettings { BackgroundImageEnabled=true,BackgroundImagePath=path, ScrollerText="WELCOME TO KARAOKE WITH HAZZ • Want To Sing ... Just Tell Me Your Name & The Song You Would Like To Perform...",ScrollerFontFamily="Coolsville",ScrollerFontSize=42, SecondScrollerEnabled=true,SecondScrollerText="Hazz is cool....",SecondScrollerFontFamily="Alex Brush",SecondScrollerFontSize=62 });
+    }
+    w.Width=1100+(ticks%2)*100;preview.Refresh();
+    if(ticks%6==5) {
+     Directory.CreateDirectory(args[1]);
+     var capture=new RenderTargetBitmap(800,450,96,96,PixelFormats.Pbgra32);
+     var drawing=new DrawingVisual();using(var dc=drawing.RenderOpen()) dc.DrawRectangle(new VisualBrush(preview),null,new Rect(0,0,800,450));
+     capture.Render(drawing);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(capture));
+     using var output=File.Create(Path.Combine(args[1],"asset-"+(ticks/6)+".png"));encoder.Save(output);
+    }
+    if(++ticks>=60){timer.Stop();frame.Continue=false;}
+   };
+   timer.Start();System.Windows.Threading.Dispatcher.PushFrame(frame);
+   preview.Dispose();audience.Close();w.Close();
+   Console.WriteLine("PASS: 60 live skin/size changes with image/GIF/video backgrounds.");return;
+  }
+
   Directory.CreateDirectory(args[1]);
   var records=new List<string>();
   foreach(var skin in new[]{"Classic","Midnight","Copper","Daylight","Classic","Copper","Midnight","Daylight","Classic"})

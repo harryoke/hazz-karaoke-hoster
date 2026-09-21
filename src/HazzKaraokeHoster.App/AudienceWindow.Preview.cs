@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 
 namespace HazzKaraokeHoster.App;
 
@@ -7,6 +7,8 @@ public partial class AudienceWindow
     private Size _previewSize = new(1280, 720);
     public FrameworkElement PreviewScene => Root;
     public FrameworkElement PreviewOverlays => AudienceOverlays;
+    public System.Windows.Controls.MediaElement? PreviewBackgroundVideo => SingerBackgroundVideo.Visibility == Visibility.Visible ? SingerBackgroundVideo : null;
+    public FrameworkElement PreviewCdg => AudienceCdgImage;
     public (AudienceVideoSurface? Surface, bool Playing) PreviewVideo => _karaokeActive
         ? (AudienceMedia.Source is null ? null : AudienceMedia, _videoPlaying && !_videoWaiting)
         : (MusicVideoMedia.Source is null ? null : MusicVideoMedia, _musicVideoPlaying);

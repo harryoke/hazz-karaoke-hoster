@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -273,6 +273,14 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
             if(args.Length>1) { var previewEncoder=new System.Windows.Media.Imaging.PngBitmapEncoder();previewEncoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));using var output=File.Create(args[1]);previewEncoder.Save(output); }
             hidden.Width=900;hidden.Height=500;hidden.Show();hidden.UpdateLayout();preview.Refresh();
             Require(double.IsNaN(hidden.PreviewScene.Width) && hidden.PreviewScene.ActualWidth>700,"Opening audience display must restore normal responsive layout");
+            // Off-screen scrolling text must not enlarge the preview's sampling bounds.
+            hidden.Apply(new AudienceOverlaySettings { BackgroundImageEnabled=true, BackgroundImagePath=artPath, ShowNextSinger=false, ScrollerEnabled=true, ScrollerText=new string('W',2000), BackgroundStretchMode="Stretch" });
+            ((Image)hidden.FindName("SingerBackgroundImage")).Source=red;
+            Canvas.SetLeft((StrokeTextBlock)hidden.FindName("ScrollerText"),-10000);
+            hidden.PreviewScene.UpdateLayout();preview.Refresh();previewWindow.UpdateLayout();
+            bitmap.Clear();bitmap.Render(preview);bitmap.CopyPixels(previewPixels,640*4,0);
+            Require(previewPixels[(180*640+100)*4+2]>200,"Off-screen scroller distorted preview viewport");
+            Console.WriteLine("PASS: long off-screen scroller preserves the full preview viewport.");
             preview.Dispose();hidden.Close();
             previewWindow.Close();
         }

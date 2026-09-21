@@ -13,7 +13,13 @@ public partial class App : System.Windows.Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        if (e.Args.Length == 2 && e.Args[0] == "--package-check")
+        // Apply before StartupUri creates any WPF windows. This is opt-in and
+        // affects this process only; it does not change Windows or saved preferences.
+        var softwareRendering = e.Args.Any(arg => string.Equals(arg, "--software-rendering", StringComparison.OrdinalIgnoreCase));
+        if (softwareRendering)
+            System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
+        var startupArgs = e.Args.Where(arg => !string.Equals(arg, "--software-rendering", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (startupArgs.Length == 2 && startupArgs[0] == "--package-check")
         {
             _packageCheck = true;
             var code = 0;
@@ -29,10 +35,10 @@ public partial class App : System.Windows.Application
                 database.Open();
                 using var command = database.CreateCommand();
                 command.CommandText = "SELECT sqlite_version()";
-                File.WriteAllText(e.Args[1], "PASS: bundled VLC runtime/plugins and SQLite loaded.\n" +
-                    "SQLite: " + command.ExecuteScalar() + "\nRuntime directory: " + AppContext.BaseDirectory);
+                File.WriteAllText(startupArgs[1], "PASS: bundled VLC runtime/plugins and SQLite loaded.\n" +
+                    "WPF rendering: " + System.Windows.Media.RenderOptions.ProcessRenderMode + "\nSQLite: " + command.ExecuteScalar() + "\nRuntime directory: " + AppContext.BaseDirectory);
             }
-            catch (Exception ex) { code = 1; File.WriteAllText(e.Args[1], ex.ToString()); }
+            catch (Exception ex) { code = 1; File.WriteAllText(startupArgs[1], ex.ToString()); }
             // Exit before WPF processes its queued StartupUri navigation. This diagnostic mode must never construct the live host.
             Environment.Exit(code);
             return;
@@ -43,7 +49,9 @@ public partial class App : System.Windows.Application
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
         TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
         CleanOldDiagnostics();
-        WriteDiagnostic("START", "Hazz Karaoke Hoster started.");
+        WriteDiagnostic("START", "Hazz Karaoke Hoster started. WPF rendering: " +
+            System.Windows.Media.RenderOptions.ProcessRenderMode + "; rendering tier: " +
+            (System.Windows.Media.RenderCapability.Tier >> 16) + "; OS: " + Environment.OSVersion);
     }
 
     protected override void OnExit(ExitEventArgs e)

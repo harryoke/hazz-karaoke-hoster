@@ -1,12 +1,13 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace HazzKaraokeHoster.App;
 
-// Shares the real WPF scene, including GIF frames and scroller positions.
+// Samples the real WPF scene into bounded snapshots, including GIF frames and scrollers.
 // A separate muted decoder mirrors native video, which VisualBrush cannot capture.
 public sealed class AudiencePreview : Grid, IDisposable
 {
@@ -14,6 +15,7 @@ public sealed class AudiencePreview : Grid, IDisposable
     private readonly Rectangle _background = new();
     private readonly Rectangle _overlay = new();
     private AudienceVideoSurface? _video;
+    private RenderTargetBitmap? _sceneFrame, _overlayFrame;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(150) };
     private AudienceWindow? _audience;
     private bool _playing, _disposed;
@@ -41,6 +43,7 @@ public sealed class AudiencePreview : Grid, IDisposable
         }
         _playing = false;
         _background.Fill = null; _overlay.Fill = null; _audience = null;
+        _sceneFrame = _overlayFrame = null;
     }
     private void RefreshSafe()
     {
@@ -61,17 +64,41 @@ public sealed class AudiencePreview : Grid, IDisposable
         {
             _audience?.SetPreviewRunning(false);
             _audience = audience;
-            _background.Fill = new VisualBrush(audience.PreviewScene) { Stretch = Stretch.Fill, AutoLayoutContent = false };
-            _overlay.Fill = new VisualBrush(audience.PreviewOverlays) { Stretch = Stretch.Fill, AutoLayoutContent = false };
+            _background.Fill = new ImageBrush { Stretch = Stretch.Fill };
+            _overlay.Fill = new ImageBrush { Stretch = Stretch.Fill };
         }
         audience.SetPreviewRunning(true);
         var source = audience.PreviewScene;
-        var ratio = source.ActualWidth / Math.Max(1, source.ActualHeight);
+        // Automatic VisualBrush bounds include off-screen scrolling content.
+        // Always sample the display rectangle, not the extent of moving text.
+        if (!double.IsFinite(source.ActualWidth) || !double.IsFinite(source.ActualHeight) ||
+            source.ActualWidth <= 0 || source.ActualHeight <= 0) return;
+        var bounds = new Rect(0, 0, source.ActualWidth, source.ActualHeight);
+
+        var ratio = source.ActualWidth / source.ActualHeight;
         var width = Math.Max(1, Math.Min(ActualWidth, ActualHeight * ratio));
         _scene.Width = width; _scene.Height = width / ratio;
+        // Do not attach a live brush of another Window to the host render tree.
+        // Snapshot at a bounded size; the host GPU only receives a bitmap.
+        var pixelWidth = Math.Clamp((int)Math.Ceiling(width), 1, 960);
+        var pixelHeight = Math.Clamp((int)Math.Ceiling(pixelWidth / ratio), 1, 540);
         var playback = audience.PreviewVideo;
-        _overlay.Visibility = playback.Surface?.Source is null ? Visibility.Collapsed : Visibility.Visible;
-        if (playback.Surface?.Source is null)
+        var backgroundVideo = playback.Surface?.Source is null ? audience.PreviewBackgroundVideo : null;
+        var mediaSource = playback.Surface?.Source ?? backgroundVideo?.Source;
+        if (mediaSource is null)
+        {
+            Capture(source, bounds, pixelWidth, pixelHeight, ref _sceneFrame);
+            ((ImageBrush)_background.Fill).ImageSource = _sceneFrame;
+        }
+        else
+        {
+            ((ImageBrush)_background.Fill).ImageSource = null;
+            Capture(audience.PreviewOverlays, bounds, pixelWidth, pixelHeight, ref _overlayFrame,
+                backgroundVideo is null ? null : audience.PreviewCdg);
+            ((ImageBrush)_overlay.Fill).ImageSource = _overlayFrame;
+        }
+        _overlay.Visibility = mediaSource is null ? Visibility.Collapsed : Visibility.Visible;
+        if (mediaSource is null)
         {
             if (_video is not null) { _video.Overlay = null; _video.Source = null; _video.Visibility = Visibility.Collapsed; }
             MoveOverlay(false); _playing = false; return;
@@ -83,21 +110,40 @@ public sealed class AudiencePreview : Grid, IDisposable
             _scene.Children.Insert(1, _video);
         }
         _video.Visibility = Visibility.Visible;
-        _video.UseLibVlc = playback.Surface.NativeActive;
-        _video.StretchToFill = playback.Surface.StretchToFill;
-        _video.Tempo = playback.Surface.Tempo;
-        var changed = _video.Source != playback.Surface.Source;
-        if (changed) _video.Source = playback.Surface.Source;
-        if (changed || !playback.Playing || Math.Abs((_video.Position - playback.Surface.Position).TotalMilliseconds) > 300)
-            _video.Position = playback.Surface.Position;
-        if (changed || _playing != playback.Playing)
+        _video.UseLibVlc = playback.Surface?.NativeActive ?? false;
+        _video.Opacity = backgroundVideo?.Opacity ?? 1;
+        _video.StretchToFill = playback.Surface?.StretchToFill ?? (backgroundVideo?.Stretch == Stretch.Fill);
+        _video.Tempo = playback.Surface?.Tempo ?? 1;
+        var position = playback.Surface?.Position ?? backgroundVideo!.Position;
+        var playing = backgroundVideo is not null || playback.Playing;
+        var changed = _video.Source != mediaSource;
+        if (changed) _video.Source = mediaSource;
+        if (changed || !playing || Math.Abs((_video.Position - position).TotalMilliseconds) > 300)
+            _video.Position = position;
+        if (changed || _playing != playing)
         {
             // Opening paused media still needs one Play to initialize its video output.
             _video.Play();
-            if (!playback.Playing) _video.Pause();
-            _playing = playback.Playing;
+            if (!playing) _video.Pause();
+            _playing = playing;
         }
         MoveOverlay(_video.NativeActive);
+    }
+    private static void Capture(FrameworkElement source, Rect bounds, int width, int height, ref RenderTargetBitmap? frame, FrameworkElement? underneath = null)
+    {
+        if (frame is null || frame.PixelWidth != width || frame.PixelHeight != height)
+            frame = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+        else frame.Clear();
+        var drawing = new DrawingVisual();
+        using (var dc = drawing.RenderOpen())
+        {
+            if (underneath is { Visibility: Visibility.Visible })
+                dc.DrawRectangle(new VisualBrush(underneath) { AutoLayoutContent = false, ViewboxUnits = BrushMappingMode.Absolute, Viewbox = bounds, Stretch = Stretch.Fill }, null, new Rect(0, 0, width, height));
+            dc.DrawRectangle(new VisualBrush(source) { AutoLayoutContent = false,
+                ViewboxUnits = BrushMappingMode.Absolute, Viewbox = bounds, Stretch = Stretch.Fill },
+                null, new Rect(0, 0, width, height));
+        }
+        frame.Render(drawing);
     }
     private void MoveOverlay(bool native)
     {
