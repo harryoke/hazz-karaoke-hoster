@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using HazzKaraokeHoster.Core.Models;
@@ -115,6 +116,7 @@ public partial class AudienceWindow : Window
         IsVisibleChanged += (_, _) => { if (IsVisible) { Root.Width = double.NaN; Root.Height = double.NaN; } };
         AudienceMedia.BackendChanged += (_, _) => UpdateOverlayLayerVisibility();
         MusicVideoMedia.BackendChanged += (_, _) => UpdateOverlayLayerVisibility();
+        MusicVideoMedia.MediaOpened += (_, _) => StartPendingMusicVideoTransition();
         _ticker.Tick += (_, _) => TickScrollerSafe();
         Loaded += (_, _) => { ResetScroller(); _ticker.Start(); UpdateOverlayLayerVisibility(); };
         Closed += (_, _) =>
@@ -286,6 +288,10 @@ public partial class AudienceWindow : Window
         _musicVideoShowScroller = s.MusicVideoShowScroller;
         _musicVideoShowSingers = s.MusicVideoShowSingers;
         _musicVideoShowKamikaze = s.MusicVideoShowKamikaze;
+        MusicVideoMedia.StretchToFill = string.Equals(s.MusicVideoSizing, "Stretch", StringComparison.OrdinalIgnoreCase);
+        _musicVideoTransition = NormalizeMusicVideoTransition(s.MusicVideoTransition);
+        _musicVideoTransitionSeconds = double.IsFinite(s.MusicVideoTransitionSeconds)
+            ? Math.Clamp(s.MusicVideoTransitionSeconds, 0.1, 5.0) : 0.75;
 
         ConfigureBackgroundSlideshow(s);
         SetCachedImage(AudienceLogoImage, s.LogoImagePath, ref _logoImagePath);
@@ -437,6 +443,16 @@ public partial class AudienceWindow : Window
     private bool _musicVideoShowScroller;
     private bool _musicVideoShowSingers;
     private bool _musicVideoShowKamikaze;
+    private string _musicVideoTransition = "Cut";
+    private string _activeMusicVideoTransition = "Cut";
+    private static readonly string[] FancyMusicVideoTransitions =
+    {
+        "Fade from Black", "Fade from White", "Flash White", "Wipe Left", "Wipe Right", "Wipe Up", "Wipe Down",
+        "Zoom Reveal", "Spin Zoom", "Curtain Horizontal", "Curtain Vertical", "Diagonal Sweep", "Neon Sweep"
+    };
+    private double _musicVideoTransitionSeconds = 0.75;
+    private bool _musicVideoTransitionPending;
+    private int _musicVideoTransitionGeneration;
     private void UpdateOverlayLayerVisibility()
     {
         FitSingerPanel();
@@ -621,6 +637,7 @@ public partial class AudienceWindow : Window
         var uri = new Uri(path);
         if (MusicVideoMedia.Source is null || !string.Equals(MusicVideoMedia.Source.LocalPath, uri.LocalPath, StringComparison.OrdinalIgnoreCase))
         {
+            PrepareMusicVideoTransition();
             MusicVideoMedia.Stop();
             MusicVideoMedia.Source = uri;
         }
@@ -655,6 +672,7 @@ public partial class AudienceWindow : Window
 
     public void ClearMusicVideo()
     {
+        ResetMusicVideoTransitionOverlay();
         MusicVideoMedia.Stop();
         MusicVideoMedia.Source = null;
         MusicVideoMedia.Visibility = Visibility.Collapsed;
@@ -662,7 +680,215 @@ public partial class AudienceWindow : Window
         UpdateOverlayLayerVisibility();
     }
 
-    private void MusicVideo_Ended(object? sender, EventArgs e) => ClearMusicVideo();
+    private static string NormalizeMusicVideoTransition(string? transition)
+        => transition switch
+        {
+            "Random Fancy" => "Random Fancy",
+            "Fade from Black" => "Fade from Black",
+            "Fade from White" => "Fade from White",
+            "Flash White" => "Flash White",
+            "Wipe Left" => "Wipe Left",
+            "Wipe Right" => "Wipe Right",
+            "Wipe Up" => "Wipe Up",
+            "Wipe Down" => "Wipe Down",
+            "Zoom Reveal" => "Zoom Reveal",
+            "Spin Zoom" => "Spin Zoom",
+            "Curtain Horizontal" => "Curtain Horizontal",
+            "Curtain Vertical" => "Curtain Vertical",
+            "Diagonal Sweep" => "Diagonal Sweep",
+            "Neon Sweep" => "Neon Sweep",
+            _ => "Cut"
+        };
+
+    private void PrepareMusicVideoTransition()
+    {
+        _musicVideoTransitionGeneration++;
+        ResetMusicVideoTransitionVisuals();
+        _activeMusicVideoTransition = _musicVideoTransition == "Random Fancy"
+            ? FancyMusicVideoTransitions[Random.Shared.Next(FancyMusicVideoTransitions.Length)]
+            : _musicVideoTransition;
+        _musicVideoTransitionPending = _activeMusicVideoTransition != "Cut";
+        if (!_musicVideoTransitionPending)
+        {
+            MusicVideoTransitionOverlay.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        MusicVideoTransitionOverlay.Background = _activeMusicVideoTransition switch
+        {
+            "Fade from White" or "Flash White" => Brushes.White,
+            "Neon Sweep" => new LinearGradientBrush(
+                new GradientStopCollection
+                {
+                    new(Color.FromRgb(0x05, 0xF2, 0xDB), 0.0),
+                    new(Color.FromRgb(0x7C, 0x3A, 0xED), 0.48),
+                    new(Color.FromRgb(0xFF, 0x2D, 0x95), 1.0)
+                },
+                new Point(0, 0.5), new Point(1, 0.5)),
+            _ => Brushes.Black
+        };
+        MusicVideoTransitionOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void StartPendingMusicVideoTransition()
+    {
+        if (!_musicVideoTransitionPending || _karaokeActive || MusicVideoMedia.Source is null) return;
+        _musicVideoTransitionPending = false;
+        var generation = _musicVideoTransitionGeneration;
+        var seconds = Math.Clamp(_musicVideoTransitionSeconds, 0.1, 5.0);
+        var duration = TimeSpan.FromSeconds(seconds);
+        var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+
+        void Finish(object? sender, EventArgs e)
+        {
+            if (generation != _musicVideoTransitionGeneration) return;
+            ResetMusicVideoTransitionOverlay(incrementGeneration: false);
+        }
+
+        DoubleAnimation Anim(double from, double to, TimeSpan? customDuration = null)
+            => new(from, to, customDuration ?? duration)
+            {
+                FillBehavior = FillBehavior.Stop,
+                EasingFunction = ease
+            };
+
+        void FadeOverlay(TimeSpan? customDuration = null)
+        {
+            var fade = Anim(1, 0, customDuration);
+            fade.Completed += Finish;
+            MusicVideoTransitionOverlay.BeginAnimation(UIElement.OpacityProperty, fade);
+        }
+
+        switch (_activeMusicVideoTransition)
+        {
+            case "Fade from Black":
+            case "Fade from White":
+                FadeOverlay();
+                return;
+
+            case "Flash White":
+                FadeOverlay(TimeSpan.FromSeconds(Math.Clamp(seconds * 0.35, 0.10, 0.50)));
+                return;
+
+            case "Wipe Left":
+            case "Wipe Right":
+            {
+                var width = Math.Max(1, Root.ActualWidth > 0 ? Root.ActualWidth : ActualWidth);
+                var destination = _activeMusicVideoTransition == "Wipe Left" ? -width : width;
+                var wipe = Anim(0, destination);
+                wipe.Completed += Finish;
+                MusicVideoTransitionTranslate.BeginAnimation(TranslateTransform.XProperty, wipe);
+                return;
+            }
+
+            case "Wipe Up":
+            case "Wipe Down":
+            {
+                var height = Math.Max(1, Root.ActualHeight > 0 ? Root.ActualHeight : ActualHeight);
+                var destination = _activeMusicVideoTransition == "Wipe Up" ? -height : height;
+                var wipe = Anim(0, destination);
+                wipe.Completed += Finish;
+                MusicVideoTransitionTranslate.BeginAnimation(TranslateTransform.YProperty, wipe);
+                return;
+            }
+
+            case "Zoom Reveal":
+            {
+                var x = Anim(1, 0);
+                var y = Anim(1, 0);
+                y.Completed += Finish;
+                MusicVideoTransitionScale.BeginAnimation(ScaleTransform.ScaleXProperty, x);
+                MusicVideoTransitionScale.BeginAnimation(ScaleTransform.ScaleYProperty, y);
+                return;
+            }
+
+            case "Spin Zoom":
+            {
+                var x = Anim(1, 0);
+                var y = Anim(1, 0);
+                var rotate = Anim(0, 180);
+                y.Completed += Finish;
+                MusicVideoTransitionScale.BeginAnimation(ScaleTransform.ScaleXProperty, x);
+                MusicVideoTransitionScale.BeginAnimation(ScaleTransform.ScaleYProperty, y);
+                MusicVideoTransitionRotate.BeginAnimation(RotateTransform.AngleProperty, rotate);
+                return;
+            }
+
+            case "Curtain Horizontal":
+            {
+                var close = Anim(1, 0);
+                close.Completed += Finish;
+                MusicVideoTransitionScale.BeginAnimation(ScaleTransform.ScaleYProperty, close);
+                return;
+            }
+
+            case "Curtain Vertical":
+            {
+                var close = Anim(1, 0);
+                close.Completed += Finish;
+                MusicVideoTransitionScale.BeginAnimation(ScaleTransform.ScaleXProperty, close);
+                return;
+            }
+
+            case "Diagonal Sweep":
+            {
+                var width = Math.Max(1, Root.ActualWidth > 0 ? Root.ActualWidth : ActualWidth);
+                var height = Math.Max(1, Root.ActualHeight > 0 ? Root.ActualHeight : ActualHeight);
+                var x = Anim(0, width);
+                var y = Anim(0, -height);
+                y.Completed += Finish;
+                MusicVideoTransitionTranslate.BeginAnimation(TranslateTransform.XProperty, x);
+                MusicVideoTransitionTranslate.BeginAnimation(TranslateTransform.YProperty, y);
+                return;
+            }
+
+            case "Neon Sweep":
+            {
+                var width = Math.Max(1, Root.ActualWidth > 0 ? Root.ActualWidth : ActualWidth);
+                var sweep = Anim(0, width * 1.15);
+                sweep.Completed += Finish;
+                MusicVideoTransitionTranslate.BeginAnimation(TranslateTransform.XProperty, sweep);
+                return;
+            }
+
+            default:
+                ResetMusicVideoTransitionOverlay(incrementGeneration: false);
+                return;
+        }
+    }
+
+    private void ResetMusicVideoTransitionVisuals()
+    {
+        MusicVideoTransitionOverlay.BeginAnimation(UIElement.OpacityProperty, null);
+        MusicVideoTransitionTranslate.BeginAnimation(TranslateTransform.XProperty, null);
+        MusicVideoTransitionTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+        MusicVideoTransitionScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        MusicVideoTransitionScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        MusicVideoTransitionRotate.BeginAnimation(RotateTransform.AngleProperty, null);
+        MusicVideoTransitionOverlay.Opacity = 1;
+        MusicVideoTransitionTranslate.X = 0;
+        MusicVideoTransitionTranslate.Y = 0;
+        MusicVideoTransitionScale.ScaleX = 1;
+        MusicVideoTransitionScale.ScaleY = 1;
+        MusicVideoTransitionRotate.Angle = 0;
+        MusicVideoTransitionOverlay.Background = Brushes.Black;
+    }
+
+    private void ResetMusicVideoTransitionOverlay(bool incrementGeneration = true)
+    {
+        if (incrementGeneration) _musicVideoTransitionGeneration++;
+        _musicVideoTransitionPending = false;
+        _activeMusicVideoTransition = "Cut";
+        ResetMusicVideoTransitionVisuals();
+        MusicVideoTransitionOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    // The music-video surface is a muted visual mirror of Deck 1/Deck 2/quick-play.
+    // Its own MediaEnded event must NOT own playlist lifecycle: when two videos are
+    // consecutive, the outgoing mirror can report MediaEnded after the host deck has
+    // already loaded the next video. Clearing here would then erase video #2 while
+    // its deck audio continues. The host music player is the authoritative end event
+    // and explicitly calls ClearMusicVideo/ShowMusicVideo during queue advancement.
     private void MusicVideo_Failed(object? sender, EventArgs e) => ClearMusicVideo();
 
     private AudienceVideoSurface? _overlayOwner;

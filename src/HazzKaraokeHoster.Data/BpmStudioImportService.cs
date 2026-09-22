@@ -17,10 +17,10 @@ public sealed class BpmStudioImportService(HazzDatabase database) : IBpmStudioIm
     { ".lst", ".m3u", ".m3u8", ".pls", ".grp", ".plg" };
 
     private static readonly HashSet<string> MediaExtensions = new(StringComparer.OrdinalIgnoreCase)
-    { ".mp3", ".wav", ".wma", ".m4a", ".aac", ".flac", ".ogg", ".aif", ".aiff", ".mp4", ".mkv", ".avi", ".wmv", ".mov", ".mpeg", ".mpg", ".m4v", ".vob" };
+    { ".mp3", ".wav", ".wma", ".m4a", ".aac", ".flac", ".ogg", ".aif", ".aiff", ".mp4", ".mkv", ".avi", ".wmv", ".mov", ".mpeg", ".mpg", ".m4v", ".vob", ".ts", ".m2ts", ".webm", ".divx" };
 
     private static readonly Regex AbsoluteMediaPath = new(
-        "(?im)(?<path>(?:[A-Z]:\\\\|\\\\\\\\)[^\r\n\0<>\"|]+?\\.(?:mp3|wav|wma|m4a|aac|flac|ogg|aif|aiff|mp4|mkv|avi|wmv|mov|mpeg|mpg|m4v|vob))",
+        "(?im)(?<path>(?:[A-Z]:\\\\|\\\\\\\\)[^\r\n\0<>\"|]+?\\.(?:mp3|wav|wma|m4a|aac|flac|ogg|aif|aiff|mp4|mkv|avi|wmv|mov|mpeg|mpg|m4v|vob|ts|m2ts|webm|divx))",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public Task<BpmStudioImportPreview> PreviewAsync(string sourcePath, CancellationToken cancellationToken = default)
@@ -458,7 +458,9 @@ VALUES($list,$pos,NULL,$path,$artist,$title,$played,$source);
             bulkSongs.Transaction = (SqliteTransaction)tx;
             bulkSongs.CommandText = """
 INSERT INTO songs(artist,title,manufacturer,disc_id,file_path,format,file_size,date_added,cdg_sync_seconds,preferred_key,last_seen_utc,media_kind)
-SELECT artist,title,'','',file_path,format,0,NULL,0,0,CURRENT_TIMESTAMP,'Music'
+SELECT artist,title,'','',file_path,format,0,NULL,0,0,CURRENT_TIMESTAMP,
+       CASE WHEN lower(format) IN ('mp4','m4v','mkv','avi','wmv','mov','mpeg','mpg','vob','ts','m2ts','webm','divx')
+            THEN 'MusicVideo' ELSE 'Music' END
 FROM temp_bpm_tracks
 WHERE rowid > $after
 ORDER BY rowid
@@ -1145,14 +1147,17 @@ WHERE source_type IN ('BPM Studio','BPM Daily History')
     {
         var info = new FileInfo(path);
         await using var cmd = c.CreateCommand(); cmd.Transaction = (SqliteTransaction)tx;
+        var format = Path.GetExtension(path).TrimStart('.').ToUpperInvariant();
+        var kind = format.ToLowerInvariant() is "mp4" or "m4v" or "mkv" or "avi" or "wmv" or "mov" or "mpeg" or "mpg" or "vob" or "ts" or "m2ts" or "webm" or "divx"
+            ? "MusicVideo" : "Music";
         cmd.CommandText = """
 INSERT INTO songs(artist,title,manufacturer,disc_id,file_path,format,file_size,date_added,cdg_sync_seconds,preferred_key,last_seen_utc,media_kind)
-VALUES($artist,$title,'','',$path,$format,$size,$added,0,0,CURRENT_TIMESTAMP,'Music')
-ON CONFLICT(file_path) DO UPDATE SET artist=excluded.artist,title=excluded.title,format=excluded.format,file_size=excluded.file_size,media_kind='Music',last_seen_utc=CURRENT_TIMESTAMP
+VALUES($artist,$title,'','',$path,$format,$size,$added,0,0,CURRENT_TIMESTAMP,$kind)
+ON CONFLICT(file_path) DO UPDATE SET artist=excluded.artist,title=excluded.title,format=excluded.format,file_size=excluded.file_size,media_kind=excluded.media_kind,last_seen_utc=CURRENT_TIMESTAMP
 RETURNING id;
 """;
         cmd.Parameters.AddWithValue("$artist", artist); cmd.Parameters.AddWithValue("$title", title); cmd.Parameters.AddWithValue("$path", path);
-        cmd.Parameters.AddWithValue("$format", Path.GetExtension(path).TrimStart('.').ToUpperInvariant()); cmd.Parameters.AddWithValue("$size", info.Length);
+        cmd.Parameters.AddWithValue("$format", format); cmd.Parameters.AddWithValue("$kind", kind); cmd.Parameters.AddWithValue("$size", info.Length);
         cmd.Parameters.AddWithValue("$added", info.CreationTimeUtc == DateTime.MinValue ? DBNull.Value : info.CreationTimeUtc.ToString("O"));
         return Convert.ToInt64(await cmd.ExecuteScalarAsync(token));
     }

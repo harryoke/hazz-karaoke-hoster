@@ -1,0 +1,39 @@
+HAZZ KARAOKE HOSTER v1.73 — BUILD FIX 2 / SINGLE-DECK CONSECUTIVE VIDEO FIX
+============================================================================
+Baseline: v1.73 BuildFix1
+
+Confirmed scope
+---------------
+Two-deck video playback and transitions already work correctly. The fault occurs only in Single Deck + Side List mode when Deck 1 naturally advances from one music video directly to another.
+
+Reported symptom
+----------------
+- Video #1 plays normally.
+- Deck 1 automatically advances to video #2.
+- Video #2 audio plays, but the audience picture disappears and no selected transition is visible.
+
+Cause
+-----
+The audience music-video player is only a muted visual mirror of the real Deck 1 music player. It also had its own MediaEnded handler. At the hard end boundary used by Single Deck mode, the old audience mirror can deliver its end event after Deck 1 has already loaded video #2. That stale event then calls ClearMusicVideo(), wiping the new picture while Deck 1 audio continues.
+
+Why two-deck mode is unaffected
+-------------------------------
+The two-deck crossfade path starts the incoming deck/video before the outgoing deck reaches its hard natural-end cleanup boundary, so it does not hit the same stale mirror-end race.
+
+Fix
+---
+- The audience music-video mirror no longer owns MediaEnded lifecycle cleanup.
+- Deck 1/Deck 2 remain authoritative for track completion and queue advance.
+- Existing Fit/Stretch and Cut/Fade/Wipe transition code is unchanged.
+- Existing two-deck behaviour is unchanged.
+- v1.73 BuildFix1 LibVLC project fix is retained.
+
+Test
+----
+1. Enable Single Deck + Side List mode.
+2. Put 2 or more video files consecutively on Deck 1.
+3. Choose Fade from Black, Wipe Left, or Wipe Right.
+4. Start video #1 and allow it to end naturally.
+5. Confirm video #2 appears and the selected transition runs while its audio starts.
+6. Repeat with 3+ consecutive videos and with Cut.
+7. Recheck normal two-deck video transitions to confirm no regression.

@@ -12,13 +12,24 @@
 
   <!-- VJ layer: muted mirror of the video playing on a music deck. -->
   <local:AudienceVideoSurface x:Name="MusicVideoMedia" Panel.ZIndex="5"
-                Visibility="Collapsed" IsHitTestVisible="False" MediaEnded="MusicVideo_Ended" MediaFailed="MusicVideo_Failed"/>
+                Visibility="Collapsed" IsHitTestVisible="False" MediaFailed="MusicVideo_Failed"/>
 
   <!-- Karaoke content layer. -->
   <local:AudienceVideoSurface x:Name="AudienceMedia" Panel.ZIndex="10" Visibility="Collapsed" IsHitTestVisible="False"/>
   <Image x:Name="AudienceCdgImage" Panel.ZIndex="11" Stretch="Uniform" Visibility="Collapsed" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
 
   <Grid x:Name="AudienceOverlays" Panel.ZIndex="100" Background="{x:Null}" IsHitTestVisible="False">
+  <!-- Music-video reveal cover. This lives inside the overlay host so it also works above LibVLC's native video surface. -->
+  <Border x:Name="MusicVideoTransitionOverlay" Panel.ZIndex="1" Background="Black" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+   <Border.RenderTransform>
+    <TransformGroup>
+     <ScaleTransform x:Name="MusicVideoTransitionScale" ScaleX="1" ScaleY="1"/>
+     <RotateTransform x:Name="MusicVideoTransitionRotate" Angle="0"/>
+     <TranslateTransform x:Name="MusicVideoTransitionTranslate" X="0" Y="0"/>
+    </TransformGroup>
+   </Border.RenderTransform>
+  </Border>
+
   <!-- Persistent logo: deliberately above CD+G and video. -->
   <Image x:Name="AudienceLogoImage" Panel.ZIndex="100" Stretch="Uniform" Visibility="Collapsed" IsHitTestVisible="False" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="24"/>
 

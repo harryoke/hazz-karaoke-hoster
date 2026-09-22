@@ -30,6 +30,10 @@ internal sealed class UiLayoutSettings
     public bool MusicVideoShowScroller { get; set; } = false;
     public bool MusicVideoShowSingers { get; set; } = false;
     public bool MusicVideoShowKamikaze { get; set; } = false;
+    public string MusicVideoSizing { get; set; } = "Fit";
+    public string MusicVideoTransition { get; set; } = "Cut";
+    public double MusicVideoTransitionSeconds { get; set; } = 0.75;
+    public bool MusicSideListVirtualFoldersVisible { get; set; } = false;
 
     public double LeftColumnWeight { get; set; } = 0.93;
     public double CenterColumnWeight { get; set; } = 1.24;

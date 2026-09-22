@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
@@ -293,6 +293,7 @@ public partial class MainWindow : Window
             try
             {
                 await _library.InitializeAsync(_lifetime.Token);
+                if (_sideFolderBrowserVisible) await ReloadSideListVirtualFoldersAsync();
                 var databaseBytes = _db.GetStorageSizeBytes();
                 if (databaseBytes >= 1024L * 1024 * 1024)
                     App.WriteDiagnostic("DATABASE SIZE", $"Hazz database storage is {databaseBytes / (1024d * 1024 * 1024):0.00} GB. Back up and review repeated imports if growth is unexpected.");
@@ -320,6 +321,8 @@ public partial class MainWindow : Window
             _libraryAutoWatch = null;
             _lifetime.Cancel();
             _searchCts?.Cancel();
+            _sideFolderLoadCts?.Cancel();
+            _sideFolderLoadCts?.Dispose();
             _importCts?.Cancel();
             _silenceScanCts?.Cancel();
             _karaokeStopFadeCts?.Cancel();
@@ -447,7 +450,7 @@ public partial class MainWindow : Window
     private async Task RefreshLibraryCountsAsync()
     {
         var counts = await _library.GetLibraryCountsAsync(_lifetime.Token);
-        LibraryCountText.Text = $"Karaoke {counts.Karaoke:N0} • Music {counts.Music:N0}";
+        LibraryCountText.Text = $"Karaoke {counts.Karaoke:N0} • Music {counts.Music:N0} • Videos {counts.MusicVideo:N0}";
     }
 
     private CancellationTokenSource? _singerPickerCts;
@@ -580,6 +583,7 @@ public partial class MainWindow : Window
         SetPreviewVisible(settings.PreviewVisible);
         SetKaraokeOnlyMode(settings.KaraokeOnlyMode, stopMusic: false, saveImmediately: false);
         _deckBPlayerHeightBeforeSideList = Math.Max(145, settings.DeckBPlayerHeight);
+        _sideFolderBrowserVisible = settings.MusicSideListVirtualFoldersVisible;
         SetSingleDeckMode(settings.SingleDeckMode || settings.KaraokeFocusMode, stopDeck2: false, saveImmediately: false);
         SetKaraokeFocusMode(settings.KaraokeFocusMode, stopDeck2: false, saveImmediately: false);
         ClampFixedRowsToViewport();
@@ -593,6 +597,10 @@ public partial class MainWindow : Window
         MusicVideoShowScrollerCheck.IsChecked = settings.MusicVideoShowScroller;
         MusicVideoShowSingersCheck.IsChecked = settings.MusicVideoShowSingers;
         MusicVideoShowKamikazeCheck.IsChecked = settings.MusicVideoShowKamikaze;
+        SelectComboItemByContent(MusicVideoSizingCombo, settings.MusicVideoSizing, "Fit");
+        SelectComboItemByContent(MusicVideoTransitionCombo, settings.MusicVideoTransition, "Cut");
+        MusicVideoTransitionSecondsSlider.Value = double.IsFinite(settings.MusicVideoTransitionSeconds)
+            ? Math.Clamp(settings.MusicVideoTransitionSeconds, 0.1, 5.0) : 0.75;
         AudienceLogoEnabledCheck.IsChecked = settings.AudienceLogoEnabled && !string.IsNullOrWhiteSpace(_audienceLogoImagePath);
         SelectComboItemByContent(LogoPositionCombo, settings.AudienceLogoPosition, "TopRight");
         LogoWidthSlider.Value = Math.Clamp(settings.AudienceLogoWidth, 60, 800);
@@ -690,6 +698,7 @@ public partial class MainWindow : Window
             KaraokeOnlyMode = _karaokeOnlyMode,
             SingleDeckMode = _singleDeckMode,
             KaraokeFocusMode = _karaokeFocusMode,
+            MusicSideListVirtualFoldersVisible = _sideFolderBrowserVisible,
             ExtensionData = preservedSettings.ExtensionData,
             AudienceBackgroundEnabled = AudienceBackgroundEnabledCheck.IsChecked == true,
             AudienceBackgroundGifSpeed = BackgroundGifSpeedSlider.Value,
@@ -700,6 +709,9 @@ public partial class MainWindow : Window
             MusicVideoShowScroller = MusicVideoShowScrollerCheck.IsChecked == true,
             MusicVideoShowSingers = MusicVideoShowSingersCheck.IsChecked == true,
             MusicVideoShowKamikaze = MusicVideoShowKamikazeCheck.IsChecked == true,
+            MusicVideoSizing = (MusicVideoSizingCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Fit",
+            MusicVideoTransition = (MusicVideoTransitionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Cut",
+            MusicVideoTransitionSeconds = MusicVideoTransitionSecondsSlider.Value,
             AudienceLogoEnabled = AudienceLogoEnabledCheck.IsChecked == true,
             AudienceLogoImagePath = _audienceLogoImagePath,
             AudienceLogoPosition = (LogoPositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "TopRight",
@@ -966,6 +978,8 @@ public partial class MainWindow : Window
             FadeNowButton.IsEnabled = true;
             AutoCrossfadeCheck.IsChecked = _autoCrossfadeBeforeSingleDeck;
         }
+
+        UpdateSideListVirtualFolderBrowserVisibility();
 
         if (!_karaokeOnlyMode)
         {
@@ -1629,6 +1643,13 @@ public partial class MainWindow : Window
     }
 
     private bool IsMusicSearchMode => _searchMediaKind is "Music" or "MusicVideo";
+    private static bool IsMusicDeckMedia(SongRecord song)
+        => song.MediaKind is "Music" or "MusicVideo";
+
+    private static LibraryImportMode MusicDeckImportModeForPath(string path)
+        => MediaFileClassifier.Classify(path) == HazzMediaKind.Video
+            ? LibraryImportMode.MusicVideo
+            : LibraryImportMode.Music;
 
     private void UpdateSearchModeUi()
     {
@@ -1649,6 +1670,12 @@ public partial class MainWindow : Window
     }
 
     private async void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => await RunSearchAsync();
+
+    private void SearchBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (SearchBox.Text.Trim().Length >= 2 && SearchGrid.ItemsSource is not null)
+            SearchResultsOverlay.Visibility = Visibility.Visible;
+    }
 
     private async Task RunSearchAsync()
     {
@@ -1722,7 +1749,7 @@ public partial class MainWindow : Window
     private void SearchClose_Click(object sender, RoutedEventArgs e)
     {
         SearchResultsOverlay.Visibility = Visibility.Collapsed;
-        SearchBox.Focus();
+        Keyboard.ClearFocus();
     }
 
     private async void SearchGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -1803,7 +1830,7 @@ public partial class MainWindow : Window
 
     private void StartQuickSearchMusic(SongRecord song)
     {
-        if (!string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)) return;
+        if (!IsMusicDeckMedia(song)) return;
         if (_karaokePresentationActive || _karaokePlaying)
         {
             UpdateMusicAutomationStatus("SPACE quick-play is unavailable while karaoke is playing");
@@ -1974,10 +2001,10 @@ public partial class MainWindow : Window
     {
         if (!IsMusicSearchMode) return Array.Empty<SongRecord>();
         var selected = SearchGrid.SelectedItems.OfType<SongRecord>()
-            .Where(song => string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase))
+            .Where(IsMusicDeckMedia)
             .ToHashSet();
         if (selected.Count == 0 && SearchGrid.SelectedItem is SongRecord current &&
-            string.Equals(current.MediaKind, "Music", StringComparison.OrdinalIgnoreCase))
+            IsMusicDeckMedia(current))
             selected.Add(current);
         return SearchGrid.Items.OfType<SongRecord>().Where(selected.Contains).ToArray();
     }
@@ -2016,7 +2043,7 @@ public partial class MainWindow : Window
 
     private void AddSearchSongToMusicDeck(SongRecord song, ListBox deck)
     {
-        if (!IsMusicSearchMode || !string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase))
+        if (!IsMusicSearchMode || !IsMusicDeckMedia(song))
         {
             MessageBox.Show("Switch search to MUSIC before adding a result to a music deck.", "Music Search");
             return;
@@ -2684,6 +2711,9 @@ public partial class MainWindow : Window
             MusicVideoShowScroller = MusicVideoShowScrollerCheck.IsChecked == true,
             MusicVideoShowSingers = MusicVideoShowSingersCheck.IsChecked == true,
             MusicVideoShowKamikaze = MusicVideoShowKamikazeCheck.IsChecked == true,
+            MusicVideoSizing = (MusicVideoSizingCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Fit",
+            MusicVideoTransition = (MusicVideoTransitionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Cut",
+            MusicVideoTransitionSeconds = MusicVideoTransitionSecondsSlider.Value,
             LogoEnabled = AudienceLogoEnabledCheck.IsChecked == true && !string.IsNullOrWhiteSpace(_audienceLogoImagePath),
             LogoImagePath = _audienceLogoImagePath,
             LogoPosition = Enum.TryParse<OverlayPosition>((LogoPositionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var logoPos) ? logoPos : OverlayPosition.TopRight,
@@ -2967,7 +2997,7 @@ public partial class MainWindow : Window
         var karaokeRecord = e.Data.GetData(typeof(SongRecord)) as SongRecord;
         var filePaths = e.Data.GetData(DataFormats.FileDrop) as string[];
         var supportedFile = filePaths?.FirstOrDefault(IsSupportedKaraokeDropPath);
-        e.Effects = (karaokeRecord is not null && !string.Equals(karaokeRecord.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)) || supportedFile is not null
+        e.Effects = (karaokeRecord is not null && !IsMusicDeckMedia(karaokeRecord)) || supportedFile is not null
             ? DragDropEffects.Copy
             : DragDropEffects.None;
         e.Handled = true;
@@ -2983,7 +3013,7 @@ public partial class MainWindow : Window
         }
 
         var record = e.Data.GetData(typeof(SongRecord)) as SongRecord;
-        if (record is not null && string.Equals(record.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)) record = null;
+        if (record is not null && IsMusicDeckMedia(record)) record = null;
         var path = record?.FilePath;
         if (string.IsNullOrWhiteSpace(path) && e.Data.GetData(DataFormats.FileDrop) is string[] filePaths)
             path = filePaths.FirstOrDefault(IsSupportedKaraokeDropPath);
@@ -4867,7 +4897,7 @@ public partial class MainWindow : Window
         var existing = roots.Where(x => Directory.Exists(x.Path)).ToArray();
         if (existing.Length == 0)
         {
-            MessageBox.Show("No watched library folders are configured yet. Use IMPORT > Import Karaoke Folders or Import Music Folders first.",
+            MessageBox.Show("No watched library folders are configured yet. Use IMPORT > Import Karaoke Folders, Import Music Folders or Import Music Video Folders first.",
                 "Library Rescan", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -4886,6 +4916,7 @@ public partial class MainWindow : Window
             foreach (var group in existing.GroupBy(x => x.MediaKind, StringComparer.OrdinalIgnoreCase))
             {
                 var mode = string.Equals(group.Key, "Music", StringComparison.OrdinalIgnoreCase) ? LibraryImportMode.Music
+                    : string.Equals(group.Key, "MusicVideo", StringComparison.OrdinalIgnoreCase) ? LibraryImportMode.MusicVideo
                     : string.Equals(group.Key, "Auto", StringComparison.OrdinalIgnoreCase) ? LibraryImportMode.Auto : LibraryImportMode.Karaoke;
                 var rootPaths = group.Select(x => x.Path).ToArray();
                 var progress = new Progress<LibraryImportProgress>(p =>
@@ -5001,6 +5032,60 @@ public partial class MainWindow : Window
     private async void ImportMusic_Click(object sender, RoutedEventArgs e)
         => await ImportLibraryAsync(LibraryImportMode.Music);
 
+    private async void ImportMusicVideoFolders_Click(object sender, RoutedEventArgs e)
+        => await ImportLibraryAsync(LibraryImportMode.MusicVideo);
+
+    private async void ImportMusicVideoFiles_Click(object sender, RoutedEventArgs e)
+    {
+        if (_importCts is not null)
+        {
+            MessageBox.Show("A library import is already running.", "Music Video Import");
+            return;
+        }
+
+        var picker = new OpenFileDialog
+        {
+            Title = "Import Music Video Files",
+            Multiselect = true,
+            CheckFileExists = true,
+            Filter = "Music video files|*.mp4;*.m4v;*.mkv;*.avi;*.wmv;*.mov;*.mpeg;*.mpg;*.vob;*.ts;*.m2ts;*.webm;*.divx|All files|*.*"
+        };
+        if (picker.ShowDialog(this) != true || picker.FileNames.Length == 0) return;
+
+        _importCts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        CancelImportButton.Visibility = Visibility.Visible;
+        var token = _importCts.Token;
+        var indexed = 0;
+        var unsupported = 0;
+        var errors = new List<string>();
+        try
+        {
+            for (var i = 0; i < picker.FileNames.Length; i++)
+            {
+                token.ThrowIfCancellationRequested();
+                var file = picker.FileNames[i];
+                SearchStatus.Text = $"Importing music video {i + 1:N0}/{picker.FileNames.Length:N0} • {Path.GetFileName(file)}";
+                var result = await _libraryImporter.IndexFileAsync(file, LibraryImportMode.MusicVideo, token);
+                if (result.Outcome == SingleFileIndexOutcome.Indexed) indexed++;
+                else if (result.Outcome == SingleFileIndexOutcome.Unsupported) unsupported++;
+                else if (result.Outcome == SingleFileIndexOutcome.Error && errors.Count < 12)
+                    errors.Add($"{Path.GetFileName(file)}: {result.Message}");
+            }
+            await RefreshLibraryCountsAsync();
+            SearchStatus.Text = $"Music video import complete • {indexed:N0} indexed";
+            var warning = errors.Count == 0 ? string.Empty : "\n\nErrors:\n" + string.Join("\n", errors);
+            MessageBox.Show($"Music video file import complete.\n\nFiles selected: {picker.FileNames.Length:N0}\nIndexed/updated: {indexed:N0}\nUnsupported: {unsupported:N0}{warning}",
+                "Music Video Import", MessageBoxButton.OK, errors.Count == 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        }
+        catch (OperationCanceledException) { SearchStatus.Text = "Music video import cancelled"; }
+        finally
+        {
+            _importCts?.Dispose();
+            _importCts = null;
+            CancelImportButton.Visibility = Visibility.Collapsed;
+        }
+    }
+
     private void CancelImport_Click(object sender, RoutedEventArgs e) => _importCts?.Cancel();
 
     private async Task ImportLibraryAsync(LibraryImportMode mode)
@@ -5011,8 +5096,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        var picker = new LibrarySourcesWindow(
-            mode == LibraryImportMode.Karaoke ? "Import Karaoke Folders" : "Import Music Folders")
+        var pickerTitle = mode switch
+        {
+            LibraryImportMode.Karaoke => "Import Karaoke Folders",
+            LibraryImportMode.MusicVideo => "Import Music Video Folders",
+            _ => "Import Music Folders"
+        };
+        var picker = new LibrarySourcesWindow(pickerTitle)
         {
             Owner = this
         };
@@ -5033,7 +5123,14 @@ public partial class MainWindow : Window
             var options = new LibraryImportOptions(picker.SelectedFolders, mode, IncludeSubfolders: true);
             var token = _importCts.Token;
             var result = await Task.Run(async () => await _libraryImporter.ImportAsync(options, progress, token), token);
-            await _libraryRoots.UpsertRootsAsync(picker.SelectedFolders, mode == LibraryImportMode.Music ? "Music" : "Karaoke", true, token);
+            var rootKind = mode switch
+            {
+                LibraryImportMode.Music => "Music",
+                LibraryImportMode.MusicVideo => "MusicVideo",
+                LibraryImportMode.Auto => "Auto",
+                _ => "Karaoke"
+            };
+            await _libraryRoots.UpsertRootsAsync(picker.SelectedFolders, rootKind, true, token);
             await RefreshLibraryAutoWatchAsync();
             await RefreshLibraryCountsAsync();
             SearchStatus.Text = $"Import complete • {result.RecordsImported:N0} indexed in {result.Elapsed:g}";
@@ -5331,6 +5428,7 @@ public partial class MainWindow : Window
             {
                 var result = await _bpmStudio.ImportAsync(folder.FolderName, progress, importCts.Token);
                 await RefreshLibraryCountsAsync();
+                if (_sideFolderBrowserVisible) await ReloadSideListVirtualFoldersAsync();
                 progressWindow.Complete();
                 progressWindow.CloseAfterImport();
 
@@ -5398,7 +5496,7 @@ public partial class MainWindow : Window
 
     private void AddBrowserSongToDeck(int deck, SongRecord song)
     {
-        if (!string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)) return;
+        if (!IsMusicDeckMedia(song)) return;
         if (!File.Exists(song.FilePath))
         {
             BrokenMediaRegistry.Mark(song.FilePath, "File missing or unavailable");
@@ -5463,10 +5561,10 @@ public partial class MainWindow : Window
         else if (e.Data.GetData(typeof(MusicQueueItem)) is MusicQueueItem)
             e.Effects = DragDropEffects.Move;
         else if (e.Data.GetData(SearchSongBatchDataFormat) is SongRecord[] songs && songs.Length > 0 &&
-                 songs.All(song => string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)))
+                 songs.All(IsMusicDeckMedia))
             e.Effects = DragDropEffects.Copy;
         else if (e.Data.GetData(typeof(SongRecord)) is SongRecord song &&
-                 string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase))
+                 IsMusicDeckMedia(song))
             e.Effects = DragDropEffects.Copy;
         else
             e.Effects = DragDropEffects.None;
@@ -5521,7 +5619,7 @@ public partial class MainWindow : Window
             var firstInserted = -1;
             var added = 0;
             var broken = 0;
-            foreach (var selectedSong in songs.Where(candidate => string.Equals(candidate.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)))
+            foreach (var selectedSong in songs.Where(IsMusicDeckMedia))
             {
                 if (!File.Exists(selectedSong.FilePath))
                 {
@@ -5548,7 +5646,7 @@ public partial class MainWindow : Window
 
         if (e.Data.GetData(typeof(SongRecord)) is SongRecord song)
         {
-            if (!string.Equals(song.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)) return;
+            if (!IsMusicDeckMedia(song)) return;
             var insertAt = GetMusicPlaylistInsertIndex(target, e.OriginalSource as DependencyObject, e.GetPosition(target));
             target.Items.Insert(insertAt, CreateMusicQueueItem(song));
             RenumberPlaylist(target);

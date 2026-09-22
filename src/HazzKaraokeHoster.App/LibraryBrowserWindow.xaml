@@ -126,14 +126,15 @@
   </Grid.RowDefinitions>
 
   <Grid>
-   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
    <Button x:Name="KaraokeModeButton" Grid.Column="0" Content="KARAOKE" Click="KaraokeMode_Click" Background="#3979A8"/>
    <Button x:Name="MusicModeButton" Grid.Column="1" Content="MUSIC" Click="MusicMode_Click"/>
-   <TextBox x:Name="FilterBox" Grid.Column="2" FontSize="16" TextChanged="FilterBox_TextChanged" ToolTip="Filter artist, title, manufacturer or disc ID. Leave blank to browse the entire indexed library."/>
-   <ComboBox x:Name="SortCombo" Grid.Column="3" Width="145" SelectionChanged="SortChanged">
+   <Button x:Name="MusicVideoModeButton" Grid.Column="2" Content="MUSIC VIDEOS" Click="MusicVideoMode_Click"/>
+   <TextBox x:Name="FilterBox" Grid.Column="3" FontSize="16" TextChanged="FilterBox_TextChanged" ToolTip="Filter artist, title, manufacturer or disc ID. Leave blank to browse the entire indexed library."/>
+   <ComboBox x:Name="SortCombo" Grid.Column="4" Width="145" SelectionChanged="SortChanged">
     <ComboBoxItem Content="Artist" IsSelected="True"/><ComboBoxItem Content="Title"/><ComboBoxItem Content="Manufacturer"/><ComboBoxItem Content="Date Added"/>
    </ComboBox>
-    <CheckBox x:Name="DescendingCheck" Grid.Column="4" Content="Descending" FontWeight="SemiBold" Checked="SortChanged" Unchecked="SortChanged"/>
+    <CheckBox x:Name="DescendingCheck" Grid.Column="5" Content="Descending" FontWeight="SemiBold" Checked="SortChanged" Unchecked="SortChanged"/>
   </Grid>
 
   <TextBlock x:Name="BrowserHint" Grid.Row="1" Margin="5,4,5,7" Foreground="#8FA0B2"

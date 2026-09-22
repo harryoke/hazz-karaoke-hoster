@@ -13,7 +13,7 @@ public interface ILibraryRepository
     Task SaveTrackPreferencesAsync(long songId, int keyChange, double cdgSyncSeconds, CancellationToken cancellationToken = default);
     Task SaveDurationAsync(long songId, double durationSeconds, CancellationToken cancellationToken = default);
     Task<int> DeleteSongsAsync(IEnumerable<long> songIds, CancellationToken cancellationToken = default);
-    Task<(long Karaoke, long Music)> GetLibraryCountsAsync(CancellationToken cancellationToken = default);
+    Task<(long Karaoke, long Music, long MusicVideo)> GetLibraryCountsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SongRecord>> GetRandomCandidatesAsync(string mediaKind, int limit = 64, CancellationToken cancellationToken = default);
     Task<LibraryBrowsePage> BrowseAsync(string mediaKind, string? filter, string sortBy, bool descending, int offset, int pageSize = 500, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<VirtualFolder>> GetVirtualFoldersAsync(CancellationToken cancellationToken = default);

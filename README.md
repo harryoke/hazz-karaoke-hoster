@@ -1,8 +1,8 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.72** — nine custom Sound FX pads, independent output/volume and optional Kamikaze sound with music ducking. [Sound FX instructions](Documentation/RELEASE_v1.72.md).
+Current release: **v1.74** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74 instructions](Documentation/RELEASE_v1.74.md).
 
-Previous release: **v1.71** — fixes audience-preview rendering failures when switching skins. Start normally; no compatibility launcher is required. See [v1.71 release notes](Documentation/RELEASE_v1.71.md). The v1.7 feature instructions remain applicable.
+Previous release: **v1.73** — optional Side List virtual-folder browsing (including imported BPM Studio folders), Music Video Fit/Stretch and selectable visual transitions. [v1.73 instructions](Documentation/RELEASE_v1.73.md).
 
 Made For KJ/DJ's By A KJ/DJ
 

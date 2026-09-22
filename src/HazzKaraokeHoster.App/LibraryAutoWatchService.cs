@@ -42,8 +42,10 @@ public sealed class LibraryAutoWatchService : IDisposable
             {
                 var mode = string.Equals(root.MediaKind, "Music", StringComparison.OrdinalIgnoreCase)
                     ? LibraryImportMode.Music
-                    : string.Equals(root.MediaKind, "Auto", StringComparison.OrdinalIgnoreCase)
-                        ? LibraryImportMode.Auto : LibraryImportMode.Karaoke;
+                    : string.Equals(root.MediaKind, "MusicVideo", StringComparison.OrdinalIgnoreCase)
+                        ? LibraryImportMode.MusicVideo
+                        : string.Equals(root.MediaKind, "Auto", StringComparison.OrdinalIgnoreCase)
+                            ? LibraryImportMode.Auto : LibraryImportMode.Karaoke;
                 var watcher = new FileSystemWatcher(root.Path)
                 {
                     IncludeSubdirectories = root.IncludeSubfolders,

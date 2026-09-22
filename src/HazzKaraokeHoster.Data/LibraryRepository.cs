@@ -30,16 +30,7 @@ SELECT s.id, s.artist, s.title, s.manufacturer, s.disc_id, s.file_path, s.format
 FROM songs_fts f
 JOIN songs s ON s.id = f.rowid
 WHERE songs_fts MATCH $q
-  AND ($kind IS NULL
-       OR lower(s.media_kind) = lower($kind)
-       OR ($kind = 'MusicVideo' AND lower(s.media_kind) = 'music' AND (
-           lower(s.file_path) LIKE '%.mp4' OR lower(s.file_path) LIKE '%.m4v' OR
-           lower(s.file_path) LIKE '%.mkv' OR lower(s.file_path) LIKE '%.avi' OR
-           lower(s.file_path) LIKE '%.wmv' OR lower(s.file_path) LIKE '%.mov' OR
-           lower(s.file_path) LIKE '%.mpeg' OR lower(s.file_path) LIKE '%.mpg' OR
-           lower(s.file_path) LIKE '%.vob' OR lower(s.file_path) LIKE '%.ts' OR
-           lower(s.file_path) LIKE '%.m2ts' OR lower(s.file_path) LIKE '%.webm' OR
-           lower(s.file_path) LIKE '%.divx')))
+  AND ($kind IS NULL OR lower(s.media_kind) = lower($kind))
 ORDER BY bm25(songs_fts), s.artist, s.title
 LIMIT $limit;
 """;
@@ -55,11 +46,7 @@ LIMIT $limit;
         if (result.Count == 0)
         {
             await using var fallback = connection.CreateCommand();
-            var kindFilter = mediaKind is null
-                ? "1=1"
-                : mediaKind.Equals("MusicVideo", StringComparison.OrdinalIgnoreCase)
-                    ? "lower(s.media_kind)='music' AND (lower(s.file_path) LIKE '%.mp4' OR lower(s.file_path) LIKE '%.m4v' OR lower(s.file_path) LIKE '%.mkv' OR lower(s.file_path) LIKE '%.avi' OR lower(s.file_path) LIKE '%.wmv' OR lower(s.file_path) LIKE '%.mov' OR lower(s.file_path) LIKE '%.mpeg' OR lower(s.file_path) LIKE '%.mpg' OR lower(s.file_path) LIKE '%.vob' OR lower(s.file_path) LIKE '%.ts' OR lower(s.file_path) LIKE '%.m2ts' OR lower(s.file_path) LIKE '%.webm' OR lower(s.file_path) LIKE '%.divx')"
-                    : "lower(s.media_kind)=lower($kind)";
+            var kindFilter = mediaKind is null ? "1=1" : "lower(s.media_kind)=lower($kind)";
             fallback.CommandText = $"""
 SELECT s.id, s.artist, s.title, s.manufacturer, s.disc_id, s.file_path, s.format,
        s.file_size, s.date_added, s.cdg_sync_seconds, s.preferred_key, s.media_kind, s.duration_seconds
@@ -73,7 +60,7 @@ LIMIT $limit;
 """;
             fallback.Parameters.AddWithValue("$text", $"%{query}%");
             fallback.Parameters.AddWithValue("$limit", limit);
-            if (mediaKind is not null && !mediaKind.Equals("MusicVideo", StringComparison.OrdinalIgnoreCase))
+            if (mediaKind is not null)
                 fallback.Parameters.AddWithValue("$kind", mediaKind);
             await using var fallbackReader = await fallback.ExecuteReaderAsync(cancellationToken);
             while (await fallbackReader.ReadAsync(cancellationToken)) result.Add(ReadSong(fallbackReader));
@@ -250,7 +237,12 @@ RETURNING id;
         int pageSize = 500,
         CancellationToken cancellationToken = default)
     {
-        mediaKind = string.Equals(mediaKind, "Music", StringComparison.OrdinalIgnoreCase) ? "Music" : "Karaoke";
+        mediaKind = mediaKind?.Trim() switch
+        {
+            var k when string.Equals(k, "Music", StringComparison.OrdinalIgnoreCase) => "Music",
+            var k when string.Equals(k, "MusicVideo", StringComparison.OrdinalIgnoreCase) => "MusicVideo",
+            _ => "Karaoke"
+        };
         filter = (filter ?? string.Empty).Trim();
         offset = Math.Max(0, offset);
         pageSize = Math.Clamp(pageSize, 50, 1000);
@@ -388,7 +380,12 @@ ORDER BY f.name COLLATE NOCASE, f.id;
         long folderId, string mediaKind, string? filter, string sortBy, bool descending,
         int offset, int pageSize = 500, CancellationToken cancellationToken = default)
     {
-        mediaKind = string.Equals(mediaKind, "Music", StringComparison.OrdinalIgnoreCase) ? "Music" : "Karaoke";
+        mediaKind = mediaKind?.Trim() switch
+        {
+            var k when string.Equals(k, "Music", StringComparison.OrdinalIgnoreCase) => "Music",
+            var k when string.Equals(k, "MusicVideo", StringComparison.OrdinalIgnoreCase) => "MusicVideo",
+            _ => "Karaoke"
+        };
         filter = (filter ?? string.Empty).Trim();
         offset = Math.Max(0, offset);
         pageSize = Math.Clamp(pageSize, 50, 1000);
@@ -491,7 +488,12 @@ LIMIT $limit OFFSET $offset;
         int limit = 64,
         CancellationToken cancellationToken = default)
     {
-        mediaKind = string.Equals(mediaKind, "Music", StringComparison.OrdinalIgnoreCase) ? "Music" : "Karaoke";
+        mediaKind = mediaKind?.Trim() switch
+        {
+            var k when string.Equals(k, "Music", StringComparison.OrdinalIgnoreCase) => "Music",
+            var k when string.Equals(k, "MusicVideo", StringComparison.OrdinalIgnoreCase) => "MusicVideo",
+            _ => "Karaoke"
+        };
         limit = Math.Clamp(limit, 1, 256);
 
         await using var connection = new SqliteConnection(database.ConnectionString);
@@ -549,13 +551,13 @@ LIMIT $limit;
         return result;
     }
 
-    public async Task<(long Karaoke, long Music)> GetLibraryCountsAsync(CancellationToken cancellationToken = default)
+    public async Task<(long Karaoke, long Music, long MusicVideo)> GetLibraryCountsAsync(CancellationToken cancellationToken = default)
     {
         await using var connection = new SqliteConnection(database.ConnectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT media_kind, COUNT(*) FROM songs GROUP BY media_kind";
-        long karaoke = 0, music = 0;
+        long karaoke = 0, music = 0, musicVideo = 0;
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
@@ -563,8 +565,9 @@ LIMIT $limit;
             var count = reader.GetInt64(1);
             if (string.Equals(kind, "Karaoke", StringComparison.OrdinalIgnoreCase)) karaoke += count;
             else if (string.Equals(kind, "Music", StringComparison.OrdinalIgnoreCase)) music += count;
+            else if (string.Equals(kind, "MusicVideo", StringComparison.OrdinalIgnoreCase)) musicVideo += count;
         }
-        return (karaoke, music);
+        return (karaoke, music, musicVideo);
     }
 
     private static SongRecord ReadSong(SqliteDataReader reader)

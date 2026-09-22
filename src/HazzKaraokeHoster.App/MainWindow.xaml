@@ -1,4 +1,4 @@
-﻿<Window x:Class="HazzKaraokeHoster.App.MainWindow"
+<Window x:Class="HazzKaraokeHoster.App.MainWindow"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:sys="clr-namespace:System;assembly=mscorlib" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:HazzKaraokeHoster.App"
  Title="Hazz Karaoke Hoster" Width="1440" Height="840" MinWidth="320" MinHeight="240"
@@ -438,7 +438,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="{DynamicResource HostFont10_5}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_6EC1E4}" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="{DynamicResource SkinSurface_22303C}" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v1.72" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
+     <TextBlock Text="v1.74" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
     </Border>
    </StackPanel>
 
@@ -467,7 +467,9 @@
     </MenuItem>
 <MenuItem Header="SOUND DEVICES" Style="{StaticResource HeaderMenuItemStyle}" Click="PlayerSoundDevices_Click" ToolTip="Choose outputs for Deck 1, Deck 2, quick-play and karaoke."/><MenuItem Header="NORMALIZE AUDIO" Style="{StaticResource HeaderMenuItemStyle}" Click="Normalization_Click"/><MenuItem Header="IMPORT" Style="{StaticResource HeaderMenuItemStyle}">
      <MenuItem Header="Import Karaoke Folders…" Click="ImportKaraoke_Click"/>
-     <MenuItem Header="Import Music / Video Folders…" Click="ImportMusic_Click"/>
+     <MenuItem Header="Import Music Folders…" Click="ImportMusic_Click"/>
+     <MenuItem Header="Import Music Video Files…" Click="ImportMusicVideoFiles_Click"/>
+     <MenuItem Header="Import Music Video Folders…" Click="ImportMusicVideoFolders_Click"/>
      <Separator/>
      <MenuItem Header="Import BPM Studio…" Click="ImportBpmStudio_Click"/>
      <MenuItem Header="Singer History…" Click="ImportSingerHistory_Click"/>
@@ -544,12 +546,12 @@
     <TextBlock Text="SEARCH" Grid.Column="0" FontSize="{DynamicResource HostFont13}" FontWeight="Bold" VerticalAlignment="Center" Margin="7,0,10,0" Foreground="{DynamicResource SkinInk_C0CDD9}"/>
     <Button x:Name="SearchKaraokeButton" Grid.Column="1" Content="KARAOKE" Style="{StaticResource LoadButtonStyle}" Click="SearchKaraokeMode_Click" ToolTip="CD+G, ZIP and video karaoke are searched together"/>
     <Button x:Name="SearchMusicButton" Grid.Column="2" Content="MUSIC" Style="{StaticResource SaveButtonStyle}" Click="SearchMusicMode_Click" ToolTip="Search ordinary background music"/>
-    <Button x:Name="SearchMusicVideoButton" Grid.Column="3" Content="MUSIC VIDEO" Style="{StaticResource SpecialButtonStyle}" Click="SearchMusicVideoMode_Click" ToolTip="Search only video files imported into the music library"/>
-    <TextBox x:Name="SearchBox" Grid.Column="4" FontSize="{DynamicResource HostFont16}" TextChanged="SearchBox_TextChanged" ToolTip="Artist, title, manufacturer or disc ID" MinWidth="140"/>
+    <Button x:Name="SearchMusicVideoButton" Grid.Column="3" Content="MUSIC VIDEO" Style="{StaticResource SpecialButtonStyle}" Click="SearchMusicVideoMode_Click" ToolTip="Search only tracks in the separate Music Video library"/>
+    <TextBox x:Name="SearchBox" Grid.Column="4" FontSize="{DynamicResource HostFont16}" TextChanged="SearchBox_TextChanged" GotKeyboardFocus="SearchBox_GotKeyboardFocus" ToolTip="Artist, title, manufacturer or disc ID" MinWidth="140"/>
     <Button x:Name="CancelImportButton" Grid.Column="5" Content="CANCEL IMPORT" Style="{StaticResource StopButtonStyle}" Click="CancelImport_Click" Visibility="Collapsed"/>
     <StackPanel Grid.Column="6" Margin="10,0,5,0" VerticalAlignment="Center" MinWidth="135">
      <TextBlock x:Name="SearchStatus" Foreground="{DynamicResource SkinInk_B6C3D0}" Text="Database starting..." TextTrimming="CharacterEllipsis"/>
-     <TextBlock x:Name="LibraryCountText" Foreground="{DynamicResource SkinInk_899AAB}" Text="Karaoke 0 • Music 0" FontSize="{DynamicResource HostFont11_5}"/>
+     <TextBlock x:Name="LibraryCountText" Foreground="{DynamicResource SkinInk_899AAB}" Text="Karaoke 0 • Music 0 • Videos 0" FontSize="{DynamicResource HostFont11_5}"/>
     </StackPanel>
    </Grid>
   </Border>
@@ -963,6 +965,7 @@
         <Button Content="ADD FILES" Style="{StaticResource SaveButtonStyle}" Click="DeckBAdd_Click" ToolTip="Add music files to the side list."/>
         <Button Content="LOAD LIST…" Style="{StaticResource LoadButtonStyle}" Click="DeckBLoadPlaylist_Click" ToolTip="Load a saved playlist or music-history list into the side list."/>
         <Button Content="SAVE LIST" Style="{StaticResource SaveButtonStyle}" Click="DeckBSavePlaylist_Click" ToolTip="Save the side list for later use."/>
+        <Button x:Name="SideFolderBrowserButton" Content="VIRTUAL FOLDERS" Style="{StaticResource SpecialButtonStyle}" Click="SideFolderBrowser_Click" ToolTip="Show Hazz virtual folders here, including folders imported from BPM Studio and other supported software."/>
         <Button Content="SELECT ALL" Style="{StaticResource SaveButtonStyle}" Click="SideListSelectAll_Click" ToolTip="Select every track in the side list."/>
         <Button Content="▲ MOVE UP" Style="{StaticResource LoadButtonStyle}" Click="SideListMoveUp_Click" ToolTip="Move the selected track or block one position up."/>
         <Button Content="▼ MOVE DOWN" Style="{StaticResource LoadButtonStyle}" Click="SideListMoveDown_Click" ToolTip="Move the selected track or block one position down."/>
@@ -1000,6 +1003,65 @@
        <Button Content="CLEAR PLAYLIST" Tag="Deck2" Style="{StaticResource StopButtonStyle}" Click="ClearDeckPlaylist_Click" Margin="2" MinHeight="34" ToolTip="Empty the whole deck list. The playing song continues; files and saved playlists are kept."/>
        <Button Content="LOAD PLAYLIST / HISTORY…" Style="{StaticResource LoadButtonStyle}" Click="DeckBLoadPlaylist_Click" Margin="2" MinHeight="34" MinWidth="150" ToolTip="Load a complete saved/imported playlist or music-history list into Deck 2."/>
       </WrapPanel>
+
+      <!-- Optional browser for Hazz virtual folders. BPM Studio and other importer-created folders use the same database tree. -->
+      <Grid x:Name="DeckBSideFolderBrowserPanel" Grid.RowSpan="4" Panel.ZIndex="20" Visibility="Collapsed" Background="{DynamicResource PanelBrush}">
+       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+       <DockPanel Grid.Row="0" Background="{DynamicResource PlaylistBrush}" LastChildFill="True" MinHeight="38">
+        <Button Content="BACK TO SIDE LIST" DockPanel.Dock="Right" Style="{StaticResource StopButtonStyle}" Click="SideFolderClose_Click" Margin="4" Padding="8,3" ToolTip="Return to the holding side list."/>
+        <Button Content="REFRESH" DockPanel.Dock="Right" Style="{StaticResource LoadButtonStyle}" Click="SideFolderRefresh_Click" Margin="4" Padding="8,3" ToolTip="Reload virtual folders after an import or library change."/>
+        <TextBlock Text="VIRTUAL FOLDERS — MUSIC / VIDEO" FontSize="{DynamicResource HostFont16}" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" Margin="8,0"/>
+       </DockPanel>
+       <Grid Grid.Row="1" Margin="6">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="0.78*" MinWidth="115"/><ColumnDefinition Width="5"/><ColumnDefinition Width="1.22*" MinWidth="150"/></Grid.ColumnDefinitions>
+        <Border Grid.Column="0" BorderBrush="{DynamicResource SkinEdge_596B7A}" BorderThickness="1" CornerRadius="4" Padding="4">
+         <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="1,1,1,4">
+           <Button x:Name="SideFolderMusicButton" Content="MUSIC" Style="{StaticResource SaveButtonStyle}" Click="SideFolderAllMusic_Click" Margin="0,0,4,0" ToolTip="Browse ordinary audio music only."/>
+           <Button x:Name="SideFolderVideoButton" Content="MUSIC VIDEOS" Style="{StaticResource SpecialButtonStyle}" Click="SideFolderAllVideos_Click" ToolTip="Browse indexed Music Video tracks only."/>
+          </StackPanel>
+          <TreeView x:Name="SideVirtualFolderTree" SelectedItemChanged="SideVirtualFolderTree_SelectedItemChanged" BorderThickness="0" Background="Transparent">
+           <TreeView.ItemContainerStyle>
+            <Style TargetType="TreeViewItem">
+             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+             <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+            </Style>
+           </TreeView.ItemContainerStyle>
+           <TreeView.Resources>
+            <HierarchicalDataTemplate DataType="{x:Type local:VirtualFolderNode}" ItemsSource="{Binding Children}">
+             <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
+            </HierarchicalDataTemplate>
+           </TreeView.Resources>
+          </TreeView>
+         </DockPanel>
+        </Border>
+        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="{DynamicResource SkinEdge_3C4A58}"/>
+        <Grid Grid.Column="2">
+         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+         <TextBlock x:Name="SideFolderLocationText" Text="ALL MUSIC" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D8E2EC}" Margin="4,1,4,4" TextTrimming="CharacterEllipsis"/>
+         <DataGrid x:Name="SideVirtualFolderTracks" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended" SelectionUnit="FullRow"
+                   MouseDoubleClick="SideFolderTracks_MouseDoubleClick" PreviewMouseLeftButtonDown="SideFolderTracks_PreviewMouseLeftButtonDown" PreviewMouseMove="SideFolderTracks_PreviewMouseMove"
+                   ToolTip="Select or drag music or music-video tracks. Double-click adds them to the Side List.">
+          <DataGrid.Columns>
+           <DataGridTextColumn Header="Artist" Binding="{Binding Artist}" Width="1.05*"/>
+           <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="1.35*"/>
+           <DataGridTextColumn Header="Time" Binding="{Binding DurationText}" Width="52"/>
+          </DataGrid.Columns>
+         </DataGrid>
+        </Grid>
+       </Grid>
+       <Grid Grid.Row="2" Margin="6,1,6,6">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <TextBlock x:Name="SideFolderStatusText" Text="Choose a virtual folder." Foreground="{DynamicResource SkinInk_9EABB9}" TextWrapping="Wrap" Margin="2,0,2,3"/>
+        <WrapPanel Grid.Row="1" HorizontalAlignment="Center">
+         <Button Content="◀ PREV" Style="{StaticResource LoadButtonStyle}" Click="SideFolderPrevious_Click" ToolTip="Previous page."/>
+         <TextBlock x:Name="SideFolderPageText" Text="1 / 1" VerticalAlignment="Center" FontWeight="Bold" Margin="7,0"/>
+         <Button Content="NEXT ▶" Style="{StaticResource LoadButtonStyle}" Click="SideFolderNext_Click" ToolTip="Next page."/>
+         <Button Content="ADD TO SIDE LIST" Style="{StaticResource SaveButtonStyle}" Click="SideFolderAddToSideList_Click" ToolTip="Copy selected tracks into the holding side list."/>
+         <Button Content="SEND TO DECK 1 →" Style="{StaticResource PlayButtonStyle}" Click="SideFolderSendToDeck1_Click" ToolTip="Copy selected tracks straight into Deck 1."/>
+        </WrapPanel>
+       </Grid>
+      </Grid>
      </Grid>
     </Border>
    </Grid>
@@ -1217,6 +1279,23 @@
 
       <Border Grid.Row="10" BorderBrush="{DynamicResource SkinEdge_596B7A}" BorderThickness="1" CornerRadius="5" Padding="8" Margin="0,10,0,0" Background="{DynamicResource SkinSurface_151F29}">
        <StackPanel>
+        <TextBlock Text="MUSIC VIDEO DISPLAY" FontWeight="Bold" Margin="3,0,3,6"/>
+        <WrapPanel Margin="0,0,0,6">
+         <TextBlock Text="Video fit" VerticalAlignment="Center" Margin="4"/>
+         <ComboBox x:Name="MusicVideoSizingCombo" MinWidth="100" SelectionChanged="OverlayChanged" ToolTip="Fit preserves the video's proportions. Stretch fills the audience screen."><ComboBoxItem Content="Fit" IsSelected="True"/><ComboBoxItem Content="Stretch"/></ComboBox>
+         <TextBlock Text="Transition" VerticalAlignment="Center" Margin="12,4,4,4"/>
+         <ComboBox x:Name="MusicVideoTransitionCombo" MinWidth="180" SelectionChanged="OverlayChanged" ToolTip="Visual transition used when a new music video appears. Audio timing and crossfades remain separate.">
+          <ComboBoxItem Content="Cut" IsSelected="True"/><ComboBoxItem Content="Random Fancy"/>
+          <ComboBoxItem Content="Fade from Black"/><ComboBoxItem Content="Fade from White"/><ComboBoxItem Content="Flash White"/>
+          <ComboBoxItem Content="Wipe Left"/><ComboBoxItem Content="Wipe Right"/><ComboBoxItem Content="Wipe Up"/><ComboBoxItem Content="Wipe Down"/>
+          <ComboBoxItem Content="Zoom Reveal"/><ComboBoxItem Content="Spin Zoom"/>
+          <ComboBoxItem Content="Curtain Horizontal"/><ComboBoxItem Content="Curtain Vertical"/>
+          <ComboBoxItem Content="Diagonal Sweep"/><ComboBoxItem Content="Neon Sweep"/>
+         </ComboBox>
+         <TextBlock Text="Duration" VerticalAlignment="Center" Margin="12,4,4,4"/>
+         <Slider x:Name="MusicVideoTransitionSecondsSlider" Minimum="0.1" Maximum="5" Value="0.75" TickFrequency="0.25" IsSnapToTickEnabled="True" Width="125" ValueChanged="OverlayChanged" ToolTip="Length of the visual transition only."/>
+         <TextBlock Text="{Binding ElementName=MusicVideoTransitionSecondsSlider, Path=Value, StringFormat={}{0:0.00}s}" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="42"/>
+        </WrapPanel>
         <TextBlock Text="SHOW DURING MUSIC VIDEOS" FontWeight="Bold" Margin="3,0,3,6"/><WrapPanel><CheckBox x:Name="MusicVideoShowLogoCheck" Content="Permanent logo" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/><CheckBox x:Name="MusicVideoShowScrollerCheck" Content="Both scrollers" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/><CheckBox x:Name="MusicVideoShowSingersCheck" Content="Next singers" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/><CheckBox x:Name="MusicVideoShowKamikazeCheck" Content="Kamikaze message" Checked="OverlayChanged" Unchecked="OverlayChanged" Margin="4,2,12,6"/></WrapPanel><TextBlock Text="Unchecked items are hidden during music videos. Checked items use their normal display settings." TextWrapping="Wrap" Margin="3,0,3,10"/>        <TextBlock Text="KAMIKAZE KARAOKE AUDIENCE MESSAGE" FontWeight="Bold" Foreground="{DynamicResource SkinInk_F4F7FA}" Margin="3,0,3,6"/>
         <WrapPanel>
          <TextBlock Text="Text" VerticalAlignment="Center" Margin="4"/>

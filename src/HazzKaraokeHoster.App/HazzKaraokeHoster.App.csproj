@@ -29,9 +29,7 @@
     <ProjectReference Include="..\HazzKaraokeHoster.Data\HazzKaraokeHoster.Data.csproj" />
     <ProjectReference Include="..\HazzKaraokeHoster.Playback\HazzKaraokeHoster.Playback.csproj" />
   </ItemGroup>
-  <!-- The release project publishes an already-built app. VideoLAN's normal
-       BeforeBuild hook is skipped by NoBuild, so register its content before
-       publish assigns paths as well. This serves both distribution formats. -->
-  <Target Name="IncludeVlcContentWhenPublishing" BeforeTargets="AssignTargetPaths"
-          DependsOnTargets="CollectVlcFilesToCopyWindows" />
+  <!-- VideoLAN.LibVLC.Windows supplies its own build/publish targets.
+       Do not depend on internal target names here: they are package-version
+       implementation details and can break project evaluation/restore. -->
 </Project>

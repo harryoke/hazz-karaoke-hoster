@@ -42,7 +42,7 @@ public partial class MainWindow
             var song = await _library.FindByFilePathAsync(item.FilePath);
             if (song is null)
             {
-                await _libraryImporter.IndexFileAsync(item.FilePath, LibraryImportMode.Music);
+                await _libraryImporter.IndexFileAsync(item.FilePath, MusicDeckImportModeForPath(item.FilePath));
                 song = await _library.FindByFilePathAsync(item.FilePath);
             }
             if (song is null) continue;
@@ -58,9 +58,9 @@ public partial class MainWindow
         if (IsMusicFileLoaded(item.FilePath)) { MessageBox.Show(this, "Load another track on players using this file first.", "Track is loaded"); return; }
         var choose = new Microsoft.Win32.OpenFileDialog { Title = "Locate the missing track — update playlist entries", CheckFileExists = true, Filter = "Media files|*.mp3;*.wav;*.flac;*.m4a;*.wma;*.ogg;*.mp4;*.mkv;*.avi;*.wmv|All files|*.*" };
         if (choose.ShowDialog(this) != true) return;
-        await _libraryImporter.IndexFileAsync(choose.FileName, LibraryImportMode.Music);
+        await _libraryImporter.IndexFileAsync(choose.FileName, MusicDeckImportModeForPath(choose.FileName));
         var song = await _library.FindByFilePathAsync(choose.FileName);
-        if (song is null) throw new InvalidOperationException("The selected file could not be indexed as music.");
+        if (song is null) throw new InvalidOperationException("The selected file could not be indexed as music or a music video.");
         if (item.IsFavourite) await Task.Run(() => MusicFavourites.Default.Set(new[] { choose.FileName }, true));
         foreach (var deck in new[] { MusicDeckId.Deck1, MusicDeckId.Deck2 })
         {

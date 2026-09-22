@@ -238,6 +238,8 @@ RETURNING id;
         var ext = Path.GetExtension(path);
         if (ext.Equals(".cdg", StringComparison.OrdinalIgnoreCase) || ext.Equals(".zip", StringComparison.OrdinalIgnoreCase)
             || path.Contains("karaoke", StringComparison.OrdinalIgnoreCase)) return "Karaoke";
-        return fallback.Equals("Karaoke", StringComparison.OrdinalIgnoreCase) ? "Karaoke" : "Music";
+        if (fallback.Equals("Karaoke", StringComparison.OrdinalIgnoreCase)) return "Karaoke";
+        return ext.ToLowerInvariant() is ".mp4" or ".m4v" or ".mkv" or ".avi" or ".wmv" or ".mov" or ".mpeg" or ".mpg" or ".vob" or ".ts" or ".m2ts" or ".webm" or ".divx"
+            ? "MusicVideo" : "Music";
     }
 }

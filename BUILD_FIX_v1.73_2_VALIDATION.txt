@@ -1,0 +1,15 @@
+HAZZ KARAOKE HOSTER v1.73 BUILDFIX2 SOURCE VALIDATION
+==========================================================
+
+PASS  MusicVideo MediaEnded binding removed
+PASS  MusicVideo failure handler retained
+PASS  destructive MusicVideo_Ended handler removed
+PASS  ShowMusicVideo retained
+PASS  transition setup retained
+PASS  pending transition retained
+PASS  Fit/Stretch retained
+PASS  broken VLC target still absent
+PASS  LibVLC WPF package retained
+PASS  VideoLAN runtime package retained
+
+10/10 static checks passed.

@@ -1,0 +1,33 @@
+HAZZ KARAOKE HOSTER v1.73 - BUILD FIX 1
+======================================
+Baseline: Hazz Karaoke Hoster v1.73
+
+Problem fixed
+-------------
+Visual Studio reported:
+  MSB4057: The target "CollectVlcFilesToCopyWindows" does not exist in the project.
+
+That invalid custom MSBuild dependency also prevented a clean design-time restore,
+which caused follow-on C# errors saying LibVLCSharp, VideoView and LibVLC could not
+be found in AudienceVideoSurface.cs.
+
+Fix
+---
+Removed the custom IncludeVlcContentWhenPublishing target that depended on the
+package-internal target name CollectVlcFilesToCopyWindows.
+
+The correct package references are retained unchanged:
+  LibVLCSharp.WPF 3.10.1
+  VideoLAN.LibVLC.Windows 3.0.23.1
+
+VideoLAN.LibVLC.Windows supplies its own build/publish integration. The application
+must not depend on internal target names from that NuGet package.
+
+No v1.73 features were removed or rolled back.
+
+On first opening in Visual Studio 2026
+--------------------------------------
+1. Allow NuGet restore to complete.
+2. If old errors remain cached, use Build > Clean Solution, then Build > Rebuild Solution.
+3. If necessary, close Visual Studio and delete only the project's obj and bin folders,
+   reopen the solution, allow NuGet restore, and rebuild.

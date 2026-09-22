@@ -1074,6 +1074,7 @@ RETURNING id;
         var ext = Path.GetExtension(path);
         if (KaraokeExtensions.Contains(ext)) return "Karaoke";
         if ((AudioExtensions.Contains(ext) || VideoExtensions.Contains(ext)) && KaraokePathHint.IsMatch(path)) return "Karaoke";
+        if (VideoExtensions.Contains(ext)) return "MusicVideo";
         return "Music";
     }
 

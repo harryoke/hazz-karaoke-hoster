@@ -1,4 +1,4 @@
-Current release: v1.7. Made For KJ/DJ's By A KJ/DJ
+Current release: v1.74. Made For KJ/DJ's By A KJ/DJ
 
 [AV Sync, full preview and transparent CD+G guide](RELEASE_v1.7.md).
 
@@ -55,6 +55,20 @@ Repeat **Add Selected to Folder…** for each destination. A track can appear in
 3. In **Music**, add selected tracks to Deck 1, Deck 2 or the Single Deck side list.
 4. In **Karaoke**, add the selected song to the highlighted singer.
 5. Select **All Library Tracks** to leave the folder and browse everything again.
+
+## Use virtual folders in Single Deck side list
+
+When **Single Deck + Side List Mode** is active, press **VIRTUAL FOLDERS** above the side list. This opens a compact music-only browser without leaving the main host screen.
+
+- The left tree shows the same Hazz virtual folders used by **Library > Browse Library**, including folders imported from BPM Studio.
+- Select a folder to browse its music tracks. Use **ALL MUSIC** to return to the complete indexed music library.
+- Double-click selected tracks or press **ADD TO SIDE LIST** to put them in the holding list.
+- Press **SEND TO DECK 1 →** to add selected tracks directly to Deck 1.
+- You can also drag selected tracks from the browser into Deck 1 or the side list.
+- Use **PREV** and **NEXT** to page through large folders.
+- Press **BACK TO SIDE LIST** to return to the normal holding list.
+
+The side-list browser does not make duplicate folders or duplicate tracks. It reads the existing Hazz virtual-folder database, so later BPM Studio imports appear in the same browser after refresh.
 
 ## Rename, empty, remove and delete
 

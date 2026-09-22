@@ -115,7 +115,12 @@ ON CONFLICT(file_path) DO UPDATE SET
                                 pFormat.Value = Path.GetExtension(path).TrimStart('.').ToUpperInvariant();
                                 pSize.Value = info.Length;
                                 pAdded.Value = info.CreationTimeUtc == DateTime.MinValue ? DBNull.Value : info.CreationTimeUtc.ToString("O");
-                                pKind.Value = classification == ImportClassification.Karaoke ? "Karaoke" : "Music";
+                                pKind.Value = classification switch
+                                {
+                                    ImportClassification.Karaoke => "Karaoke",
+                                    ImportClassification.MusicVideo => "MusicVideo",
+                                    _ => "Music"
+                                };
                                 await command.ExecuteNonQueryAsync(cancellationToken);
                                 imported++;
                                 batchCount++;
@@ -211,7 +216,12 @@ ON CONFLICT(file_path) DO UPDATE SET
             command.Parameters.AddWithValue("$format", Path.GetExtension(path).TrimStart('.').ToUpperInvariant());
             command.Parameters.AddWithValue("$size", info.Length);
             command.Parameters.AddWithValue("$added", info.CreationTimeUtc == DateTime.MinValue ? DBNull.Value : info.CreationTimeUtc.ToString("O"));
-            command.Parameters.AddWithValue("$kind", classification == ImportClassification.Karaoke ? "Karaoke" : "Music");
+            command.Parameters.AddWithValue("$kind", classification switch
+            {
+                ImportClassification.Karaoke => "Karaoke",
+                ImportClassification.MusicVideo => "MusicVideo",
+                _ => "Music"
+            });
             await command.ExecuteNonQueryAsync(cancellationToken);
             return new SingleFileIndexResult(SingleFileIndexOutcome.Indexed, path);
         }
@@ -292,7 +302,7 @@ ON CONFLICT(file_path) DO UPDATE SET
         }
     }
 
-    private enum ImportClassification { Unsupported, CompanionAudio, Karaoke, Music }
+    private enum ImportClassification { Unsupported, CompanionAudio, Karaoke, Music, MusicVideo }
 
     private static ImportClassification Classify(string path, LibraryImportMode mode)
     {
@@ -305,7 +315,15 @@ ON CONFLICT(file_path) DO UPDATE SET
             return ImportClassification.Unsupported;
         }
         if (mode == LibraryImportMode.Music)
-            return AudioExtensions.Contains(ext) || VideoExtensions.Contains(ext) ? ImportClassification.Music : ImportClassification.Unsupported;
+        {
+            // Preserve legacy mixed Music roots/watchers, but never lump videos into
+            // the Music library: videos found there are indexed as MusicVideo.
+            if (AudioExtensions.Contains(ext)) return ImportClassification.Music;
+            if (VideoExtensions.Contains(ext)) return ImportClassification.MusicVideo;
+            return ImportClassification.Unsupported;
+        }
+        if (mode == LibraryImportMode.MusicVideo)
+            return VideoExtensions.Contains(ext) ? ImportClassification.MusicVideo : ImportClassification.Unsupported;
 
         if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) || ext.Equals(".cdg", StringComparison.OrdinalIgnoreCase)) return ImportClassification.Karaoke;
         if (AudioExtensions.Contains(ext))
@@ -313,7 +331,7 @@ ON CONFLICT(file_path) DO UPDATE SET
             if (File.Exists(Path.ChangeExtension(path, ".cdg"))) return ImportClassification.CompanionAudio;
             return ImportClassification.Music;
         }
-        if (VideoExtensions.Contains(ext)) return ImportClassification.Music;
+        if (VideoExtensions.Contains(ext)) return ImportClassification.MusicVideo;
         return ImportClassification.Unsupported;
     }
 

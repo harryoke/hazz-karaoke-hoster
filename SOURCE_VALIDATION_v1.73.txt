@@ -1,0 +1,82 @@
+HAZZ KARAOKE HOSTER v1.73 SOURCE VALIDATION
+================================================
+Baseline: user-supplied Hazz Karaoke Hoster v1.72 / v1.7.2 source
+Target: .NET 10 Windows x64 WPF
+
+Static validation performed in this environment:
+[PASS] Version is 1.73.0
+[PASS] Target is net10.0-windows WPF
+[PASS] XAML parses: src/HazzKaraokeHoster.App/LibrarySourcesWindow.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/PlaylistNameDialog.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/SingerEditDialog.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/MusicArchiveWindow.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/App.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/SingerSongsWindow.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/MainWindow.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/AudienceWindow.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/LibraryBrowserWindow.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/VirtualFolderNameDialog.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/VirtualFolderPickerDialog.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/ImportProgressWindow.xaml
+[PASS] XAML parses: src/HazzKaraokeHoster.App/ExternalImportWindow.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/LibrarySourcesWindow.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/PlaylistNameDialog.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/SingerEditDialog.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/MusicArchiveWindow.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/App.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/SingerSongsWindow.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/MainWindow.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/AudienceWindow.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/LibraryBrowserWindow.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/VirtualFolderNameDialog.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/VirtualFolderPickerDialog.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/ImportProgressWindow.xaml
+[PASS] No duplicate x:Name: src/HazzKaraokeHoster.App/ExternalImportWindow.xaml
+[PASS] New XAML callback wired: SideFolderBrowser_Click
+[PASS] New XAML callback wired: SideFolderClose_Click
+[PASS] New XAML callback wired: SideFolderRefresh_Click
+[PASS] New XAML callback wired: SideFolderAllMusic_Click
+[PASS] New XAML callback wired: SideVirtualFolderTree_SelectedItemChanged
+[PASS] New XAML callback wired: SideFolderPrevious_Click
+[PASS] New XAML callback wired: SideFolderNext_Click
+[PASS] New XAML callback wired: SideFolderAddToSideList_Click
+[PASS] New XAML callback wired: SideFolderSendToDeck1_Click
+[PASS] New XAML callback wired: SideFolderTracks_MouseDoubleClick
+[PASS] New XAML callback wired: SideFolderTracks_PreviewMouseLeftButtonDown
+[PASS] New XAML callback wired: SideFolderTracks_PreviewMouseMove
+[PASS] Control exists once: SideFolderBrowserButton
+[PASS] Control exists once: DeckBSideFolderBrowserPanel
+[PASS] Control exists once: SideVirtualFolderTree
+[PASS] Control exists once: SideFolderLocationText
+[PASS] Control exists once: SideVirtualFolderTracks
+[PASS] Control exists once: SideFolderStatusText
+[PASS] Control exists once: SideFolderPageText
+[PASS] Control exists once: MusicVideoSizingCombo
+[PASS] Control exists once: MusicVideoTransitionCombo
+[PASS] Control exists once: MusicVideoTransitionSecondsSlider
+[PASS] Audience control exists once: MusicVideoTransitionOverlay
+[PASS] Audience control exists once: MusicVideoTransitionTranslate
+[PASS] MusicVideoSizing declared in UI settings
+[PASS] MusicVideoSizing declared in audience settings
+[PASS] MusicVideoSizing saved/restored/projected by MainWindow
+[PASS] MusicVideoSizing applied by AudienceWindow
+[PASS] MusicVideoTransition declared in UI settings
+[PASS] MusicVideoTransition declared in audience settings
+[PASS] MusicVideoTransition saved/restored/projected by MainWindow
+[PASS] MusicVideoTransition applied by AudienceWindow
+[PASS] MusicVideoTransitionSeconds declared in UI settings
+[PASS] MusicVideoTransitionSeconds declared in audience settings
+[PASS] MusicVideoTransitionSeconds saved/restored/projected by MainWindow
+[PASS] MusicVideoTransitionSeconds applied by AudienceWindow
+[PASS] Side-list browser visibility setting declared
+[PASS] Side-list browser visibility saved/restored
+[PASS] Side browser uses GetVirtualFoldersAsync
+[PASS] Side browser uses BrowseVirtualFolderAsync
+[PASS] Side browser filters Music
+[PASS] Side browser pages at 250
+[PASS] Audience video surface exposes MediaOpened
+[PASS] Audience window waits for MediaOpened
+[PASS] SDK default compile items enabled for new partial source
+
+Full WPF compile: NOT RUN — this Linux sandbox does not contain the Windows/.NET 10 SDK/MSBuild toolchain.
+Build the package in Visual Studio 2026 with the .NET Desktop Development workload, then regression-test video playback on the actual Windows host/audience displays.

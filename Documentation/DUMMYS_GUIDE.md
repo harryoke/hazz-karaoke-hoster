@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster v1.7 display and sync guide
 
-Current release: **v1.72** — nine custom Sound FX pads, independent output/volume and optional Kamikaze sound with music ducking. [Sound FX instructions](RELEASE_v1.72.md).
+Current release: **v1.74** — dedicated Music Video library/imports, instant previous-search reopening and expanded video transitions. [v1.74 instructions](RELEASE_v1.74.md).
 
 Previous release: **v1.71** — fixes audience-preview rendering failures when switching skins. Start normally; no compatibility launcher is required. See [v1.71 release notes](RELEASE_v1.71.md). The v1.7 feature instructions remain applicable.
 

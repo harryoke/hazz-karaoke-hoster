@@ -6,6 +6,7 @@ public sealed class HazzDatabase
 {
     private int _optimizedThisRun;
     private int _filenameRepairThisRun;
+    private int _musicVideoKindRepairThisRun;
     public string DatabasePath { get; }
     public string ConnectionString { get; }
 
@@ -235,6 +236,12 @@ CREATE INDEX IF NOT EXISTS ix_songs_kind_date_added ON songs(media_kind, date_ad
         if (Interlocked.Exchange(ref _filenameRepairThisRun, 1) == 0)
             await RepairKnownKaraokeFilenameParsingAsync(connection, cancellationToken);
 
+        // v1.74 separates music videos from ordinary music. Older Hazz builds stored
+        // video files imported through the music library as media_kind='Music'. Repair
+        // those rows once per run so counts/search/browsing become truly independent.
+        if (Interlocked.Exchange(ref _musicVideoKindRepairThisRun, 1) == 0)
+            await RepairMusicVideoKindsAsync(connection, cancellationToken);
+
         // Refresh planner statistics once per application run. PRAGMA optimize is deliberately
         // bounded by SQLite and avoids a full VACUUM, so startup remains safe for large show data.
         if (Interlocked.Exchange(ref _optimizedThisRun, 1) == 0)
@@ -291,6 +298,26 @@ WHERE id=$id;
             update.Parameters.AddWithValue("$id", candidate.Id);
             await update.ExecuteNonQueryAsync(token);
         }
+    }
+
+    private static async Task RepairMusicVideoKindsAsync(SqliteConnection connection, CancellationToken token)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+UPDATE songs
+SET media_kind='MusicVideo'
+WHERE lower(media_kind)='music'
+  AND (
+      lower(file_path) LIKE '%.mp4' OR lower(file_path) LIKE '%.m4v' OR
+      lower(file_path) LIKE '%.mkv' OR lower(file_path) LIKE '%.avi' OR
+      lower(file_path) LIKE '%.wmv' OR lower(file_path) LIKE '%.mov' OR
+      lower(file_path) LIKE '%.mpeg' OR lower(file_path) LIKE '%.mpg' OR
+      lower(file_path) LIKE '%.vob' OR lower(file_path) LIKE '%.ts' OR
+      lower(file_path) LIKE '%.m2ts' OR lower(file_path) LIKE '%.webm' OR
+      lower(file_path) LIKE '%.divx'
+  );
+""";
+        await command.ExecuteNonQueryAsync(token);
     }
 
     public long GetStorageSizeBytes()

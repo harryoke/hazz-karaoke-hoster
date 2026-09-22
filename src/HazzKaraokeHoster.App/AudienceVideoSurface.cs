@@ -18,6 +18,7 @@ public sealed class AudienceVideoSurface : Grid
     private Uri? _source;
     private TimeSpan _requestedPosition;
     private bool _started, _starting, _playing, _closed, _fallback;
+    private bool _mediaOpenedRaised;
     private int _generation;
     private bool _stretchToFill;
     public bool StretchToFill
@@ -49,6 +50,7 @@ public sealed class AudienceVideoSurface : Grid
     }
     public static bool WindowsRequested => Environment.GetCommandLineArgs().Contains("--windows-video", StringComparer.OrdinalIgnoreCase);
     public bool NativeActive => _player is not null && !_fallback && !_closed;
+    public event EventHandler? MediaOpened;
     public event EventHandler? MediaEnded;
     public event EventHandler? BackendChanged;
     public event EventHandler? MediaFailed;
@@ -61,7 +63,12 @@ public sealed class AudienceVideoSurface : Grid
         SizeChanged += (_, _) => ApplySizing();
         _view.Content = _overlayHost;
         Children.Add(_windows); Children.Add(_view);
-        _windows.MediaOpened += (_, _) => { _windows.Position = _requestedPosition; _windows.SpeedRatio = _tempo; };
+        _windows.MediaOpened += (_, _) =>
+        {
+            _windows.Position = _requestedPosition;
+            _windows.SpeedRatio = _tempo;
+            RaiseMediaOpenedOnce();
+        };
         _windows.MediaEnded += (_, _) => MediaEnded?.Invoke(this, EventArgs.Empty);
         _windows.MediaFailed += (_, e) => { App.WriteDiagnostic("WINDOWS VIDEO", e.ErrorException.ToString()); MediaFailed?.Invoke(this, EventArgs.Empty); };
     }
@@ -71,7 +78,7 @@ public sealed class AudienceVideoSurface : Grid
         set
         {
             if (_source == value) return;
-            Stop(); _generation++; _source = value; _requestedPosition = TimeSpan.Zero;
+            Stop(); _generation++; _source = value; _requestedPosition = TimeSpan.Zero; _mediaOpenedRaised = false;
             _windows.Source = null;
             if (value is null) return;
             // Apply a preference at a source boundary, never during a song.
@@ -127,9 +134,16 @@ public sealed class AudienceVideoSurface : Grid
         if (!_started && _requestedPosition > TimeSpan.Zero) _player!.Time = (long)_requestedPosition.TotalMilliseconds;
         _starting = false; _started = true;
         ApplySizing();
+        RaiseMediaOpenedOnce();
         if (_player!.SetRate((float)_tempo) == -1) { UseWindows("LibVLC refused the selected tempo."); return; }
         if (!_playing) _player!.SetPause(true);
     });
+    private void RaiseMediaOpenedOnce()
+    {
+        if (_mediaOpenedRaised) return;
+        _mediaOpenedRaised = true;
+        MediaOpened?.Invoke(this, EventArgs.Empty);
+    }
     private void OnEnded(object? sender, EventArgs e) => Post(() => { _playing = false; _started = false; _starting = false; _requestedPosition = TimeSpan.Zero; MediaEnded?.Invoke(this, EventArgs.Empty); });
     private void OnError(object? sender, EventArgs e) => Post(() => UseWindows("LibVLC could not open/play " + _source));
     private void UseWindows(string reason)

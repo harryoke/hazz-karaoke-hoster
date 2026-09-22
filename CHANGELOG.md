@@ -1,5 +1,19 @@
 # v1.7
 
+## v1.74
+- Dedicated Music Video file and folder imports with a separate `MusicVideo` library kind, count, search mode and Library Browser view.
+- Existing videos previously stored as Music are automatically reclassified without moving or re-importing files. Legacy mixed Music watch folders remain compatible: audio is stored as Music and video as MusicVideo.
+- Music/Music Video switching added to the Single Deck + Side List virtual-folder browser; BPM Studio video references are also classified separately.
+- Closing the search results no longer forces a new keystroke: click/focus the unchanged search box to reopen the previous result set immediately.
+- Expanded video transitions: Random Fancy, Fade from White, Flash White, four-direction wipes, Zoom Reveal, Spin Zoom, horizontal/vertical curtains, Diagonal Sweep and Neon Sweep, while retaining Cut/Fade from Black/Wipe Left/Wipe Right.
+- Retains v1.73 BuildFix1 (LibVLC project fix) and BuildFix2 (single-deck consecutive-video playback fix).
+
+## v1.73
+- Optional Music Side List virtual-folder browser using the existing Hazz folder tree, including BPM Studio and other imported virtual folders.
+- Paged music results with multi-select, double-click/drag support, Add to Side List and Send to Deck 1 actions.
+- Independent Music Video Fit/Stretch control.
+- Music-video Cut, Fade from Black, Wipe Left and Wipe Right transitions with adjustable duration; reveal begins when the video decoder is ready.
+
 ## v1.72
 - Nine named, coloured Sound FX pads with saved files, per-pad volume/ducking, bank audio output and Stop FX.
 - Optional Kamikaze-linked sound after successful selection; suppressed during karaoke performance.

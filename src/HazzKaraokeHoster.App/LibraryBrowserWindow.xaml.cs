@@ -79,17 +79,29 @@ public partial class LibraryBrowserWindow : Window
         _ = ReloadAsync();
     }
 
+    private void MusicVideoMode_Click(object sender, RoutedEventArgs e)
+    {
+        if (_mediaKind == "MusicVideo") return;
+        _mediaKind = "MusicVideo";
+        _offset = 0;
+        UpdateModeUi();
+        _ = ReloadAsync();
+    }
+
     private void UpdateModeUi()
     {
         KaraokeModeButton.Background = new SolidColorBrush(_mediaKind == "Karaoke" ? Color.FromRgb(0x39, 0x79, 0xA8) : Color.FromRgb(0x26, 0x31, 0x3D));
         MusicModeButton.Background = new SolidColorBrush(_mediaKind == "Music" ? Color.FromRgb(0x5E, 0x98, 0x5C) : Color.FromRgb(0x26, 0x31, 0x3D));
+        MusicVideoModeButton.Background = new SolidColorBrush(_mediaKind == "MusicVideo" ? Color.FromRgb(0x89, 0x5E, 0xB5) : Color.FromRgb(0x26, 0x31, 0x3D));
         var karaoke = _mediaKind == "Karaoke";
         AddSingerButton.Visibility = karaoke ? Visibility.Visible : Visibility.Collapsed;
         AddDeck1Button.Visibility = karaoke ? Visibility.Collapsed : Visibility.Visible;
         AddDeck2Button.Visibility = karaoke ? Visibility.Collapsed : Visibility.Visible;
         BrowserHint.Text = karaoke
             ? "Karaoke: drag onto a virtual folder or singer, or use the buttons below. Media files are never moved."
-            : "Music: drag onto a virtual folder or music deck, or use the buttons below. Media files are never moved.";
+            : _mediaKind == "MusicVideo"
+                ? "Music videos: separate from Music. Drag onto a virtual folder or music deck. Media files are never moved."
+                : "Music: ordinary audio-only library. Drag onto a virtual folder or music deck. Media files are never moved.";
     }
 
     private void FilterBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -183,7 +195,7 @@ public partial class LibraryBrowserWindow : Window
     private void AddDeck2_Click(object sender, RoutedEventArgs e) => RequestDeck(2);
     private void RequestDeck(int deck)
     {
-        if (_mediaKind != "Music" || LibraryGrid.SelectedItem is not SongRecord song) return;
+        if (_mediaKind is not ("Music" or "MusicVideo") || LibraryGrid.SelectedItem is not SongRecord song) return;
         AddToDeckRequested?.Invoke(this, new LibraryBrowserDeckRequest(deck, song));
     }
 

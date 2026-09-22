@@ -11,6 +11,9 @@ public sealed class AudienceOverlaySettings
     public bool MusicVideoShowScroller { get; set; } = false;
     public bool MusicVideoShowSingers { get; set; } = false;
     public bool MusicVideoShowKamikaze { get; set; } = false;
+    public string MusicVideoSizing { get; set; } = "Fit";
+    public string MusicVideoTransition { get; set; } = "Cut";
+    public double MusicVideoTransitionSeconds { get; set; } = 0.75;
 
     public bool ShowNextSinger { get; set; } = true;
     public bool ShowNextSong { get; set; } = true;

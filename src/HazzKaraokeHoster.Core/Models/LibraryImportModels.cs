@@ -4,6 +4,7 @@ public enum LibraryImportMode
 {
     Karaoke,
     Music,
+    MusicVideo,
     Auto
 }
 
