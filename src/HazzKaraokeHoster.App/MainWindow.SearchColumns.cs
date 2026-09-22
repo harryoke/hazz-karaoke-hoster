@@ -294,7 +294,7 @@ public partial class MainWindow
 
         definition.Column.Visibility = item.IsChecked ? Visibility.Visible : Visibility.Collapsed;
         SaveSearchColumnLayout();
-        SearchStatus.Text = "${_searchMediaKind} search columns saved.`;
+        SearchStatus.Text = _searchMediaKind + " search columns saved.";
     }
 
     private void SearchColumnsReset_Click(object sender, RoutedEventArgs e)
@@ -302,7 +302,7 @@ public partial class MainWindow
         _searchColumnSettings.Modes[_searchMediaKind] = DefaultSearchColumnLayout(_searchMediaKind);
         SearchColumnSettingsStore.Save(_searchColumnSettings);
         ApplySearchColumnLayout(_searchMediaKind, force: true);
-        SearchStatus.Text = "${_searchMediaKind} search columns reset to defaults.`;
+        SearchStatus.Text = _searchMediaKind + " search columns reset to defaults.";
     }
 
     private void SearchGrid_ColumnReordered(object? sender, DataGridColumnEventArgs e)
