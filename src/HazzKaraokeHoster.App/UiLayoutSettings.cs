@@ -220,9 +220,10 @@ internal static class UiLayoutSettingsStore
             File.WriteAllText(temp, json);
             if (File.Exists(path))
             {
-                // Do not replace a good recovery copy with malformed JSON.
+                // Use the same typed validation as LoadFrom: syntactically valid JSON
+                // can still contain incompatible values and must not replace a good recovery copy.
                 bool valid;
-                try { using var original = JsonDocument.Parse(File.ReadAllText(path)); valid = original.RootElement.ValueKind == JsonValueKind.Object; }
+                try { valid = JsonSerializer.Deserialize<UiLayoutSettings>(File.ReadAllText(path)) is not null; }
                 catch (JsonException) { valid = false; }
                 File.Replace(temp, path, valid ? path + ".previous" : path + ".unreadable", true);
             }

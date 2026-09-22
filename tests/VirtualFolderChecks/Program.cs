@@ -13,9 +13,14 @@ var karaoke = new SongRecord(0, "Bon Jovi", "Livin On A Prayer", "Sunfly", "SF00
 var rockId = await repo.UpsertSongAsync(rockSong);
 var jingleId = await repo.UpsertSongAsync(jingle);
 var karaokeId = await repo.UpsertSongAsync(karaoke);
+// Simulate reopening a pre-v1.74 library: legacy Music video rows migrate once
+// per database instance, before search and folder browsing use the separate kind.
+await new HazzDatabase(dbPath).InitializeAsync();
 var videoSearch = await repo.SearchByKindAsync("Queen", "MusicVideo", 100);
 if (videoSearch.Count != 1 || videoSearch[0].Id != rockId)
-    throw new Exception("Music Video search did not return the matching music-library video.");
+    throw new Exception("Music Video search did not return the migrated music video.");
+if (videoSearch[0].MediaKind != "MusicVideo" || (await repo.SearchByKindAsync("Queen", "Music", 100)).Count != 0)
+    throw new Exception("Migrated music video was not separated from the audio library.");
 if ((await repo.SearchByKindAsync("Station", "MusicVideo", 100)).Count != 0)
     throw new Exception("Music Video search included an audio-only track.");
 
@@ -31,14 +36,14 @@ await repo.AddSongToVirtualFolderAsync(rock, rockId);     // Duplicate assignmen
 var folders = await repo.GetVirtualFoldersAsync();
 if (folders.Count != 3 || folders.Single(x => x.Id == rock).ParentId != eighties || folders.Single(x => x.Id == rock).TrackCount != 2)
     throw new Exception("Folder hierarchy/count failed.");
-var musicPage = await repo.BrowseVirtualFolderAsync(rock, "Music", "hammer", "Artist", false, 0, 500);
+var musicPage = await repo.BrowseVirtualFolderAsync(rock, "MusicVideo", "hammer", "Artist", false, 0, 500);
 if (musicPage.TotalCount != 1 || musicPage.Items[0].Title != "Hammer To Fall") throw new Exception("Folder browse/filter failed.");
 var karaokePage = await repo.BrowseVirtualFolderAsync(rock, "Karaoke", "", "Title", false, 0, 500);
 if (karaokePage.TotalCount != 1 || karaokePage.Items[0].Id != karaokeId) throw new Exception("Media-kind filter failed.");
 
 await repo.RenameVirtualFolderAsync(jingles, "Show Jingles");
 await repo.RemoveSongFromVirtualFolderAsync(rock, rockId);
-if ((await repo.BrowseVirtualFolderAsync(rock, "Music", "", "Artist", false, 0, 500)).TotalCount != 0)
+if ((await repo.BrowseVirtualFolderAsync(rock, "MusicVideo", "", "Artist", false, 0, 500)).TotalCount != 0)
     throw new Exception("Remove link failed.");
 await repo.EmptyVirtualFolderAsync(jingles);
 await repo.DeleteVirtualFolderAsync(eighties);
@@ -86,7 +91,7 @@ using (var triggerCheck = connection.CreateCommand())
     if (Convert.ToInt32(triggerCheck.ExecuteScalar()) != 1) throw new Exception("BPM bulk import did not restore the songs search trigger.");
 }
 var repeatProgress = new List<BpmStudioImportProgress>();
-var bpmRepeat = await new BpmStudioImportService(db).ImportAsync(bpmRoot, new Progress<BpmStudioImportProgress>(p => repeatProgress.Add(p)));
+var bpmRepeat = await new BpmStudioImportService(db).ImportAsync(bpmRoot, new InlineProgress<BpmStudioImportProgress>(repeatProgress.Add));
 if (bpmRepeat.VirtualFoldersImported != 0 || bpmRepeat.VirtualFolderTrackLinksImported != 0)
     throw new Exception("Repeated BPM virtual-folder import created duplicates.");
 if (!repeatProgress.Any(p => p.Phase.Contains("Skipping unchanged BPM virtual folder", StringComparison.OrdinalIgnoreCase)))
@@ -104,3 +109,10 @@ var restoredRepeat = await new BpmStudioImportService(db).ImportAsync(bpmRoot);
 if (restoredRepeat.VirtualFoldersImported != 0 || restoredRepeat.VirtualFolderTrackLinksImported != 0)
     throw new Exception("Re-import after restoration created duplicates.");
 Console.WriteLine("PASS: virtual folders, BPM import, deleted-folder restoration and repeat-import duplicate protection.");
+
+// Progress<T> posts asynchronously without a synchronization context; assertions
+// must not race its thread-pool callbacks or enumerate a List during mutation.
+sealed class InlineProgress<T>(Action<T> report) : IProgress<T>
+{
+    public void Report(T value) => report(value);
+}
