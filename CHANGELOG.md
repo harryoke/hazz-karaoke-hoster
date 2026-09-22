@@ -1,5 +1,13 @@
 # v1.7
 
+## v1.74.1
+- Restores the Search Columns customiser from the unpublished Search Columns test build on top of the full v1.74 feature set.
+- Search results now include a COLUMNS menu with per-column show/hide controls; at least one column must remain visible.
+- Column widths, heading order and visibility are saved separately for Karaoke, Music and Music Video searches and restored across launches.
+- Music Length remains hidden by default but can now be enabled from COLUMNS.
+- Added per-mode reset to defaults and persistent `search-columns.json` settings beside the Hazz database, retaining a previous copy.
+- Includes compatibility loading for existing Search Columns test settings where possible.
+
 ## v1.74
 - Dedicated Music Video file and folder imports with a separate `MusicVideo` library kind, count, search mode and Library Browser view.
 - Existing videos previously stored as Music are automatically reclassified without moving or re-importing files. Legacy mixed Music watch folders remain compatible: audio is stored as Music and video as MusicVideo.
