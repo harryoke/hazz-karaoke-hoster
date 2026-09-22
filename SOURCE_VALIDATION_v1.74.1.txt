@@ -1,0 +1,34 @@
+HAZZ KARAOKE HOSTER v1.74.1 SEARCH COLUMNS RESTORE - STATIC VALIDATION
+========================================================================
+
+PASS  Version is 1.74.1
+PASS  Original v1.74 MainWindow XAML parses
+PASS  Self-contained Loaded integration
+PASS  COLUMNS button injected
+PASS  Seven search columns supported
+PASS  User resize persisted
+PASS  Heading reorder persisted
+PASS  Per-mode layouts persisted
+PASS  Mode changes reapplied
+PASS  Automatic mode changes detected
+PASS  One visible column enforced
+PASS  Music Length hidden by default
+PASS  Reset active mode present
+PASS  search-columns.json beside app database folder
+PASS  Previous settings retained
+PASS  Unreadable primary preserved
+PASS  Astra compatibility reader present
+PASS  Search reopen-on-focus retained
+PASS  MusicVideo mode retained
+PASS  LibVLC reference retained
+PASS  VideoLAN runtime retained
+PASS  Broken VLC target absent
+PASS  Consecutive-video BuildFix2 retained
+PASS  Changed C# braces balanced
+PASS  Changed C# parens balanced
+PASS  Changed C# braces balanced
+PASS  Changed C# parens balanced
+
+27/27 static checks passed.
+
+Windows/.NET 10 compilation still required before public binary release.
