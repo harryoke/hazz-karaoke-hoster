@@ -1,7 +1,9 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.74** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74 instructions](Documentation/RELEASE_v1.74.md).
+Current release: **v1.74.1** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.1 instructions](Documentation/RELEASE_v1.74.1.md).
 
+
+**v1.74.1 patch:** restores the Search Columns customiser with per-mode visibility, width and heading-order persistence.
 Previous release: **v1.73** — optional Side List virtual-folder browsing (including imported BPM Studio folders), Music Video Fit/Stretch and selectable visual transitions. [v1.73 instructions](Documentation/RELEASE_v1.73.md).
 
 Made For KJ/DJ's By A KJ/DJ
