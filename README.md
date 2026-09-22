@@ -1,7 +1,9 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.74.1** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.1 instructions](Documentation/RELEASE_v1.74.1.md).
+Current release: **v1.74.2** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.2 instructions](Documentation/RELEASE_v1.74.2.md).
 
+
+**v1.74.2 patch:** BPM Studio imports now read MP3 Artist/Title tags once per unique track and use them in the Music library, BPM playlists and BPM history. Re-importing repairs older BPM entries that used filename-derived metadata.
 
 **v1.74.1 patch:** restores the Search Columns customiser with per-mode visibility, width and heading-order persistence.
 Previous release: **v1.73** — optional Side List virtual-folder browsing (including imported BPM Studio folders), Music Video Fit/Stretch and selectable visual transitions. [v1.73 instructions](Documentation/RELEASE_v1.73.md).
