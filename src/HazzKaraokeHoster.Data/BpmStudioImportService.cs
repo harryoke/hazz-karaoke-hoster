@@ -125,7 +125,8 @@ CREATE TEMP TABLE IF NOT EXISTS temp_bpm_tracks(
     file_path TEXT PRIMARY KEY COLLATE NOCASE,
     artist TEXT NOT NULL,
     title TEXT NOT NULL,
-    format TEXT NOT NULL
+    format TEXT NOT NULL,
+    tag_read INTEGER NOT NULL DEFAULT 0
 );
 DELETE FROM temp_bpm_tracks;
 CREATE TEMP TABLE IF NOT EXISTS temp_bpm_virtual_links(
@@ -423,6 +424,14 @@ VALUES($list,$pos,NULL,$path,$artist,$title,$played,$source);
                 Path.GetFileName(groupFile), itemsProcessed, 0, unsupported,
                 90 + (archiveGroupFiles.Length == 0 ? 0 : groupIndex * 7.0 / archiveGroupFiles.Length)));
         }
+
+        // BPM list/group files contain paths, not authoritative Artist/Title metadata.
+        // Read ID3 tags once per unique MP3 now that all BPM sources have been collected.
+        // This keeps duplicate playlist/history references fast while making BPM imports match
+        // ordinary Hazz Music imports.
+        await EnrichBpmMp3TagsAsync(
+            connection, (SqliteTransaction)tx, progress, files.Length, itemsProcessed, unsupported, cancellationToken)
+            .ConfigureAwait(false);
 
         // The FTS trigger runs for every new song. A single INSERT can therefore look frozen for
         // a large BPM archive. Keep the transaction, but commit the work in bounded SQL batches so
@@ -754,6 +763,151 @@ JOIN songs s ON s.file_path=l.file_path COLLATE NOCASE;
                 itemsProcessed, indexedTracks, unsupported, percent));
         }
         return (created, links);
+    }
+
+    private sealed record BpmTagCandidate(long RowId, string FilePath, string Artist, string Title);
+
+    private static async Task EnrichBpmMp3TagsAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        IProgress<BpmStudioImportProgress>? progress,
+        int fileCount,
+        long itemsProcessed,
+        int unsupported,
+        CancellationToken token)
+    {
+        long totalMp3;
+        await using (var count = connection.CreateCommand())
+        {
+            count.Transaction = transaction;
+            count.CommandText = "SELECT COUNT(*) FROM temp_bpm_tracks WHERE lower(format)='mp3';";
+            totalMp3 = Convert.ToInt64(await count.ExecuteScalarAsync(token).ConfigureAwait(false));
+        }
+
+        if (totalMp3 <= 0) return;
+
+        progress?.Report(new BpmStudioImportProgress(
+            "Reading MP3 tags from BPM tracks…", fileCount, fileCount,
+            $"0 / {totalMp3:N0}", itemsProcessed, 0, unsupported, 90));
+
+        const int tagBatchSize = 250;
+        long processed = 0;
+        long lastRowId = 0;
+
+        await using var update = connection.CreateCommand();
+        update.Transaction = transaction;
+        update.CommandText = """
+UPDATE temp_bpm_tracks
+SET artist=$artist,title=$title,tag_read=$tagged
+WHERE rowid=$rowid;
+""";
+        var pArtist = update.Parameters.Add("$artist", SqliteType.Text);
+        var pTitle = update.Parameters.Add("$title", SqliteType.Text);
+        var pTagged = update.Parameters.Add("$tagged", SqliteType.Integer);
+        var pRowId = update.Parameters.Add("$rowid", SqliteType.Integer);
+        update.Prepare();
+
+        while (processed < totalMp3)
+        {
+            token.ThrowIfCancellationRequested();
+            var batch = new List<BpmTagCandidate>(tagBatchSize);
+
+            await using (var read = connection.CreateCommand())
+            {
+                read.Transaction = transaction;
+                read.CommandText = """
+SELECT rowid,file_path,artist,title
+FROM temp_bpm_tracks
+WHERE lower(format)='mp3' AND rowid>$after
+ORDER BY rowid
+LIMIT $batch;
+""";
+                read.Parameters.AddWithValue("$after", lastRowId);
+                read.Parameters.AddWithValue("$batch", tagBatchSize);
+                await using var reader = await read.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
+                    batch.Add(new BpmTagCandidate(
+                        reader.GetInt64(0), reader.GetString(1), reader.GetString(2), reader.GetString(3)));
+            }
+
+            if (batch.Count == 0) break;
+
+            // Mp3Metadata limits physical tag reads to two at a time, so this gives good disk
+            // throughput without flooding slower/network music drives.
+            var tagged = await Task.WhenAll(batch.Select(async candidate =>
+            {
+                var tags = await HazzKaraokeHoster.Core.Mp3Metadata.ReadWithStatusAsync(
+                    candidate.FilePath, candidate.Artist, candidate.Title, token).ConfigureAwait(false);
+                return (Candidate: candidate, Tags: tags);
+            })).ConfigureAwait(false);
+
+            foreach (var result in tagged)
+            {
+                token.ThrowIfCancellationRequested();
+                pArtist.Value = result.Tags.Artist;
+                pTitle.Value = result.Tags.Title;
+                pTagged.Value = result.Tags.HasUsableTag ? 1 : 0;
+                pRowId.Value = result.Candidate.RowId;
+                await update.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                lastRowId = Math.Max(lastRowId, result.Candidate.RowId);
+            }
+
+            processed += batch.Count;
+            var percent = 90 + 4 * processed / (double)Math.Max(1, totalMp3);
+            progress?.Report(new BpmStudioImportProgress(
+                "Reading MP3 tags from BPM tracks…", fileCount, fileCount,
+                $"{processed:N0} / {totalMp3:N0}", itemsProcessed, processed, unsupported, percent));
+        }
+
+        // Playlist/history rows were intentionally inserted while the BPM files were being parsed.
+        // Refresh only rows for which a real Artist or Title tag was found.
+        await using (var playlists = connection.CreateCommand())
+        {
+            playlists.Transaction = transaction;
+            playlists.CommandText = """
+UPDATE music_playlist_items
+SET artist=(SELECT t.artist FROM temp_bpm_tracks t WHERE t.file_path=music_playlist_items.file_path COLLATE NOCASE),
+    title=(SELECT t.title FROM temp_bpm_tracks t WHERE t.file_path=music_playlist_items.file_path COLLATE NOCASE)
+WHERE EXISTS(
+    SELECT 1 FROM temp_bpm_tracks t
+    WHERE t.file_path=music_playlist_items.file_path COLLATE NOCASE AND t.tag_read=1
+);
+""";
+            await playlists.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }
+
+        await using (var history = connection.CreateCommand())
+        {
+            history.Transaction = transaction;
+            history.CommandText = """
+UPDATE music_history
+SET artist=(SELECT t.artist FROM temp_bpm_tracks t WHERE t.file_path=music_history.file_path COLLATE NOCASE),
+    title=(SELECT t.title FROM temp_bpm_tracks t WHERE t.file_path=music_history.file_path COLLATE NOCASE)
+WHERE EXISTS(
+    SELECT 1 FROM temp_bpm_tracks t
+    WHERE t.file_path=music_history.file_path COLLATE NOCASE AND t.tag_read=1
+);
+""";
+            await history.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }
+
+        // Re-import also repairs songs that an older BPM importer originally indexed from filenames.
+        // The existing songs_au trigger keeps FTS search text in sync with these corrections.
+        await using (var existingSongs = connection.CreateCommand())
+        {
+            existingSongs.Transaction = transaction;
+            existingSongs.CommandText = """
+UPDATE songs
+SET artist=(SELECT t.artist FROM temp_bpm_tracks t WHERE t.file_path=songs.file_path COLLATE NOCASE),
+    title=(SELECT t.title FROM temp_bpm_tracks t WHERE t.file_path=songs.file_path COLLATE NOCASE),
+    last_seen_utc=CURRENT_TIMESTAMP
+WHERE EXISTS(
+    SELECT 1 FROM temp_bpm_tracks t
+    WHERE t.file_path=songs.file_path COLLATE NOCASE AND t.tag_read=1
+);
+""";
+            await existingSongs.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }
     }
 
     private static bool IsFastImportListFile(string file)
