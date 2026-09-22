@@ -55,3 +55,9 @@ After import, open **Library > Browse Library** and expand **BPM Studio**. Propr
 - Virtual-folder links are written in batches of 5,000, with live progress and cancellation between batches.
 - The progress window reports **Indexing**, **Linking**, **Saving** and **Finalizing database**. Wait for **Import complete** before starting another import.
 - BPM source files remain read-only throughout the process.
+
+## MP3 tag metadata
+
+BPM Studio list/archive files primarily contain file paths. Hazz now reads the embedded MP3 **Artist** and **Title** tags once per unique referenced MP3 and uses them for the Music library, imported BPM playlists and BPM history. If a file is missing, locked, malformed or has no usable Artist/Title tags, Hazz safely falls back to its filename-derived metadata.
+
+If BPM tracks were imported by an older Hazz version and show filename-derived Artist/Title values, **re-import the same BPM Studio source**. v1.74.2 will repair those existing library and BPM-list/history records when real MP3 tags are available.
