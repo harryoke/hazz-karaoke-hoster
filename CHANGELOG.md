@@ -1,5 +1,13 @@
 # v1.7
 
+## v1.74.2
+- BPM Studio playlist, history and GRP/PLG imports now read MP3 Artist/Title tags instead of relying only on filenames.
+- MP3 tags are read once per unique BPM-referenced track, avoiding repeated reads when the same song appears in multiple playlists or history lists.
+- Tagged Artist/Title values are propagated to the main Music library, BPM playlists and BPM history.
+- Re-importing BPM Studio data repairs existing songs that older BPM imports indexed with filename-derived Artist/Title values.
+- Missing, locked, malformed or untagged MP3 files safely keep the filename-derived fallback metadata.
+- Retains all v1.74.1 Search Columns and v1.74 Music Video fixes/features.
+
 ## v1.74.1
 - Restores the Search Columns customiser from the unpublished Search Columns test build on top of the full v1.74 feature set.
 - Search results now include a COLUMNS menu with per-column show/hide controls; at least one column must remain visible.
