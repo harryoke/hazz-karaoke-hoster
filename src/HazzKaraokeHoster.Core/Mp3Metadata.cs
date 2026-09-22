@@ -33,8 +33,20 @@ public static class Mp3Metadata
     public static async Task<(string Artist, string Title)> ReadAsync(
         string path, string artist, string title, CancellationToken token = default)
     {
+        var result = await ReadWithStatusAsync(path, artist, title, token).ConfigureAwait(false);
+        return (result.Artist, result.Title);
+    }
+
+    /// <summary>
+    /// Reads MP3 Artist/Title tags while preserving filename-derived fallbacks.
+    /// HasUsableTag is true only when the file was readable and at least one relevant tag was present.
+    /// </summary>
+    public static async Task<(string Artist, string Title, bool HasUsableTag)> ReadWithStatusAsync(
+        string path, string artist, string title, CancellationToken token = default)
+    {
         if (!string.Equals(Path.GetExtension(path), ".mp3", StringComparison.OrdinalIgnoreCase))
-            return (artist, title);
+            return (artist, title, false);
+
         await Readers.WaitAsync(token).ConfigureAwait(false);
         try
         {
@@ -46,13 +58,17 @@ public static class Mp3Metadata
                     using var file = TagLib.File.Create(path, TagLib.ReadStyle.None);
                     var taggedArtist = string.Join(" / ", file.Tag.Performers.Where(x => !string.IsNullOrWhiteSpace(x)));
                     var taggedTitle = file.Tag.Title;
-                    return (string.IsNullOrWhiteSpace(taggedArtist) ? artist : taggedArtist.Trim(),
-                        string.IsNullOrWhiteSpace(taggedTitle) ? title : taggedTitle.Trim());
+                    var hasArtist = !string.IsNullOrWhiteSpace(taggedArtist);
+                    var hasTitle = !string.IsNullOrWhiteSpace(taggedTitle);
+                    return (
+                        hasArtist ? taggedArtist.Trim() : artist,
+                        hasTitle ? taggedTitle!.Trim() : title,
+                        hasArtist || hasTitle);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    // Missing, locked or malformed tags must never prevent playback.
-                    return (artist, title);
+                    // Missing, locked or malformed tags must never prevent playback/import.
+                    return (artist, title, false);
                 }
             }, token).ConfigureAwait(false);
         }
