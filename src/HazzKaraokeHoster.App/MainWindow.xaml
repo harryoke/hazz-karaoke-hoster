@@ -438,7 +438,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="{DynamicResource HostFont10_5}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_6EC1E4}" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="{DynamicResource SkinSurface_22303C}" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v1.74.2" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
+     <TextBlock Text="v1.74.3" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
     </Border>
    </StackPanel>
 
