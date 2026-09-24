@@ -1,5 +1,13 @@
 # v1.7
 
+## v1.74.4
+- Queued music tracks can now be dragged directly between Deck 1 and Deck 2 in normal two-deck mode.
+- Cross-deck drag is a move, not a copy: the queued track is removed from the source deck and inserted at the chosen position on the destination deck.
+- NOW PLAYING tracks remain protected and cannot be moved between decks.
+- Dropping above a destination deck's NOW PLAYING row keeps the live track at #1 and inserts the moved track immediately after it.
+- Existing same-deck reorder and Single Deck + Side List drag behaviour remain available.
+- Retains all v1.74.3 music-length/Search Columns fixes and earlier v1.74.x changes.
+
 ## v1.74.3
 - Music deck and Side List rows now retain cached library durations instead of showing --:-- until playback begins.
 - Tracks added by file path, saved playlist, Music Archive or other path-based routes now hydrate missing durations in the background and cache them in the library.
