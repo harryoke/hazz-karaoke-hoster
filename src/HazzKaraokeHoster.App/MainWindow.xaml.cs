@@ -5698,9 +5698,12 @@ public partial class MainWindow : Window
         var source = string.Equals(sourceName, DeckBPlaylist.Name, StringComparison.Ordinal) ? DeckBPlaylist : DeckAPlaylist;
         var sourceDeck = ReferenceEquals(source, DeckBPlaylist) ? MusicDeckId.Deck2 : MusicDeckId.Deck1;
         if (!source.Items.Contains(item)) return;
-        if (!ReferenceEquals(source, target) && !(_singleDeckMode && ReferenceEquals(source, DeckBPlaylist) && ReferenceEquals(target, DeckAPlaylist)))
+
+        // Never move the live row between decks. The mouse-down guard already blocks
+        // starting this drag, but keep the drop path defensive for synthetic/stale drags.
+        if (ReferenceEquals(item, CurrentMusicItemFor(sourceDeck)) || item.IsNowPlaying)
         {
-            UpdateMusicAutomationStatus("Drag music within the same deck playlist to reorder it");
+            UpdateMusicAutomationStatus($"{DeckName(sourceDeck)}: the NOW PLAYING track cannot be moved");
             e.Handled = true;
             return;
         }
@@ -5710,17 +5713,29 @@ public partial class MainWindow : Window
         source.Items.Remove(item);
 
         if (ReferenceEquals(source, target) && oldIndex < insertIndex) insertIndex--;
+
+        // Keep a receiving deck's live track at #1 even when the operator drops above it.
+        var targetCurrent = CurrentMusicItemFor(targetDeck);
+        if (targetCurrent is not null && target.Items.Contains(targetCurrent))
+        {
+            var currentIndex = target.Items.IndexOf(targetCurrent);
+            if (insertIndex <= currentIndex) insertIndex = currentIndex + 1;
+        }
+
         insertIndex = Math.Clamp(insertIndex, 0, target.Items.Count);
         target.Items.Insert(insertIndex, item);
 
         RecalculateMusicDeckOrder(sourceDeck);
         if (targetDeck != sourceDeck) RecalculateMusicDeckOrder(targetDeck);
         else RenumberPlaylist(target);
+        MarkMusicDeckQueuesDirty();
         target.SelectedItem = item;
         target.ScrollIntoView(item);
-        UpdateMusicAutomationStatus(!ReferenceEquals(source, target)
-            ? $"Moved to Deck 1 • {item.DisplayArtist} — {item.DisplayTitle}"
-            : $"Playlist order changed • {item.DisplayArtist} — {item.DisplayTitle}");
+
+        if (!ReferenceEquals(source, target))
+            UpdateMusicAutomationStatus($"Moved {DeckName(sourceDeck)} → {DeckName(targetDeck)} • {item.DisplayArtist} — {item.DisplayTitle}");
+        else
+            UpdateMusicAutomationStatus($"Playlist order changed • {item.DisplayArtist} — {item.DisplayTitle}");
         e.Handled = true;
     }
 
