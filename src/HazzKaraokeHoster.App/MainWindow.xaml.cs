@@ -1660,7 +1660,10 @@ public partial class MainWindow : Window
         SetButtonActive(SearchKaraokeButton, _searchMediaKind == "Karaoke");
         SetButtonActive(SearchMusicButton, _searchMediaKind == "Music");
         SetButtonActive(SearchMusicVideoButton, _searchMediaKind == "MusicVideo");
-        SearchDurationColumn.Visibility = _searchMediaKind == "Karaoke" ? Visibility.Visible : Visibility.Collapsed;
+        if (_searchColumnsButton is null)
+            SearchDurationColumn.Visibility = _searchMediaKind == "Karaoke" ? Visibility.Visible : Visibility.Collapsed;
+        else
+            EnsureSearchColumnsForCurrentMode();
         SearchGrid.SelectionMode = IsMusicSearchMode ? DataGridSelectionMode.Extended : DataGridSelectionMode.Single;
         SearchSelectAllButton.Visibility = IsMusicSearchMode ? Visibility.Visible : Visibility.Collapsed;
         SearchResultsTitle.Text = _searchMediaKind == "MusicVideo" ? "MUSIC VIDEO SEARCH RESULTS" : _searchMediaKind.ToUpperInvariant() + " SEARCH RESULTS";
@@ -1702,13 +1705,13 @@ public partial class MainWindow : Window
             SearchResultsOverlay.Visibility = Visibility.Visible;
             SearchStatus.Text = $"{rows.Count} {kind.ToLowerInvariant()} results";
 
-            if (kind == "Karaoke" && rows.Count > 0)
+            if (rows.Count > 0 && SearchDurationColumn.Visibility == Visibility.Visible)
             {
-                SearchStatus.Text = $"{rows.Count} karaoke results • reading track lengths…";
+                SearchStatus.Text = $"{rows.Count} {kind.ToLowerInvariant()} results • reading track lengths…";
                 var withDurations = await PopulateSearchDurationsAsync(rows, token);
                 token.ThrowIfCancellationRequested();
                 SearchGrid.ItemsSource = withDurations;
-                SearchStatus.Text = $"{withDurations.Count} karaoke results";
+                SearchStatus.Text = $"{withDurations.Count} {kind.ToLowerInvariant()} results";
             }
         }
         catch (OperationCanceledException) { }
@@ -4718,6 +4721,8 @@ public partial class MainWindow : Window
         var item = MusicQueueItem.FromSong(song);
         item.IsPlayedThisSession = _musicPlayedThisSession.Contains(item.FilePath);
         _ = RefreshMusicTagsSafeAsync(item);
+        if (item.Duration is null || item.Duration <= TimeSpan.Zero)
+            _ = HydrateMusicQueueItemDurationAsync(item);
         return item;
     }
 
@@ -4726,7 +4731,39 @@ public partial class MainWindow : Window
         var item = MusicQueueItem.FromPath(path);
         item.IsPlayedThisSession = _musicPlayedThisSession.Contains(item.FilePath);
         _ = RefreshMusicTagsSafeAsync(item);
+        _ = HydrateMusicQueueItemDurationAsync(item);
         return item;
+    }
+
+    private async Task HydrateMusicQueueItemDurationAsync(MusicQueueItem item)
+    {
+        try
+        {
+            if (item.Duration is TimeSpan existing && existing > TimeSpan.Zero) return;
+
+            SongRecord? song = null;
+            if (!string.IsNullOrWhiteSpace(item.FilePath))
+                song = await _library.FindByFilePathAsync(item.FilePath, _lifetime.Token);
+
+            if (song?.DurationSeconds is double cached && cached > 0)
+            {
+                item.Duration = TimeSpan.FromSeconds(cached);
+                return;
+            }
+
+            var seconds = await MediaDurationProbe.TryReadSecondsAsync(item.FilePath, _lifetime.Token);
+            if (seconds is not double duration || duration <= 0) return;
+
+            item.Duration = TimeSpan.FromSeconds(duration);
+            if (song is not null)
+            {
+                try { await _library.SaveDurationAsync(song.Id, duration, _lifetime.Token); }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex) { App.WriteDiagnostic("MUSIC DURATION CACHE", ex.ToString()); }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { App.WriteDiagnostic("MUSIC DURATION", ex.ToString()); }
     }
 
     private void MarkMusicTrackPlayedThisSession(string path)
