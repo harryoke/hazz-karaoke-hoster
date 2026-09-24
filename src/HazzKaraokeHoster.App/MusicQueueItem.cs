@@ -70,7 +70,10 @@ public sealed class MusicQueueItem : INotifyPropertyChanged
         SongId = song.Id,
         FilePath = song.FilePath,
         Artist = song.Artist,
-        Title = song.Title
+        Title = song.Title,
+        Duration = song.DurationSeconds is double seconds && seconds > 0
+            ? TimeSpan.FromSeconds(seconds)
+            : null
     };
 
     public static MusicQueueItem FromPath(string path)
