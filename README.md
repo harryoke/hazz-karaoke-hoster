@@ -1,7 +1,9 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.74.3** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.3 instructions](Documentation/RELEASE_v1.74.3.md).
+Current release: **v1.74.4** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.4 instructions](Documentation/RELEASE_v1.74.4.md).
 
+
+**v1.74.4 patch:** queued music tracks can now be dragged directly between Deck 1 and Deck 2; NOW PLAYING remains protected.
 
 **v1.74.3 patch:** Music track lengths now populate in deck/side lists before playback and in Music search whenever the Length column is enabled. Also fixes per-mode Search Columns losing Karaoke Length after switching to Music.
 
