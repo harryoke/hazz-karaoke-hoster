@@ -654,7 +654,7 @@
                ItemTemplate="{StaticResource MusicPlaylistItemTemplate}" ItemContainerStyle="{StaticResource MusicPlaylistItemStyle}"
                PreviewMouseLeftButtonDown="MusicPlaylist_PreviewMouseLeftButtonDown" PreviewMouseMove="MusicPlaylist_PreviewMouseMove"
                KeyDown="DeckAPlaylist_KeyDown" DragOver="MusicPlaylist_DragOver" Drop="DeckAPlaylist_Drop"
-               ToolTip="Select one or more tracks. Press Delete or use REMOVE SELECTED to take them out of this deck queue."/>
+               ToolTip="Select queued tracks, drag a queued song within this list to reorder it, or drag it to the other music deck. NOW PLAYING stays protected. Press Delete or use REMOVE SELECTED to remove queued tracks."/>
       <WrapPanel Grid.Row="3" Margin="5,2,5,5" HorizontalAlignment="Center">
        <Button Content="SAVE PLAYLIST" Style="{StaticResource SaveButtonStyle}" Click="DeckASavePlaylist_Click" Margin="2" MinHeight="34" MinWidth="112" ToolTip="Save Deck 1's remaining playlist as a named Hazz playlist for later reuse."/>
        <Button Content="REMOVE SELECTED" Style="{StaticResource StopButtonStyle}" Click="DeckARemoveSelected_Click" Margin="2" MinHeight="34" MinWidth="122" ToolTip="Remove the selected unplayed track(s) from Deck 1. This does not delete the music files or library records."/>
@@ -995,7 +995,7 @@
                ItemTemplate="{StaticResource MusicPlaylistItemTemplate}" ItemContainerStyle="{StaticResource MusicPlaylistItemStyle}"
                PreviewMouseLeftButtonDown="MusicPlaylist_PreviewMouseLeftButtonDown" PreviewMouseMove="MusicPlaylist_PreviewMouseMove"
                KeyDown="DeckBPlaylist_KeyDown" DragOver="MusicPlaylist_DragOver" Drop="DeckBPlaylist_Drop"
-               ToolTip="Select one or more tracks. Press Delete or use REMOVE SELECTED to take them out of this deck queue."/>
+               ToolTip="Select queued tracks, drag a queued song within this list to reorder it, or drag it to the other music deck. NOW PLAYING stays protected. Press Delete or use REMOVE SELECTED to remove queued tracks."/>
       <WrapPanel x:Name="DeckBPlaylistFooter" Grid.Row="3" Margin="5,2,5,5" HorizontalAlignment="Center">
        <Button x:Name="DeckBSideAddFilesButton" Content="ADD FILES" Style="{StaticResource SaveButtonStyle}" Click="DeckBAdd_Click" Margin="2" MinHeight="34" MinWidth="92" Visibility="Collapsed" ToolTip="Add music files to the side list."/>
        <Button Content="SAVE PLAYLIST" Style="{StaticResource SaveButtonStyle}" Click="DeckBSavePlaylist_Click" Margin="2" MinHeight="34" MinWidth="112" ToolTip="Save Deck 2's remaining playlist as a named Hazz playlist for later reuse."/>
