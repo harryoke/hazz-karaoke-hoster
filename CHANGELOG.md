@@ -1,5 +1,13 @@
 # v1.7
 
+## v1.74.3
+- Music deck and Side List rows now retain cached library durations instead of showing --:-- until playback begins.
+- Tracks added by file path, saved playlist, Music Archive or other path-based routes now hydrate missing durations in the background and cache them in the library.
+- Music search now reads/caches track lengths when the Length column is enabled, not only for Karaoke searches.
+- Fixed Search Columns mode switching so a Karaoke Length column selection is not accidentally saved as hidden after visiting Music search.
+- Per-mode Karaoke, Music and Music Video column layouts remain independent.
+- Retains the v1.74.2 BPM MP3-tag import fix and all previous v1.74.x features.
+
 ## v1.74.2
 - BPM Studio playlist, history and GRP/PLG imports now read MP3 Artist/Title tags instead of relying only on filenames.
 - MP3 tags are read once per unique BPM-referenced track, avoiding repeated reads when the same song appears in multiple playlists or history lists.
