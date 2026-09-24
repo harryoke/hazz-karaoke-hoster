@@ -1,7 +1,9 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.74.2** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.2 instructions](Documentation/RELEASE_v1.74.2.md).
+Current release: **v1.74.3** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.3 instructions](Documentation/RELEASE_v1.74.3.md).
 
+
+**v1.74.3 patch:** Music track lengths now populate in deck/side lists before playback and in Music search whenever the Length column is enabled. Also fixes per-mode Search Columns losing Karaoke Length after switching to Music.
 
 **v1.74.2 patch:** BPM Studio imports now read MP3 Artist/Title tags once per unique track and use them in the Music library, BPM playlists and BPM history. Re-importing repairs older BPM entries that used filename-derived metadata.
 
