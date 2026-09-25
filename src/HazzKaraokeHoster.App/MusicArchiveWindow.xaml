@@ -47,6 +47,7 @@
    <TextBlock x:Name="StatusText" Foreground="#9EABB9" VerticalAlignment="Center" Text="Hazz stores every played music track by date/time. Imported BPM Studio playlists/history are also preserved."/>
    <WrapPanel Grid.Column="1">
     <Button Content="REFRESH" Click="Refresh_Click"/>
+    <Button Content="DELETE PLAYLIST" Click="DeletePlaylist_Click" Background="#5B2020" ToolTip="Delete the selected playlist from Hazz. Music files and Music History are not deleted."/>
     <Button Content="LOAD SELECTED / PLAYLIST → DECK 1" Click="LoadDeck1_Click"/>
     <Button Content="LOAD SELECTED / PLAYLIST → DECK 2" Click="LoadDeck2_Click"/>
     <Button Content="LOAD FULL HISTORY → DECK 1" Click="LoadFullHistoryDeck1_Click" ToolTip="Load every playable track currently shown in Music History into Deck 1, newest first."/>
