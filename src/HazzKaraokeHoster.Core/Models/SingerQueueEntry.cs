@@ -9,6 +9,9 @@ public sealed class SingerQueueEntry : INotifyPropertyChanged
 {
     private string _singerName = string.Empty;
     private bool _isHeld;
+    private int? _rotationPosition;
+    private int _rotationTotal;
+    private bool _isNextSinger;
 
     public SingerQueueEntry()
     {
@@ -40,6 +43,34 @@ public sealed class SingerQueueEntry : INotifyPropertyChanged
 
     public string StatusText => IsHeld ? "HOLD" : string.Empty;
 
+    public int? RotationPosition => _rotationPosition;
+    public int RotationTotal => _rotationTotal;
+    public bool IsNextSinger => _isNextSinger;
+    public string RotationPositionText
+        => IsHeld ? "HOLD"
+            : Songs.Count == 0 ? "—"
+            : RotationPosition is int position && RotationTotal > 0 ? $"{position} / {RotationTotal}"
+            : "—";
+    public string RotationBadgeText => IsNextSinger ? $"NEXT  {RotationPositionText}" : RotationPositionText;
+
+    public void SetRotationStanding(int? position, int total, bool isNext)
+    {
+        var changedPosition = _rotationPosition != position;
+        var changedTotal = _rotationTotal != total;
+        var changedNext = _isNextSinger != isNext;
+        if (!changedPosition && !changedTotal && !changedNext) return;
+
+        _rotationPosition = position;
+        _rotationTotal = Math.Max(0, total);
+        _isNextSinger = isNext;
+
+        if (changedPosition) OnPropertyChanged(nameof(RotationPosition));
+        if (changedTotal) OnPropertyChanged(nameof(RotationTotal));
+        if (changedNext) OnPropertyChanged(nameof(IsNextSinger));
+        OnPropertyChanged(nameof(RotationPositionText));
+        OnPropertyChanged(nameof(RotationBadgeText));
+    }
+
     public SingerSongEntry? NextSong => Songs.FirstOrDefault();
     public string NextSongTitle => NextSong?.SongTitle ?? string.Empty;
     public string NextArtist => NextSong?.Artist ?? string.Empty;
@@ -57,6 +88,8 @@ public sealed class SingerQueueEntry : INotifyPropertyChanged
         OnPropertyChanged(nameof(NextSync));
         OnPropertyChanged(nameof(SongCount));
         OnPropertyChanged(nameof(SongCountText));
+        OnPropertyChanged(nameof(RotationPositionText));
+        OnPropertyChanged(nameof(RotationBadgeText));
     }
 
     private void Songs_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
