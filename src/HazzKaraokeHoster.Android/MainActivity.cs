@@ -525,8 +525,8 @@ public sealed class MainActivity : Activity
         }
     }
 
-    private sealed class DialogShowListener(Action onShow) : Java.Lang.Object, Android.Content.IDialogInterfaceOnShowListener
+    private sealed class DialogShowListener(Action onShow) : Java.Lang.Object, global::Android.Content.IDialogInterfaceOnShowListener
     {
-        public void OnShow(Android.Content.IDialogInterface? dialog) => onShow();
+        public void OnShow(global::Android.Content.IDialogInterface? dialog) => onShow();
     }
 }
