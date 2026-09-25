@@ -96,7 +96,7 @@ internal sealed class AndroidMediaRootService
         return string.Empty;
     }
 
-    private Uri? FindChild(global::Android.Net.Uri treeUri, Uri parentDocumentUri, string displayName)
+    private global::Android.Net.Uri? FindChild(global::Android.Net.Uri treeUri, global::Android.Net.Uri parentDocumentUri, string displayName)
     {
         var parentId = DocumentsContract.GetDocumentId(parentDocumentUri);
         var childrenUri = DocumentsContract.BuildChildDocumentsUriUsingTree(treeUri, parentId);
