@@ -2832,22 +2832,25 @@ public partial class MainWindow : Window
 
     private void UpdateSingerRotationIndicators()
     {
-        // "Standing" is the ready karaoke rotation, not the raw row index.
-        // HOLD singers and singers without a queued request remain visible to the host
-        // but do not change the 1 / N, 2 / N positions for singers who are ready.
-        var ready = _queue
-            .Where(singer => !singer.IsHeld && singer.Songs.Count > 0)
+        // Rotation standing belongs to every active (non-HOLD) singer, even if they have
+        // not yet chosen a song. This keeps 1 / N, 2 / N, etc. aligned with the host's
+        // visible rotation rather than with request availability.
+        var activeRotation = _queue
+            .Where(singer => !singer.IsHeld)
             .ToArray();
-        var total = ready.Length;
+        var total = activeRotation.Length;
+        var nextPlayable = activeRotation.FirstOrDefault(singer => singer.Songs.Count > 0);
 
-        for (var i = 0; i < ready.Length; i++)
-            ready[i].SetRotationStanding(i + 1, total, isNext: i == 0);
+        for (var i = 0; i < activeRotation.Length; i++)
+        {
+            var singer = activeRotation[i];
+            singer.SetRotationStanding(i + 1, total, isNext: ReferenceEquals(singer, nextPlayable));
+        }
 
-        foreach (var singer in _queue.Where(singer => singer.IsHeld || singer.Songs.Count == 0))
+        foreach (var singer in _queue.Where(singer => singer.IsHeld))
             singer.SetRotationStanding(null, total, isNext: false);
 
         // DataGrid virtualization can retain a recycled row's visual until binding refreshes.
-        // Refresh the rows after the small set of standing properties has been updated.
         QueueList?.Items.Refresh();
     }
 
