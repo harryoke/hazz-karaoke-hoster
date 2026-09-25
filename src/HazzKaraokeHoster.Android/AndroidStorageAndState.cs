@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Android.Content;
-using Android.Net;
 using Android.Provider;
 using HazzKaraokeHoster.Core.Models;
 
@@ -23,7 +22,7 @@ internal sealed class AndroidMediaRootService
 
     public IReadOnlyList<MediaRootMapping> Mappings => _mappings;
 
-    public async Task AddOrReplaceAsync(string windowsPrefix, Uri treeUri)
+    public async Task AddOrReplaceAsync(string windowsPrefix, global::Android.Net.Uri treeUri)
     {
         windowsPrefix = NormalizePrefix(windowsPrefix);
         if (windowsPrefix.Length == 0) throw new ArgumentException("Windows media root is required.", nameof(windowsPrefix));
@@ -40,7 +39,7 @@ internal sealed class AndroidMediaRootService
         await SaveAsync();
     }
 
-    public async Task<Uri?> ResolveAsync(string windowsPath, CancellationToken cancellationToken = default)
+    public async Task<global::Android.Net.Uri?> ResolveAsync(string windowsPath, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(windowsPath)) return null;
 
@@ -57,7 +56,7 @@ internal sealed class AndroidMediaRootService
             : normalizedPath[(prefix.Length + 1)..];
         var segments = relative.Split('\\', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        var treeUri = Uri.Parse(mapping.TreeUri);
+        var treeUri = global::Android.Net.Uri.Parse(mapping.TreeUri);
         var documentId = DocumentsContract.GetTreeDocumentId(treeUri);
         var current = DocumentsContract.BuildDocumentUriUsingTree(treeUri, documentId);
 
@@ -97,7 +96,7 @@ internal sealed class AndroidMediaRootService
         return string.Empty;
     }
 
-    private Uri? FindChild(Uri treeUri, Uri parentDocumentUri, string displayName)
+    private Uri? FindChild(global::Android.Net.Uri treeUri, Uri parentDocumentUri, string displayName)
     {
         var parentId = DocumentsContract.GetDocumentId(parentDocumentUri);
         var childrenUri = DocumentsContract.BuildChildDocumentsUriUsingTree(treeUri, parentId);
