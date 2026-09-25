@@ -2858,9 +2858,9 @@ public partial class MainWindow : Window
         MarkLiveShowStateDirty();
         if (_audience is null) return;
 
-        // Held/no-show singers and singers with no queued song remain visible to the host
-        // but are skipped from the audience's live upcoming rotation.
-        var rotation = _queue.Where(singer => !singer.IsHeld && singer.Songs.Count > 0).Select((singer, index) =>
+        // Preserve the existing audience rotation behaviour: held/no-show singers are skipped,
+        // while host-only standing/highlight logic above separately counts ready singers.
+        var rotation = _queue.Where(singer => !singer.IsHeld).Select((singer, index) =>
         {
             var next = singer.NextSong;
             var songText = next is null
