@@ -2830,15 +2830,37 @@ public partial class MainWindow : Window
         catch (Exception ex) { App.WriteDiagnostic("QUEUE DURATION", ex.ToString()); }
     }
 
+    private void UpdateSingerRotationIndicators()
+    {
+        // "Standing" is the ready karaoke rotation, not the raw row index.
+        // HOLD singers and singers without a queued request remain visible to the host
+        // but do not change the 1 / N, 2 / N positions for singers who are ready.
+        var ready = _queue
+            .Where(singer => !singer.IsHeld && singer.Songs.Count > 0)
+            .ToArray();
+        var total = ready.Length;
+
+        for (var i = 0; i < ready.Length; i++)
+            ready[i].SetRotationStanding(i + 1, total, isNext: i == 0);
+
+        foreach (var singer in _queue.Where(singer => singer.IsHeld || singer.Songs.Count == 0))
+            singer.SetRotationStanding(null, total, isNext: false);
+
+        // DataGrid virtualization can retain a recycled row's visual until binding refreshes.
+        // Refresh the rows after the small set of standing properties has been updated.
+        QueueList?.Items.Refresh();
+    }
+
     private void UpdateAudienceNext()
     {
         ApplyFairRotation();
+        UpdateSingerRotationIndicators();
         MarkLiveShowStateDirty();
         if (_audience is null) return;
 
-        // Held/no-show singers remain visible to the host but are skipped from the
-        // audience's live upcoming rotation until the host releases them.
-        var rotation = _queue.Where(singer => !singer.IsHeld).Select((singer, index) =>
+        // Held/no-show singers and singers with no queued song remain visible to the host
+        // but are skipped from the audience's live upcoming rotation.
+        var rotation = _queue.Where(singer => !singer.IsHeld && singer.Songs.Count > 0).Select((singer, index) =>
         {
             var next = singer.NextSong;
             var songText = next is null
