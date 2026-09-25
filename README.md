@@ -1,7 +1,9 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.74.4** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.4 instructions](Documentation/RELEASE_v1.74.4.md).
+Current release: **v1.74.5** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.5 instructions](Documentation/RELEASE_v1.74.5.md).
 
+
+**v1.74.5 patch:** the singer list now shows each ready singer's standing (1 / N) and clearly highlights the NEXT singer.
 
 **v1.74.4 patch:** queued music tracks can now be dragged directly between Deck 1 and Deck 2; NOW PLAYING remains protected.
 
