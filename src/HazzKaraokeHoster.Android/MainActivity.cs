@@ -22,7 +22,7 @@ public sealed class MainActivity : Activity
     private const int ImportDatabaseRequest = 401;
 
     private readonly List<SingerQueueEntry> _rotation = new();
-    private IReadOnlyList<SongRecord> _searchResults = Array.Empty<SongRecord>();
+    private readonly List<SongRecord> _searchResults = new();
     private SingerQueueEntry? _selectedSinger;
     private SongRecord? _selectedSong;
     private string _searchKind = "Karaoke";
@@ -37,9 +37,9 @@ public sealed class MainActivity : Activity
     private ListView _rotationList = null!;
     private ListView _searchList = null!;
     private SingerRotationAdapter _rotationAdapter = null!;
-    private ArrayAdapter<string> _searchAdapter = null!;
+    private SearchResultAdapter _searchAdapter = null!;
 
-    private string DatabasePath => Path.Combine(FilesDir!.AbsolutePath, "hazz-hoster.db");
+    private string DatabasePath => System.IO.Path.Combine(FilesDir!.AbsolutePath, "hazz-hoster.db");
 
     protected override async void OnCreate(Bundle? savedInstanceState)
     {
@@ -67,7 +67,8 @@ public sealed class MainActivity : Activity
         root.SetPadding(Dp(10), Dp(8), Dp(10), Dp(8));
         root.SetBackgroundColor(Color.Rgb(11, 15, 20));
 
-        var header = new LinearLayout(this) { Orientation = Orientation.Horizontal, Gravity = GravityFlags.CenterVertical };
+        var header = new LinearLayout(this) { Orientation = Orientation.Horizontal };
+        header.SetGravity(GravityFlags.CenterVertical);
         var title = MakeText("HAZZ KARAOKE HOSTER • ANDROID v0.1", 20, true, Color.White);
         header.AddView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, 1f));
         var importDb = MakeButton("IMPORT HAZZ DB");
@@ -156,9 +157,9 @@ public sealed class MainActivity : Activity
         _searchBox = new EditText(this)
         {
             Hint = "Artist, title, disc or maker…",
-            SingleLine = true,
             TextSize = 16
         };
+        _searchBox.SetSingleLine(true);
         _searchBox.SetTextColor(Color.White);
         _searchBox.SetHintTextColor(Color.Rgb(130, 145, 160));
         _searchBox.ImeOptions = ImeAction.Search;
@@ -174,7 +175,7 @@ public sealed class MainActivity : Activity
         panel.AddView(searchRow);
 
         _searchList = new ListView(this) { ChoiceMode = ChoiceMode.Single };
-        _searchAdapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleListItemActivated1, new List<string>());
+        _searchAdapter = new SearchResultAdapter(this, _searchResults);
         _searchList.Adapter = _searchAdapter;
         _searchList.ItemClick += (_, e) =>
         {
@@ -205,9 +206,8 @@ public sealed class MainActivity : Activity
         {
             Text = text,
             TextSize = 12,
-            AllCaps = false,
-            MinHeight = Dp(42)
         };
+        button.SetMinimumHeight(Dp(42));
         return button;
     }
 
@@ -220,7 +220,7 @@ public sealed class MainActivity : Activity
             Gravity = GravityFlags.CenterVertical
         };
         view.SetTextColor(colour);
-        if (bold) view.SetTypeface(null, Android.Graphics.TypefaceStyle.Bold);
+        if (bold) view.SetTypeface(null, global::Android.Graphics.TypefaceStyle.Bold);
         view.SetPadding(Dp(6), Dp(4), Dp(6), Dp(4));
         return view;
     }
@@ -254,16 +254,10 @@ public sealed class MainActivity : Activity
         {
             SetStatus($"Searching {_searchKind}…");
             HideKeyboard();
-            _searchResults = await _library.SearchByKindAsync(query, _searchKind, 250);
+            var found = await _library.SearchByKindAsync(query, _searchKind, 250);
+            _searchResults.Clear();
+            _searchResults.AddRange(found);
             _selectedSong = null;
-
-            _searchAdapter.Clear();
-            foreach (var song in _searchResults)
-            {
-                var details = string.Join(" • ", new[] { song.Manufacturer, song.DiscId, song.DurationText }
-                    .Where(x => !string.IsNullOrWhiteSpace(x)));
-                _searchAdapter.Add($"{song.Artist} — {song.Title}" + (details.Length > 0 ? $"\n{details}" : string.Empty));
-            }
             _searchAdapter.NotifyDataSetChanged();
             SetStatus($"{_searchResults.Count:N0} {_searchKind} result(s)");
         }
@@ -282,39 +276,31 @@ public sealed class MainActivity : Activity
             "MusicVideo" => "MUSIC VIDEO SEARCH",
             _ => "KARAOKE SEARCH"
         };
-        _searchResults = Array.Empty<SongRecord>();
+        _searchResults.Clear();
         _selectedSong = null;
-        _searchAdapter.Clear();
         _searchAdapter.NotifyDataSetChanged();
         SetStatus($"{_modeLabel.Text} ready");
     }
 
     private void ShowAddSingerDialog()
     {
-        var input = new EditText(this) { Hint = "Singer name", SingleLine = true };
-        var dialog = new AlertDialog.Builder(this)
+        var input = new EditText(this) { Hint = "Singer name" };
+        input.SetSingleLine(true);
+        new AlertDialog.Builder(this)
             .SetTitle("Add singer")
             .SetView(input)
             .SetNegativeButton("Cancel", (_, _) => { })
-            .SetPositiveButton("Add", null)
-            .Create();
-
-        dialog.SetOnShowListener(new DialogShowListener(() =>
-        {
-            var positive = dialog.GetButton((int)DialogButtonType.Positive);
-            positive.Click += async (_, _) =>
+            .SetPositiveButton("Add", async (_, _) =>
             {
                 var name = input.Text?.Trim() ?? string.Empty;
                 if (name.Length == 0)
                 {
-                    input.Error = "Singer name is required";
+                    SetStatus("Singer name is required.");
                     return;
                 }
                 await AddSingerAsync(name);
-                dialog.Dismiss();
-            };
-        }));
-        dialog.Show();
+            })
+            .Show();
     }
 
     private async Task AddSingerAsync(string name)
@@ -474,6 +460,49 @@ public sealed class MainActivity : Activity
 
     private int Dp(int value) => (int)(value * Resources!.DisplayMetrics!.Density + 0.5f);
 
+    private sealed class SearchResultAdapter : BaseAdapter<SongRecord>
+    {
+        private readonly MainActivity _activity;
+        private readonly IList<SongRecord> _items;
+
+        public SearchResultAdapter(MainActivity activity, IList<SongRecord> items)
+        {
+            _activity = activity;
+            _items = items;
+        }
+
+        public override int Count => _items.Count;
+        public override SongRecord this[int position] => _items[position];
+        public override long GetItemId(int position) => _items[position].Id;
+
+        public override View GetView(int position, View? convertView, ViewGroup? parent)
+        {
+            var song = _items[position];
+            var row = new LinearLayout(_activity) { Orientation = Orientation.Vertical };
+            row.SetPadding(_activity.Dp(8), _activity.Dp(6), _activity.Dp(8), _activity.Dp(6));
+            row.SetBackgroundColor(position % 2 == 0 ? Color.Rgb(20, 28, 36) : Color.Rgb(27, 37, 48));
+
+            var title = new TextView(_activity)
+            {
+                Text = $"{song.Artist} — {song.Title}",
+                TextSize = 15
+            };
+            title.SetTextColor(Color.White);
+            title.SetTypeface(null, global::Android.Graphics.TypefaceStyle.Bold);
+            row.AddView(title);
+
+            var details = string.Join(" • ", new[] { song.Manufacturer, song.DiscId, song.DurationText, song.Format }
+                .Where(x => !string.IsNullOrWhiteSpace(x)));
+            if (details.Length > 0)
+            {
+                var meta = new TextView(_activity) { Text = details, TextSize = 11 };
+                meta.SetTextColor(Color.Rgb(166, 181, 196));
+                row.AddView(meta);
+            }
+            return row;
+        }
+    }
+
     private sealed class SingerRotationAdapter : BaseAdapter<SingerQueueEntry>
     {
         private readonly MainActivity _activity;
@@ -494,9 +523,9 @@ public sealed class MainActivity : Activity
             var singer = _items[position];
             var row = new LinearLayout(_activity)
             {
-                Orientation = Orientation.Vertical,
-                MinimumHeight = _activity.Dp(58)
+                Orientation = Orientation.Vertical
             };
+            row.SetMinimumHeight(_activity.Dp(58));
             row.SetPadding(_activity.Dp(8), _activity.Dp(6), _activity.Dp(8), _activity.Dp(6));
 
             if (singer.IsNextSinger)
@@ -512,7 +541,7 @@ public sealed class MainActivity : Activity
                 TextSize = 16
             };
             top.SetTextColor(singer.IsNextSinger ? Color.Rgb(255, 215, 77) : Color.White);
-            top.SetTypeface(null, Android.Graphics.TypefaceStyle.Bold);
+            top.SetTypeface(null, global::Android.Graphics.TypefaceStyle.Bold);
             row.AddView(top);
 
             var next = singer.NextSong is null
@@ -525,8 +554,4 @@ public sealed class MainActivity : Activity
         }
     }
 
-    private sealed class DialogShowListener(Action onShow) : Java.Lang.Object, global::Android.Content.IDialogInterfaceOnShowListener
-    {
-        public void OnShow(global::Android.Content.IDialogInterface? dialog) => onShow();
-    }
 }
