@@ -5,7 +5,8 @@ using HazzKaraokeHoster.Core.Models;
 
 namespace HazzKaraokeHoster.Android;
 
-internal sealed record MediaRootMapping(string WindowsPrefix, string TreeUri);
+internal sealed record MediaRootMapping(string WindowsPrefix, string TreeUri, string? Label = null);
+internal sealed record MediaRootStatus(MediaRootMapping Mapping, bool HasPersistedReadPermission, bool IsAccessible, string StatusText);
 
 internal sealed class AndroidMediaRootService
 {
@@ -27,8 +28,9 @@ internal sealed class AndroidMediaRootService
         windowsPrefix = NormalizePrefix(windowsPrefix);
         if (windowsPrefix.Length == 0) throw new ArgumentException("Windows media root is required.", nameof(windowsPrefix));
 
+        var label = TryGetDisplayName(treeUri);
         _mappings.RemoveAll(x => string.Equals(NormalizePrefix(x.WindowsPrefix), windowsPrefix, StringComparison.OrdinalIgnoreCase));
-        _mappings.Add(new MediaRootMapping(windowsPrefix, treeUri.ToString()));
+        _mappings.Add(new MediaRootMapping(windowsPrefix, treeUri.ToString(), label));
         _mappings.Sort((a, b) => b.WindowsPrefix.Length.CompareTo(a.WindowsPrefix.Length));
         await SaveAsync();
     }
@@ -50,32 +52,71 @@ internal sealed class AndroidMediaRootService
             .FirstOrDefault();
         if (mapping is null) return null;
 
-        var prefix = NormalizePrefix(mapping.WindowsPrefix);
-        var relative = normalizedPath.Length == prefix.Length
-            ? string.Empty
-            : normalizedPath[(prefix.Length + 1)..];
-        var segments = relative.Split('\\', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        var treeUri = global::Android.Net.Uri.Parse(mapping.TreeUri);
-        var documentId = DocumentsContract.GetTreeDocumentId(treeUri);
-        var current = DocumentsContract.BuildDocumentUriUsingTree(treeUri, documentId);
-
-        foreach (var segment in segments)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var next = FindChild(treeUri, current, segment);
-            if (next is null) return null;
-            current = next;
-        }
+            var prefix = NormalizePrefix(mapping.WindowsPrefix);
+            var relative = normalizedPath.Length == prefix.Length
+                ? string.Empty
+                : normalizedPath[(prefix.Length + 1)..];
+            var segments = relative.Split('\\', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        await Task.CompletedTask;
-        return current;
+            var treeUri = global::Android.Net.Uri.Parse(mapping.TreeUri);
+            if (!HasPersistedReadPermission(treeUri)) return null;
+
+            var documentId = DocumentsContract.GetTreeDocumentId(treeUri);
+            var current = DocumentsContract.BuildDocumentUriUsingTree(treeUri, documentId);
+
+            foreach (var segment in segments)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var next = FindChild(treeUri, current, segment);
+                if (next is null) return null;
+                current = next;
+            }
+
+            await Task.CompletedTask;
+            return current;
+        }
+        catch (Exception ex) when (ex is Java.Lang.SecurityException or Java.IO.FileNotFoundException or InvalidOperationException)
+        {
+            // OTG/USB media can disappear at any time. Treat a disconnected drive as unavailable,
+            // not as a fatal app/database error. Reconnecting the same drive restores the tree URI.
+            return null;
+        }
     }
 
     public string DescribeMappings()
-        => _mappings.Count == 0
-            ? "No media roots mapped"
-            : string.Join("\n", _mappings.Select(x => $"{x.WindowsPrefix}  →  Android folder"));
+    {
+        if (_mappings.Count == 0) return "No media roots mapped";
+        var statuses = GetStatuses();
+        return string.Join("\n\n", statuses.Select(x =>
+            $"{x.Mapping.WindowsPrefix}  →  {x.Mapping.Label ?? "Android / USB folder"}\n{x.StatusText}"));
+    }
+
+    public IReadOnlyList<MediaRootStatus> GetStatuses()
+    {
+        var result = new List<MediaRootStatus>(_mappings.Count);
+        foreach (var mapping in _mappings)
+        {
+            try
+            {
+                var uri = global::Android.Net.Uri.Parse(mapping.TreeUri);
+                var hasPermission = HasPersistedReadPermission(uri);
+                var accessible = hasPermission && IsTreeAccessible(uri);
+                var text = !hasPermission
+                    ? "Permission lost — remap this folder"
+                    : accessible
+                        ? "Available"
+                        : "Unavailable / USB drive disconnected";
+                result.Add(new MediaRootStatus(mapping, hasPermission, accessible, text));
+            }
+            catch
+            {
+                result.Add(new MediaRootStatus(mapping, false, false, "Unavailable / invalid mapping"));
+            }
+        }
+        return result;
+    }
 
     public static string SuggestWindowsRoot(string filePath)
     {
@@ -94,6 +135,51 @@ internal sealed class AndroidMediaRootService
             if (parts.Length >= 2) return $"\\\\{parts[0]}\\{parts[1]}";
         }
         return string.Empty;
+    }
+
+    private bool HasPersistedReadPermission(global::Android.Net.Uri treeUri)
+    {
+        return _context.ContentResolver?.PersistedUriPermissions?.Any(permission =>
+            permission.IsReadPermission &&
+            string.Equals(permission.Uri?.ToString(), treeUri.ToString(), StringComparison.Ordinal)) == true;
+    }
+
+    private bool IsTreeAccessible(global::Android.Net.Uri treeUri)
+    {
+        try
+        {
+            var documentId = DocumentsContract.GetTreeDocumentId(treeUri);
+            var documentUri = DocumentsContract.BuildDocumentUriUsingTree(treeUri, documentId);
+            using var cursor = _context.ContentResolver!.Query(
+                documentUri,
+                new[] { DocumentsContract.Document.ColumnDocumentId },
+                null, null, null);
+            return cursor?.MoveToFirst() == true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private string? TryGetDisplayName(global::Android.Net.Uri treeUri)
+    {
+        try
+        {
+            var documentId = DocumentsContract.GetTreeDocumentId(treeUri);
+            var documentUri = DocumentsContract.BuildDocumentUriUsingTree(treeUri, documentId);
+            using var cursor = _context.ContentResolver!.Query(
+                documentUri,
+                new[] { DocumentsContract.Document.ColumnDisplayName },
+                null, null, null);
+            if (cursor?.MoveToFirst() != true) return null;
+            var index = cursor.GetColumnIndex(DocumentsContract.Document.ColumnDisplayName);
+            return index >= 0 ? cursor.GetString(index) : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private global::Android.Net.Uri? FindChild(global::Android.Net.Uri treeUri, global::Android.Net.Uri parentDocumentUri, string displayName)
