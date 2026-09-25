@@ -62,8 +62,7 @@ public sealed class MainActivity : Activity
     {
         var root = new LinearLayout(this)
         {
-            Orientation = Orientation.Vertical,
-            SetPadding = { }
+            Orientation = Orientation.Vertical
         };
         root.SetPadding(Dp(10), Dp(8), Dp(10), Dp(8));
         root.SetBackgroundColor(Color.Rgb(11, 15, 20));
