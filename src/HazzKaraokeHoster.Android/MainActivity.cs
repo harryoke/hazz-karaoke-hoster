@@ -20,6 +20,7 @@ namespace HazzKaraokeHoster.Android;
 public sealed class MainActivity : Activity
 {
     private const int ImportDatabaseRequest = 401;
+    private const int MapMediaRootRequest = 402;
 
     private readonly List<SingerQueueEntry> _rotation = new();
     private readonly List<SongRecord> _searchResults = new();
@@ -30,6 +31,10 @@ public sealed class MainActivity : Activity
     private HazzDatabase? _database;
     private ILibraryRepository? _library;
     private ISingerRepository? _singers;
+    private AndroidMediaRootService? _mediaRoots;
+    private AndroidShowStateService? _showState;
+    private AndroidMediaPlaybackService? _mediaPlayback;
+    private string? _pendingWindowsPrefix;
 
     private TextView _status = null!;
     private TextView _modeLabel = null!;
@@ -38,6 +43,7 @@ public sealed class MainActivity : Activity
     private ListView _searchList = null!;
     private SingerRotationAdapter _rotationAdapter = null!;
     private SearchResultAdapter _searchAdapter = null!;
+    private VideoView _videoView = null!;
 
     private string DatabasePath => System.IO.Path.Combine(FilesDir!.AbsolutePath, "hazz-hoster.db");
 
@@ -47,9 +53,15 @@ public sealed class MainActivity : Activity
         Window?.SetSoftInputMode(SoftInput.AdjustResize);
         SetContentView(BuildUi());
 
+        _mediaRoots = new AndroidMediaRootService(this);
+        _showState = new AndroidShowStateService(this);
+        _mediaPlayback = new AndroidMediaPlaybackService(this);
+        _mediaPlayback.Completed += (_, _) => RunOnUiThread(() => SetStatus("Playback finished"));
+
         try
         {
             await OpenDatabaseAsync();
+            await RestoreShowStateAsync();
             await RefreshLibraryStatusAsync();
         }
         catch (Exception ex)
@@ -69,8 +81,14 @@ public sealed class MainActivity : Activity
 
         var header = new LinearLayout(this) { Orientation = Orientation.Horizontal };
         header.SetGravity(GravityFlags.CenterVertical);
-        var title = MakeText("HAZZ KARAOKE HOSTER • ANDROID v0.1", 20, true, Color.White);
+        var title = MakeText("HAZZ KARAOKE HOSTER • ANDROID v0.2", 20, true, Color.White);
         header.AddView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, 1f));
+        var mapRoot = MakeButton("MAP MEDIA ROOT");
+        mapRoot.Click += (_, _) => BeginMapMediaRoot();
+        header.AddView(mapRoot);
+        var roots = MakeButton("ROOTS");
+        roots.Click += (_, _) => ShowMediaRoots();
+        header.AddView(roots);
         var importDb = MakeButton("IMPORT HAZZ DB");
         importDb.Click += (_, _) => BeginDatabaseImport();
         header.AddView(importDb);
@@ -185,8 +203,23 @@ public sealed class MainActivity : Activity
         };
         panel.AddView(_searchList, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, 0, 1f));
 
+        _videoView = new VideoView(this);
+        _videoView.Visibility = ViewStates.Gone;
+        panel.AddView(_videoView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, Dp(170)));
+
+        var playbackRow = new LinearLayout(this) { Orientation = Orientation.Horizontal };
+        var play = MakeButton("PLAY SELECTED");
+        var pause = MakeButton("PAUSE / RESUME");
+        var stop = MakeButton("STOP");
+        play.Click += async (_, _) => await PlaySelectedAsync();
+        pause.Click += (_, _) => TogglePlaybackPause();
+        stop.Click += (_, _) => StopPlayback();
+        foreach (var button in new[] { play, pause, stop })
+            playbackRow.AddView(button, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, 1f));
+        panel.AddView(playbackRow);
+
         var footer = MakeText(
-            "v0.1: shared Hazz SQLite/search/singer engine is live. Android playback, CD+G, Storage Access Framework media roots and HDMI audience output are the next platform layer.",
+            "v0.2: map Windows library roots to Android/USB folders, play mapped audio/video, and restore the active singer rotation after restart. CD+G graphics and HDMI audience output are the next platform layers.",
             11, false, Color.Rgb(160, 174, 188));
         panel.AddView(footer);
 
@@ -322,6 +355,7 @@ public sealed class MainActivity : Activity
             _rotation.Add(singer);
             _selectedSinger = singer;
             RefreshRotation();
+            PersistShowState();
             _rotationList.SetSelection(_rotation.Count - 1);
             SetStatus($"Added singer: {name}");
         }
@@ -360,6 +394,7 @@ public sealed class MainActivity : Activity
             DurationSeconds = _selectedSong.DurationSeconds
         });
         RefreshRotation();
+        PersistShowState();
         SetStatus($"Added {_selectedSong.Title} to {_selectedSinger.SingerName}");
     }
 
@@ -368,6 +403,7 @@ public sealed class MainActivity : Activity
         if (_selectedSinger is null) { SetStatus("Select a singer first."); return; }
         _selectedSinger.IsHeld = !_selectedSinger.IsHeld;
         RefreshRotation();
+        PersistShowState();
         SetStatus(_selectedSinger.IsHeld ? $"{_selectedSinger.SingerName} is on HOLD" : $"{_selectedSinger.SingerName} returned to rotation");
     }
 
@@ -380,6 +416,7 @@ public sealed class MainActivity : Activity
         _rotation.RemoveAt(index);
         _rotation.Insert(target, _selectedSinger);
         RefreshRotation();
+        PersistShowState();
         _rotationList.SetSelection(target);
     }
 
@@ -390,6 +427,7 @@ public sealed class MainActivity : Activity
         _rotation.Remove(_selectedSinger);
         _selectedSinger = null;
         RefreshRotation();
+        PersistShowState();
         SetStatus($"Removed {name} from this show. Saved singer/history data was not deleted.");
     }
 
@@ -407,6 +445,155 @@ public sealed class MainActivity : Activity
         _rotationAdapter.NotifyDataSetChanged();
     }
 
+    private async Task RestoreShowStateAsync()
+    {
+        if (_showState is null) return;
+        var restored = await _showState.LoadAsync();
+        _rotation.Clear();
+        _rotation.AddRange(restored);
+        RefreshRotation();
+        if (_rotation.Count > 0)
+            SetStatus($"Restored {_rotation.Count:N0} singer(s) from the previous Android show.");
+    }
+
+    private void PersistShowState()
+    {
+        if (_showState is null) return;
+        _ = _showState.SaveAsync(_rotation);
+    }
+
+    private async Task PlaySelectedAsync()
+    {
+        if (_selectedSong is null)
+        {
+            SetStatus("Select a Music, Music Video or directly playable Karaoke result first.");
+            return;
+        }
+        if (_mediaRoots is null || _mediaPlayback is null) return;
+
+        var sourcePath = _selectedSong.FilePath;
+        var extension = System.IO.Path.GetExtension(sourcePath).ToLowerInvariant();
+        if (extension is ".zip" or ".cdg")
+        {
+            SetStatus("This is a CD+G karaoke track. Audio/CD+G playback is the next Android playback milestone.");
+            return;
+        }
+
+        var uri = await _mediaRoots.ResolveAsync(sourcePath);
+        if (uri is null)
+        {
+            SetStatus($"Media file is not mapped on Android: {sourcePath}. Use MAP MEDIA ROOT.");
+            return;
+        }
+
+        try
+        {
+            if (IsVideoExtension(extension))
+            {
+                _mediaPlayback.Stop();
+                _videoView.Visibility = ViewStates.Visible;
+                _videoView.SetVideoURI(uri);
+                _videoView.Start();
+                SetStatus($"Playing video: {_selectedSong.Artist} — {_selectedSong.Title}");
+            }
+            else
+            {
+                try { _videoView.StopPlayback(); } catch { }
+                _videoView.Visibility = ViewStates.Gone;
+                await _mediaPlayback.PlayAsync(uri);
+                SetStatus($"Playing: {_selectedSong.Artist} — {_selectedSong.Title}");
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus("Playback failed: " + ex.Message);
+        }
+    }
+
+    private void TogglePlaybackPause()
+    {
+        try
+        {
+            if (_videoView.Visibility == ViewStates.Visible)
+            {
+                if (_videoView.IsPlaying) _videoView.Pause();
+                else _videoView.Start();
+                SetStatus(_videoView.IsPlaying ? "Video resumed" : "Video paused");
+                return;
+            }
+
+            _mediaPlayback?.TogglePause();
+            SetStatus(_mediaPlayback?.Status ?? "Stopped");
+        }
+        catch (Exception ex)
+        {
+            SetStatus("Playback control failed: " + ex.Message);
+        }
+    }
+
+    private void StopPlayback()
+    {
+        try { _videoView.StopPlayback(); } catch { }
+        _videoView.Visibility = ViewStates.Gone;
+        _mediaPlayback?.Stop();
+        SetStatus("Playback stopped");
+    }
+
+    private static bool IsVideoExtension(string extension)
+        => extension is ".mp4" or ".m4v" or ".mkv" or ".avi" or ".wmv" or ".mov" or
+            ".mpeg" or ".mpg" or ".vob" or ".ts" or ".m2ts" or ".webm" or ".divx";
+
+    private void BeginMapMediaRoot()
+    {
+        var suggestion = _selectedSong is null
+            ? string.Empty
+            : AndroidMediaRootService.SuggestWindowsRoot(_selectedSong.FilePath);
+
+        var input = new EditText(this) { Hint = @"Windows root, e.g. E:\Karaoke" };
+        input.SetSingleLine(true);
+        if (!string.IsNullOrWhiteSpace(suggestion)) input.Text = suggestion;
+
+        new AlertDialog.Builder(this)
+            .SetTitle("Map Windows media root")
+            .SetMessage("Enter the Windows folder prefix stored in the imported Hazz database. Next, choose the matching folder on this Android device, SD card or USB drive.")
+            .SetView(input)
+            .SetNegativeButton("Cancel", (_, _) => { })
+            .SetPositiveButton("Choose Android Folder", (_, _) =>
+            {
+                var prefix = input.Text?.Trim() ?? string.Empty;
+                if (prefix.Length == 0)
+                {
+                    SetStatus("Windows media root is required.");
+                    return;
+                }
+
+                _pendingWindowsPrefix = prefix;
+                var intent = new Intent(Intent.ActionOpenDocumentTree);
+                intent.AddFlags(ActivityFlags.GrantReadUriPermission |
+                                ActivityFlags.GrantWriteUriPermission |
+                                ActivityFlags.GrantPersistableUriPermission |
+                                ActivityFlags.GrantPrefixUriPermission);
+                StartActivityForResult(intent, MapMediaRootRequest);
+            })
+            .Show();
+    }
+
+    private void ShowMediaRoots()
+    {
+        var roots = _mediaRoots?.DescribeMappings() ?? "No media roots mapped";
+        new AlertDialog.Builder(this)
+            .SetTitle("Android media roots")
+            .SetMessage(roots)
+            .SetNegativeButton("Close", (_, _) => { })
+            .SetPositiveButton("Clear All", async (_, _) =>
+            {
+                if (_mediaRoots is null) return;
+                await _mediaRoots.ClearAsync();
+                SetStatus("All Android media-root mappings cleared.");
+            })
+            .Show();
+    }
+
     private void BeginDatabaseImport()
     {
         var intent = new Intent(Intent.ActionOpenDocument);
@@ -420,7 +607,27 @@ public sealed class MainActivity : Activity
 #pragma warning restore CS0672
     {
         base.OnActivityResult(requestCode, resultCode, data);
-        if (requestCode != ImportDatabaseRequest || resultCode != Result.Ok || data?.Data is null) return;
+        if (resultCode != Result.Ok || data?.Data is null) return;
+
+        if (requestCode == MapMediaRootRequest)
+        {
+            try
+            {
+                if (_mediaRoots is null || string.IsNullOrWhiteSpace(_pendingWindowsPrefix)) return;
+                var flags = data.Flags & (ActivityFlags.GrantReadUriPermission | ActivityFlags.GrantWriteUriPermission);
+                ContentResolver?.TakePersistableUriPermission(data.Data, flags);
+                await _mediaRoots.AddOrReplaceAsync(_pendingWindowsPrefix, data.Data);
+                SetStatus($"Mapped {_pendingWindowsPrefix} to the selected Android/USB folder.");
+                _pendingWindowsPrefix = null;
+            }
+            catch (Exception ex)
+            {
+                SetStatus("Media-root mapping failed: " + ex.Message);
+            }
+            return;
+        }
+
+        if (requestCode != ImportDatabaseRequest) return;
 
         try
         {
@@ -445,6 +652,18 @@ public sealed class MainActivity : Activity
         {
             SetStatus("Database import failed: " + ex.Message);
         }
+    }
+
+    protected override void OnPause()
+    {
+        PersistShowState();
+        base.OnPause();
+    }
+
+    protected override void OnDestroy()
+    {
+        try { _mediaPlayback?.Dispose(); } catch { }
+        base.OnDestroy();
     }
 
     private void HideKeyboard()
