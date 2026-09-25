@@ -18,6 +18,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HazzKaraokeHoster.Core\HazzKaraokeHoster.Core.csproj" />
-    <ProjectReference Include="..\HazzKaraokeHoster.Data\HazzKaraokeHoster.Data.csproj" />
+    <ProjectReference Include="..\HazzKaraokeHoster.Data.Android\HazzKaraokeHoster.Data.Android.csproj" />
   </ItemGroup>
 </Project>
