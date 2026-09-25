@@ -83,10 +83,10 @@ public sealed class MainActivity : Activity
         header.SetGravity(GravityFlags.CenterVertical);
         var title = MakeText("HAZZ KARAOKE HOSTER • ANDROID v0.2", 20, true, Color.White);
         header.AddView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, 1f));
-        var mapRoot = MakeButton("MAP MEDIA ROOT");
+        var mapRoot = MakeButton("MAP USB / MEDIA ROOT");
         mapRoot.Click += (_, _) => BeginMapMediaRoot();
         header.AddView(mapRoot);
-        var roots = MakeButton("ROOTS");
+        var roots = MakeButton("USB / ROOTS");
         roots.Click += (_, _) => ShowMediaRoots();
         header.AddView(roots);
         var importDb = MakeButton("IMPORT HAZZ DB");
@@ -219,7 +219,7 @@ public sealed class MainActivity : Activity
         panel.AddView(playbackRow);
 
         var footer = MakeText(
-            "v0.2: map Windows library roots to Android/USB folders, play mapped audio/video, and restore the active singer rotation after restart. CD+G graphics and HDMI audience output are the next platform layers.",
+            "v0.2: map Windows library roots to internal/SD/USB-OTG folders, keep persistent USB read access, play mapped audio/video, and restore the active singer rotation after restart. CD+G graphics and HDMI audience output are next.",
             11, false, Color.Rgb(160, 174, 188));
         panel.AddView(footer);
 
@@ -482,7 +482,10 @@ public sealed class MainActivity : Activity
         var uri = await _mediaRoots.ResolveAsync(sourcePath);
         if (uri is null)
         {
-            SetStatus($"Media file is not mapped on Android: {sourcePath}. Use MAP MEDIA ROOT.");
+            var rootStatus = _mediaRoots.DescribeMappings();
+            SetStatus(rootStatus.Contains("Unavailable / USB drive disconnected", StringComparison.OrdinalIgnoreCase)
+                ? "Mapped USB/OTG storage is currently unavailable. Reconnect the drive, then try again."
+                : $"Media file is not mapped on Android: {sourcePath}. Use MAP USB / MEDIA ROOT.");
             return;
         }
 
@@ -554,8 +557,8 @@ public sealed class MainActivity : Activity
         if (!string.IsNullOrWhiteSpace(suggestion)) input.Text = suggestion;
 
         new AlertDialog.Builder(this)
-            .SetTitle("Map Windows media root")
-            .SetMessage("Enter the Windows folder prefix stored in the imported Hazz database. Next, choose the matching folder on this Android device, SD card or USB drive.")
+            .SetTitle("Map Windows root to Android / USB OTG")
+            .SetMessage("Enter the Windows folder prefix stored in the imported Hazz database. Android will then open its folder picker. Choose the matching folder on internal storage, SD card, or the attached USB/OTG drive. Hazz will keep read access across restarts.")
             .SetView(input)
             .SetNegativeButton("Cancel", (_, _) => { })
             .SetPositiveButton("Choose Android Folder", (_, _) =>
@@ -582,7 +585,7 @@ public sealed class MainActivity : Activity
     {
         var roots = _mediaRoots?.DescribeMappings() ?? "No media roots mapped";
         new AlertDialog.Builder(this)
-            .SetTitle("Android media roots")
+            .SetTitle("Android / USB OTG media roots")
             .SetMessage(roots)
             .SetNegativeButton("Close", (_, _) => { })
             .SetPositiveButton("Clear All", async (_, _) =>
@@ -617,7 +620,8 @@ public sealed class MainActivity : Activity
                 var flags = data.Flags & (ActivityFlags.GrantReadUriPermission | ActivityFlags.GrantWriteUriPermission);
                 ContentResolver?.TakePersistableUriPermission(data.Data, flags);
                 await _mediaRoots.AddOrReplaceAsync(_pendingWindowsPrefix, data.Data);
-                SetStatus($"Mapped {_pendingWindowsPrefix} to the selected Android/USB folder.");
+                var mapped = _pendingWindowsPrefix;
+                SetStatus($"Mapped {mapped} to the selected Android/USB OTG folder. The mapping will be reused after restart.");
                 _pendingWindowsPrefix = null;
             }
             catch (Exception ex)
