@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>HazzKaraokeHoster.Android</RootNamespace>
+    <AssemblyName>Hazz Karaoke Hoster Android</AssemblyName>
+    <ApplicationId>com.hazz.karaokehoster</ApplicationId>
+    <ApplicationTitle>Hazz Karaoke Hoster</ApplicationTitle>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+    <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <AndroidUseAapt2>true</AndroidUseAapt2>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HazzKaraokeHoster.Core\HazzKaraokeHoster.Core.csproj" />
+    <ProjectReference Include="..\HazzKaraokeHoster.Data\HazzKaraokeHoster.Data.csproj" />
+  </ItemGroup>
+</Project>
