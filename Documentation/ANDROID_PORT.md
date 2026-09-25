@@ -1,48 +1,57 @@
-# Hazz Karaoke Hoster Android v0.1
+# Hazz Karaoke Hoster Android v0.2
 
-This branch starts the Android port without changing the existing Windows host.
+Android v0.2 builds on the working v0.1 APK while keeping the Windows Hoster unchanged.
 
 ## Architecture
 
-- `HazzKaraokeHoster.Core` is shared unchanged.
-- `HazzKaraokeHoster.Data` remains the Windows data project unchanged.
-- `HazzKaraokeHoster.Data.Android` compiles the real shared SQLite repository sources for Android, excluding only the three Windows OLE DB / Access adapters.
+- `HazzKaraokeHoster.Core` remains shared.
+- `HazzKaraokeHoster.Data` remains the existing Windows data project.
+- `HazzKaraokeHoster.Data.Android` compiles the same Hazz SQLite repositories for Android, excluding only the Windows OLE DB/Access import adapters.
 - `HazzKaraokeHoster.Android` is a native .NET 10 Android tablet app.
 
-## v0.1 implemented
+## v0.2 improvements
 
-- Landscape tablet host shell.
-- Shared Hazz SQLite schema/database.
-- Karaoke, Music and Music Video search using the existing FTS/search implementation.
-- Active singer rotation.
-- Add/save singer.
-- Add selected Karaoke result to a singer.
-- Rotation standing using the same `SingerQueueEntry` model: `NEXT 1 / N`, `2 / N`, etc.
-- HOLD, Move Up, Move Down and Remove From Show.
-- Import a copy of an existing `hazz-hoster.db` using Android's document picker.
-- Windows Hazz database and Windows application are not modified.
+- Everything from Android v0.1 remains.
+- **Persistent show state**: singer order, HOLD state and queued singer songs are saved and restored after the app is closed/reopened.
+- **Windows media-root mapping**: map a Windows library prefix such as `E:\Karaoke` to a folder on Android, SD card or USB storage using Android's Storage Access Framework.
+- Mappings are persisted and use the longest matching Windows prefix.
+- **Real Android playback** for mapped ordinary audio files.
+- **In-app video preview playback** for mapped Music Video files.
+- PLAY SELECTED, PAUSE / RESUME and STOP controls.
+- ROOTS screen shows the currently configured Windows→Android mappings and can clear them.
+- Existing imported Hazz databases can be searched without changing the Windows database.
+- Windows Hazz remains completely separate.
 
-## Important v0.1 limitation
+## How media mapping works
 
-An imported Windows database can immediately provide singers, history and searchable library metadata, but Windows drive-letter paths such as `E:\Karaoke\...` are not valid Android media locations. The next storage milestone is SAF/USB folder mapping so those indexed paths can be mapped to Android/USB content locations.
+1. Import a copy of your Windows `hazz-hoster.db`.
+2. Search for a track from the imported library.
+3. Press **MAP MEDIA ROOT**.
+4. Enter or accept the Windows root, for example `E:\Karaoke`.
+5. Pick the matching Karaoke/Music folder on the Android device, SD card or attached USB drive.
+6. Hazz stores persistent permission to that Android folder and resolves the remainder of the Windows path underneath it.
 
-## Next platform milestones
+Multiple mappings are supported, so Karaoke, Music and Music Video can live on different storage devices.
 
-1. Android Storage Access Framework media roots and Windows-path remapping.
-2. Android audio/video playback service.
-3. CD+G renderer and MP3+CDG synchronisation.
-4. Secondary-display/HDMI audience output.
-5. Persist/restore active show state on Android.
-6. Music deck/side-list controls and transition/video surfaces.
-7. Signed APK/AAB release packaging.
+## Current playback limits
+
+- Ordinary mapped audio/video files can be played in v0.2.
+- CD+G/`.zip` karaoke graphics are not yet rendered. Those tracks remain searchable/queueable, but Android CD+G audio+graphics synchronisation is the next playback milestone.
+- HDMI/secondary audience output is not yet enabled.
+
+## Next milestones
+
+1. MP3+CDG and ZIP karaoke playback with CD+G graphics.
+2. Secondary-display/USB-C/HDMI audience output.
+3. Android music decks / side list and crossfade controls.
+4. Venue/show profiles and fuller settings migration.
+5. Signed release packaging and updater flow.
 
 ## Build
-
-Install .NET 10 and the Android workload, then:
 
 ```
 dotnet workload install android
 dotnet build src/HazzKaraokeHoster.Android/HazzKaraokeHoster.Android.csproj -c Release
 ```
 
-The Android CI workflow performs the same build and uploads the generated APK(s) as an Actions artifact.
+The Android v0.2 workflow performs the same build and uploads the APK as a GitHub Actions artifact.
