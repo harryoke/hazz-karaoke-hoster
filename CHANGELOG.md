@@ -1,5 +1,12 @@
 # v1.7
 
+## v1.74.6
+- Rotation standing now includes every non-HOLD singer, even when they do not yet have a song queued.
+- Singers without a song now display their actual 1 / N, 2 / N, etc. position instead of a dash.
+- HOLD singers remain excluded from the active rotation total.
+- NEXT still highlights the first singer who actually has a queued song ready to perform.
+- Retains all v1.74.5 singer-highlight and earlier v1.74.x features.
+
 ## v1.74.5
 - Added a Rotation column to the host singer list showing each ready singer's standing as 1 / N, 2 / N, etc.
 - The next ready singer is clearly marked NEXT and highlighted across the row.
