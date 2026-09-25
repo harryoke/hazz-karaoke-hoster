@@ -9,6 +9,15 @@ Android v0.2 builds on the working v0.1 APK while keeping the Windows Hoster unc
 - `HazzKaraokeHoster.Data.Android` compiles the same Hazz SQLite repositories for Android, excluding only the Windows OLE DB/Access import adapters.
 - `HazzKaraokeHoster.Android` is a native .NET 10 Android tablet app.
 
+## USB / OTG storage
+
+- Hazz can read media from USB sticks/SSDs connected through Android OTG.
+- Use **MAP USB / MEDIA ROOT** to map a Windows library prefix such as `E:\Karaoke` to the matching folder on the attached USB drive.
+- Android's Storage Access Framework grants persistent read access, so Hazz remembers the USB folder after restart.
+- **USB / ROOTS** shows each mapping as Available, permission-lost, or USB drive disconnected.
+- Unplugging a mapped drive no longer causes a fatal error; playback reports the drive as unavailable.
+- Reconnecting the same USB drive restores access through the persisted document-tree permission when Android exposes the same volume again.
+
 ## v0.2 improvements
 
 - Everything from Android v0.1 remains.
