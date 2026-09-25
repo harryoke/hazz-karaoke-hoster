@@ -1,5 +1,14 @@
 # v1.7
 
+## v1.74.7
+- Added a DELETE PLAYLIST option to Music Playlists & History.
+- Deletion requires confirmation showing the playlist name and track count.
+- Deleting removes only the selected playlist and its saved playlist entries from Hazz.
+- Music/video files on disk are never deleted.
+- Music History is never deleted by this action.
+- Imported BPM Studio playlists can be recreated by importing the BPM source again.
+- Retains all v1.74.6 rotation-standing and earlier v1.74.x features.
+
 ## v1.74.6
 - Rotation standing now includes every non-HOLD singer, even when they do not yet have a song queued.
 - Singers without a song now display their actual 1 / N, 2 / N, etc. position instead of a dash.
