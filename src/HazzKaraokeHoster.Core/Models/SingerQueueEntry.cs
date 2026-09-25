@@ -48,7 +48,6 @@ public sealed class SingerQueueEntry : INotifyPropertyChanged
     public bool IsNextSinger => _isNextSinger;
     public string RotationPositionText
         => IsHeld ? "HOLD"
-            : Songs.Count == 0 ? "—"
             : RotationPosition is int position && RotationTotal > 0 ? $"{position} / {RotationTotal}"
             : "—";
     public string RotationBadgeText => IsNextSinger ? $"NEXT  {RotationPositionText}" : RotationPositionText;
