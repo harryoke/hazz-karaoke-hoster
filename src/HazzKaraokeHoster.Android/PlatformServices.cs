@@ -1,5 +1,4 @@
 using Android.Content;
-using Android.Net;
 
 namespace HazzKaraokeHoster.Android;
 
@@ -26,7 +25,7 @@ internal sealed class AndroidMediaPlaybackService : IDisposable
 
     public event EventHandler? Completed;
 
-    public Task PlayAsync(Uri uri)
+    public Task PlayAsync(global::Android.Net.Uri uri)
     {
         Stop();
         var player = global::Android.Media.MediaPlayer.Create(_context, uri)
