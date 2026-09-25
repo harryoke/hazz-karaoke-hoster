@@ -1,0 +1,52 @@
+name: Android v0.2
+
+on:
+  push:
+    branches:
+      - android-v0.2
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install Android workload
+        shell: bash
+        run: dotnet workload install android
+
+      - name: Restore Android host
+        shell: bash
+        run: dotnet restore src/HazzKaraokeHoster.Android/HazzKaraokeHoster.Android.csproj
+
+      - name: Build Android host
+        shell: bash
+        run: dotnet build src/HazzKaraokeHoster.Android/HazzKaraokeHoster.Android.csproj -c Release --no-restore
+
+      - name: Locate APK
+        shell: bash
+        run: |
+          find src/HazzKaraokeHoster.Android/bin/Release -type f \( -name "*.apk" -o -name "*.aab" \) -print
+          count=$(find src/HazzKaraokeHoster.Android/bin/Release -type f -name "*.apk" | wc -l)
+          if [ "$count" -lt 1 ]; then
+            echo "No APK was produced."
+            exit 1
+          fi
+
+      - name: Upload Android build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hazz-Karaoke-Hoster-Android-v0.2
+          path: |
+            src/HazzKaraokeHoster.Android/bin/Release/**/*.apk
+            src/HazzKaraokeHoster.Android/bin/Release/**/*.aab
+          if-no-files-found: error
