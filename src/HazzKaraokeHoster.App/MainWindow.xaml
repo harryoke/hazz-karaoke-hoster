@@ -438,7 +438,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="{DynamicResource HostFont10_5}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_6EC1E4}" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="{DynamicResource SkinSurface_22303C}" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v1.74.5" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
+     <TextBlock Text="v1.74.6" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
     </Border>
    </StackPanel>
 
@@ -817,7 +817,7 @@
                 PreviewMouseRightButtonDown="QueueList_PreviewMouseRightButtonDown"
                 DragOver="QueueList_DragOver"
                 Drop="QueueList_Drop"
-                ToolTip="Rotation shows each ready singer standing (1 / total); the NEXT singer is highlighted. HOLD/no-song singers are not counted. Drag singers to reorder, or drag a KARAOKE result onto a singer.">
+                ToolTip="Rotation shows every non-HOLD singer standing (1 / total), even before they choose a song. NEXT highlights the first singer who has a song ready. Drag singers to reorder, or drag a KARAOKE result onto a singer.">
        <DataGrid.RowStyle>
         <Style TargetType="{x:Type DataGridRow}">
          <Setter Property="BorderThickness" Value="0"/>
