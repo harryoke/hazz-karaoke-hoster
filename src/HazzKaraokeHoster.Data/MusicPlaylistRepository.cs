@@ -165,6 +165,38 @@ VALUES($playlist,$position,$song,$path,$artist,$title);
         await transaction.CommitAsync(cancellationToken);
     }
 
+    public async Task<bool> DeletePlaylistAsync(
+        long playlistId,
+        CancellationToken cancellationToken = default)
+    {
+        if (playlistId <= 0) return false;
+
+        await database.InitializeAsync(cancellationToken);
+        await using var connection = new SqliteConnection(database.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+        await using (var deleteItems = connection.CreateCommand())
+        {
+            deleteItems.Transaction = (SqliteTransaction)transaction;
+            deleteItems.CommandText = "DELETE FROM music_playlist_items WHERE playlist_id=$id;";
+            deleteItems.Parameters.AddWithValue("$id", playlistId);
+            await deleteItems.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        int deleted;
+        await using (var deletePlaylist = connection.CreateCommand())
+        {
+            deletePlaylist.Transaction = (SqliteTransaction)transaction;
+            deletePlaylist.CommandText = "DELETE FROM music_playlists WHERE id=$id;";
+            deletePlaylist.Parameters.AddWithValue("$id", playlistId);
+            deleted = await deletePlaylist.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return deleted > 0;
+    }
+
     public async Task RecordMusicPlayAsync(
         string deckName,
         int position,
