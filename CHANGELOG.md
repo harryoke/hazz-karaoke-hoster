@@ -1,5 +1,14 @@
 # v1.7
 
+## v1.74.5
+- Added a Rotation column to the host singer list showing each ready singer's standing as 1 / N, 2 / N, etc.
+- The next ready singer is clearly marked NEXT and highlighted across the row.
+- HOLD singers remain visible but are not counted in the ready rotation total.
+- Singers with no queued karaoke song remain visible but are not counted until they have a song.
+- Rotation standing follows the same live queue order already used by Hazz, including fair rotation and manual ordering.
+- Audience rotation behaviour is unchanged.
+- Retains v1.74.4 deck-to-deck music drag and all earlier v1.74.x fixes.
+
 ## v1.74.4
 - Queued music tracks can now be dragged directly between Deck 1 and Deck 2 in normal two-deck mode.
 - Cross-deck drag is a move, not a copy: the queued track is removed from the source deck and inserted at the chosen position on the destination deck.
