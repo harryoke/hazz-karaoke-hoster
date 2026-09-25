@@ -1,7 +1,9 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.74.6** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.6 instructions](Documentation/RELEASE_v1.74.6.md).
+Current release: **v1.74.7** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.7 instructions](Documentation/RELEASE_v1.74.7.md).
 
+
+**v1.74.7 patch:** Music Playlists & History now includes a safe Delete Playlist option. It removes only the selected playlist/database entries, never media files or Music History.
 
 **v1.74.6 patch:** Rotation standing now includes every non-HOLD singer, even before they have chosen a song; NEXT still marks the first singer with a song ready.
 
