@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <AssemblyName>HazzKaraokeHoster.Data.Android</AssemblyName>
+    <RootNamespace>HazzKaraokeHoster.Data</RootNamespace>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HazzKaraokeHoster.Core\HazzKaraokeHoster.Core.csproj" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
+  </ItemGroup>
+
+  <!-- Compile the real Hazz Data sources, excluding only adapters that require
+       Windows OLE DB / Microsoft Access. This avoids duplicating SQLite logic. -->
+  <ItemGroup>
+    <Compile Include="..\HazzKaraokeHoster.Data\**\*.cs"
+             Exclude="..\HazzKaraokeHoster.Data\ExternalLibraryImportService.cs;
+                      ..\HazzKaraokeHoster.Data\ExternalSingerHistoryImportService.cs;
+                      ..\HazzKaraokeHoster.Data\KarmaImportService.cs;
+                      ..\HazzKaraokeHoster.Data\obj\**\*;
+                      ..\HazzKaraokeHoster.Data\bin\**\*"
+             Link="SharedData\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
