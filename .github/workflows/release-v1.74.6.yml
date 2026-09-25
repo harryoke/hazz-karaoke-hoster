@@ -1,0 +1,83 @@
+name: Release v1.74.6
+
+on:
+  push:
+    branches:
+      - release-v1.74.6
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-2025-vs2026
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Show SDK
+        shell: pwsh
+        run: dotnet --info
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore HazzKaraokeHoster.sln
+
+      - name: Build solution
+        shell: pwsh
+        run: dotnet build HazzKaraokeHoster.sln -c Release --no-restore -m:1 --disable-build-servers
+
+      - name: Publish Windows x64 portable build
+        shell: pwsh
+        run: |
+          dotnet publish "src/HazzKaraokeHoster.App/HazzKaraokeHoster.App.csproj" `
+            -c Release `
+            -r win-x64 `
+            -m:1 `
+            --disable-build-servers `
+            --self-contained true `
+            -p:PublishSingleFile=false `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:PublishReadyToRun=false `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -o "publish/HazzKaraokeHoster"
+
+      - name: Verify publish
+        shell: pwsh
+        run: |
+          $exe = "publish/HazzKaraokeHoster/Hazz Karaoke Hoster.exe"
+          if (-not (Test-Path $exe)) { throw "Published EXE not found: $exe" }
+          Write-Host "Published EXE:" (Get-Item $exe).Length "bytes"
+          Get-ChildItem "publish/HazzKaraokeHoster" | Select-Object Name,Length | Format-Table -AutoSize
+
+      - name: Package release assets
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "publish/HazzKaraokeHoster/*" -DestinationPath "Hazz_Karaoke_Hoster_v1.74.6_Windows_x64.zip" -CompressionLevel Optimal
+          git archive --format=zip --output="Hazz_Karaoke_Hoster_v1.74.6_VS2026_Source.zip" HEAD
+          $portable = (Get-FileHash "Hazz_Karaoke_Hoster_v1.74.6_Windows_x64.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+          $source = (Get-FileHash "Hazz_Karaoke_Hoster_v1.74.6_VS2026_Source.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+          @(
+            "$portable  Hazz_Karaoke_Hoster_v1.74.6_Windows_x64.zip"
+            "$source  Hazz_Karaoke_Hoster_v1.74.6_VS2026_Source.zip"
+          ) | Set-Content "Hazz_Karaoke_Hoster_v1.74.6_SHA256.txt"
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v1.74.6" `
+            "Hazz_Karaoke_Hoster_v1.74.6_Windows_x64.zip" `
+            "Hazz_Karaoke_Hoster_v1.74.6_VS2026_Source.zip" `
+            "Hazz_Karaoke_Hoster_v1.74.6_SHA256.txt" `
+            --target "${{ github.sha }}" `
+            --title "Hazz Karaoke Hoster v1.74.6" `
+            --notes-file "Documentation/RELEASE_v1.74.6.md"
