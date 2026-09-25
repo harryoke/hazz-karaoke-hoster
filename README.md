@@ -1,7 +1,9 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.74.5** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.5 instructions](Documentation/RELEASE_v1.74.5.md).
+Current release: **v1.74.6** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.6 instructions](Documentation/RELEASE_v1.74.6.md).
 
+
+**v1.74.6 patch:** Rotation standing now includes every non-HOLD singer, even before they have chosen a song; NEXT still marks the first singer with a song ready.
 
 **v1.74.5 patch:** the singer list now shows each ready singer's standing (1 / N) and clearly highlights the NEXT singer.
 
