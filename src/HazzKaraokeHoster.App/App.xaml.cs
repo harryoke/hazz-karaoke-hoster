@@ -89,7 +89,7 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private static void CurrentDomain_UnhandledException(object? sender, UnhandledEventArgs e)
+    private static void CurrentDomain_UnhandledException(object? sender, UnhandledExceptionEventArgs e)
         => WriteDiagnostic("FATAL", e.ExceptionObject?.ToString() ?? "Unknown fatal exception");
 
     private static void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
