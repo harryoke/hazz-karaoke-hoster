@@ -43,6 +43,13 @@ public partial class App : System.Windows.Application
             Environment.Exit(code);
             return;
         }
+
+        EventManager.RegisterClassHandler(typeof(MainWindow), FrameworkElement.LoadedEvent,
+            new RoutedEventHandler((sender, _) =>
+            {
+                if (sender is MainWindow window) window.InitializeAudienceEnhancementsTest();
+            }));
+
         base.OnStartup(e);
         _ = BrokenMediaRegistry.InitializeAsync(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hazz Karaoke Hoster", "broken-media.json"));
         DispatcherUnhandledException += App_DispatcherUnhandledException;
@@ -82,7 +89,7 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private static void CurrentDomain_UnhandledException(object? sender, UnhandledExceptionEventArgs e)
+    private static void CurrentDomain_UnhandledException(object? sender, UnhandledEventArgs e)
         => WriteDiagnostic("FATAL", e.ExceptionObject?.ToString() ?? "Unknown fatal exception");
 
     private static void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
