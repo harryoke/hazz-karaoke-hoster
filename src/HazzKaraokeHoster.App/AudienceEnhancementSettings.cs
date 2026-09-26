@@ -9,6 +9,15 @@ internal sealed class AudienceEnhancementSettings
     public int ComingUpCount { get; set; } = 4;
     public bool ShowNowSinging { get; set; } = true;
     public double NowSingingSeconds { get; set; } = 7;
+
+    // Test-only broadcast-style audience additions.
+    public bool ShowSingerCallUp { get; set; } = true;
+    public double SingerCallUpSeconds { get; set; } = 8;
+    public bool ShowQueueStatus { get; set; } = true;
+    public bool ShowVenueHeader { get; set; } = false;
+    public string VenueTitle { get; set; } = string.Empty;
+    public string OverlayTransition { get; set; } = "Slide";
+    public double AnnouncementSeconds { get; set; } = 8;
 }
 
 internal static class AudienceEnhancementSettingsStore
@@ -67,6 +76,17 @@ internal static class AudienceEnhancementSettingsStore
         settings.ComingUpCount = Math.Clamp(settings.ComingUpCount, 1, 4);
         settings.NowSingingSeconds = double.IsFinite(settings.NowSingingSeconds)
             ? Math.Clamp(settings.NowSingingSeconds, 3, 15) : 7;
+        settings.SingerCallUpSeconds = double.IsFinite(settings.SingerCallUpSeconds)
+            ? Math.Clamp(settings.SingerCallUpSeconds, 3, 15) : 8;
+        settings.OverlayTransition = settings.OverlayTransition switch
+        {
+            "Cut" or "Fade" or "Slide" or "Zoom" or "Pop" or "Random" => settings.OverlayTransition,
+            _ => "Slide"
+        };
+        settings.AnnouncementSeconds = double.IsFinite(settings.AnnouncementSeconds)
+            ? Math.Clamp(settings.AnnouncementSeconds, 5, 30) : 8;
+        settings.VenueTitle = (settings.VenueTitle ?? string.Empty).Trim();
+        if (settings.VenueTitle.Length > 120) settings.VenueTitle = settings.VenueTitle[..120];
         return settings;
     }
 }
