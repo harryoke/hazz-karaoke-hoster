@@ -1699,23 +1699,144 @@ public partial class MainWindow : Window
         try
         {
             await Task.Delay(120, token);
-            var rows = await _library.SearchByKindAsync(text, kind, 300, token);
+
+            // The old live search asked SQLite for only 300 rows. A broad maker/disc search
+            // could therefore contain valid indexed tracks that were never supplied to the grid;
+            // clicking a column merely sorted that incomplete 300-row subset.
+            var displayLimit = text.Length >= 4 ? 20000 : text.Length == 3 ? 10000 : 5000;
+            var fetchLimit = displayLimit + 1;
+            IReadOnlyList<SongRecord> rows = await _library.SearchByKindAsync(text, kind, fetchLimit, token);
             token.ThrowIfCancellationRequested();
+
+            var capped = rows.Count > displayLimit;
+            if (capped) rows = rows.Take(displayLimit).ToArray();
+
             SearchGrid.ItemsSource = rows;
+            ReapplySearchDiscSort();
             SearchResultsOverlay.Visibility = Visibility.Visible;
-            SearchStatus.Text = $"{rows.Count} {kind.ToLowerInvariant()} results";
+            SearchStatus.Text = SearchResultStatus(kind, rows.Count, capped);
 
             if (rows.Count > 0 && SearchDurationColumn.Visibility == Visibility.Visible)
             {
-                SearchStatus.Text = $"{rows.Count} {kind.ToLowerInvariant()} results • reading track lengths…";
+                SearchStatus.Text = SearchResultStatus(kind, rows.Count, capped) + " • reading track lengths…";
                 var withDurations = await PopulateSearchDurationsAsync(rows, token);
                 token.ThrowIfCancellationRequested();
                 SearchGrid.ItemsSource = withDurations;
-                SearchStatus.Text = $"{withDurations.Count} {kind.ToLowerInvariant()} results";
+                ReapplySearchDiscSort();
+                SearchStatus.Text = SearchResultStatus(kind, withDurations.Count, capped);
             }
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) { if (!token.IsCancellationRequested) SearchStatus.Text = "Search error: " + ex.Message; }
+    }
+
+    private static string SearchResultStatus(string kind, int count, bool capped)
+        => capped
+            ? $"Showing first {count:N0} {kind.ToLowerInvariant()} results • refine search to see every match"
+            : $"{count:N0} {kind.ToLowerInvariant()} results";
+
+    private void SearchGrid_Sorting(object sender, DataGridSortingEventArgs e)
+    {
+        var view = System.Windows.Data.CollectionViewSource.GetDefaultView(SearchGrid.ItemsSource);
+        if (view is not System.Windows.Data.ListCollectionView listView) return;
+
+        if (!string.Equals(e.Column.Header?.ToString(), "Disc", StringComparison.OrdinalIgnoreCase))
+        {
+            // Returning to a normal column should restore WPF's built-in property sorting.
+            if (listView.CustomSort is SearchDiscNaturalComparer)
+                listView.CustomSort = null;
+            return;
+        }
+
+        e.Handled = true;
+        var direction = e.Column.SortDirection == ListSortDirection.Ascending
+            ? ListSortDirection.Descending
+            : ListSortDirection.Ascending;
+
+        foreach (var column in SearchGrid.Columns)
+            column.SortDirection = null;
+        e.Column.SortDirection = direction;
+        listView.CustomSort = new SearchDiscNaturalComparer(direction == ListSortDirection.Descending);
+    }
+
+    private void ReapplySearchDiscSort()
+    {
+        var discColumn = SearchGrid.Columns.FirstOrDefault(column =>
+            string.Equals(column.Header?.ToString(), "Disc", StringComparison.OrdinalIgnoreCase));
+        if (discColumn?.SortDirection is not ListSortDirection direction) return;
+
+        var view = System.Windows.Data.CollectionViewSource.GetDefaultView(SearchGrid.ItemsSource);
+        if (view is System.Windows.Data.ListCollectionView listView)
+            listView.CustomSort = new SearchDiscNaturalComparer(direction == ListSortDirection.Descending);
+    }
+
+    private sealed class SearchDiscNaturalComparer : System.Collections.IComparer
+    {
+        private readonly bool _descending;
+
+        public SearchDiscNaturalComparer(bool descending) => _descending = descending;
+
+        public int Compare(object? x, object? y)
+        {
+            if (ReferenceEquals(x, y)) return 0;
+            if (x is not SongRecord left) return y is SongRecord ? -1 : 0;
+            if (y is not SongRecord right) return 1;
+
+            var result = CompareNaturalText(left.DiscId, right.DiscId);
+            if (result == 0) result = StringComparer.OrdinalIgnoreCase.Compare(left.Artist, right.Artist);
+            if (result == 0) result = StringComparer.OrdinalIgnoreCase.Compare(left.Title, right.Title);
+            if (result == 0) result = StringComparer.OrdinalIgnoreCase.Compare(left.FilePath, right.FilePath);
+            return _descending ? -result : result;
+        }
+    }
+
+    private static int CompareNaturalText(string? left, string? right)
+    {
+        left ??= string.Empty;
+        right ??= string.Empty;
+        var i = 0;
+        var j = 0;
+
+        while (i < left.Length && j < right.Length)
+        {
+            var leftDigit = char.IsDigit(left[i]);
+            var rightDigit = char.IsDigit(right[j]);
+            if (leftDigit && rightDigit)
+            {
+                var leftStart = i;
+                var rightStart = j;
+                while (i < left.Length && char.IsDigit(left[i])) i++;
+                while (j < right.Length && char.IsDigit(right[j])) j++;
+
+                var leftNonZero = leftStart;
+                var rightNonZero = rightStart;
+                while (leftNonZero < i && left[leftNonZero] == '0') leftNonZero++;
+                while (rightNonZero < j && right[rightNonZero] == '0') rightNonZero++;
+
+                var leftDigits = i - leftNonZero;
+                var rightDigits = j - rightNonZero;
+                if (leftDigits != rightDigits) return leftDigits.CompareTo(rightDigits);
+
+                for (var k = 0; k < leftDigits; k++)
+                {
+                    var difference = left[leftNonZero + k].CompareTo(right[rightNonZero + k]);
+                    if (difference != 0) return difference;
+                }
+
+                var leftRunLength = i - leftStart;
+                var rightRunLength = j - rightStart;
+                if (leftRunLength != rightRunLength) return leftRunLength.CompareTo(rightRunLength);
+                continue;
+            }
+
+            var lc = char.ToUpperInvariant(left[i]);
+            var rc = char.ToUpperInvariant(right[j]);
+            if (lc != rc) return lc.CompareTo(rc);
+            i++;
+            j++;
+        }
+
+        return (left.Length - i).CompareTo(right.Length - j);
     }
 
     private async Task<IReadOnlyList<SongRecord>> PopulateSearchDurationsAsync(IReadOnlyList<SongRecord> rows, CancellationToken token)
