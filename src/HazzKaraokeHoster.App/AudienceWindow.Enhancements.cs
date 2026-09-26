@@ -68,6 +68,7 @@ public partial class AudienceWindow
         }
         SingerCallUpPanel.Background = BrushFrom(_enhancementSettings.SingerCallUpBackgroundColor, Brushes.Black);
         SingerCallUpPanel.BorderBrush = BrushFrom(_enhancementSettings.SingerCallUpBorderColor, Brushes.Gold);
+        ApplyPanelPosition(SingerCallUpPanel, _enhancementSettings.SingerCallUpPosition);
 
         if (NowSingingPanel.Child is StackPanel nowStack && nowStack.Children.Count >= 3 && nowStack.Children[0] is TextBlock nowHeading)
         {
@@ -79,18 +80,22 @@ public partial class AudienceWindow
         ApplyTextStyle(NowSingingSongText, _enhancementSettings.NowSingingSongStyle);
         NowSingingPanel.Background = BrushFrom(_enhancementSettings.NowSingingBackgroundColor, Brushes.Black);
         NowSingingPanel.BorderBrush = BrushFrom(_enhancementSettings.NowSingingBorderColor, Brushes.White);
+        ApplyPanelPosition(NowSingingPanel, _enhancementSettings.NowSingingPosition);
 
         ApplyTextStyle(QueueStatusText, _enhancementSettings.QueueStatusStyle);
         QueueStatusPanel.Background = BrushFrom(_enhancementSettings.QueueStatusBackgroundColor, Brushes.Black);
         QueueStatusPanel.BorderBrush = BrushFrom(_enhancementSettings.QueueStatusBorderColor, Brushes.White);
+        ApplyPanelPosition(QueueStatusPanel, _enhancementSettings.QueueStatusPosition);
 
         ApplyTextStyle(VenueHeaderText, _enhancementSettings.VenueHeaderStyle);
         VenueHeaderPanel.Background = BrushFrom(_enhancementSettings.VenueHeaderBackgroundColor, Brushes.Black);
         VenueHeaderPanel.BorderBrush = BrushFrom(_enhancementSettings.VenueHeaderBorderColor, Brushes.White);
+        ApplyPanelPosition(VenueHeaderPanel, _enhancementSettings.VenueHeaderPosition);
 
         ApplyTextStyle(AnnouncementText, _enhancementSettings.AnnouncementStyle);
         AnnouncementPanel.Background = BrushFrom(_enhancementSettings.AnnouncementBackgroundColor, Brushes.Black);
         AnnouncementPanel.BorderBrush = BrushFrom(_enhancementSettings.AnnouncementBorderColor, Brushes.Gold);
+        ApplyPanelPosition(AnnouncementPanel, _enhancementSettings.AnnouncementPosition);
     }
 
     private static void ApplyTextStyle(TextBlock text, AudienceOverlayTextStyle style)
@@ -98,6 +103,29 @@ public partial class AudienceWindow
         text.FontFamily = new FontFamily(style.FontFamily);
         text.FontSize = style.FontSize;
         text.Foreground = BrushFrom(style.TextColor, Brushes.White);
+    }
+
+    private static void ApplyPanelPosition(FrameworkElement panel, string? position)
+    {
+        position = AudienceEnhancementSettingsStore.OverlayPositions.FirstOrDefault(x =>
+            string.Equals(x, position, StringComparison.OrdinalIgnoreCase)) ?? "Center";
+
+        panel.HorizontalAlignment = position.EndsWith("Left", StringComparison.OrdinalIgnoreCase)
+            ? HorizontalAlignment.Left
+            : position.EndsWith("Right", StringComparison.OrdinalIgnoreCase)
+                ? HorizontalAlignment.Right
+                : HorizontalAlignment.Center;
+
+        panel.VerticalAlignment = position.StartsWith("Top", StringComparison.OrdinalIgnoreCase)
+            ? VerticalAlignment.Top
+            : position.StartsWith("Bottom", StringComparison.OrdinalIgnoreCase)
+                ? VerticalAlignment.Bottom
+                : VerticalAlignment.Center;
+
+        // Keep top and bottom anchors clear of the existing 52px scroller strips.
+        var top = position.StartsWith("Top", StringComparison.OrdinalIgnoreCase) ? 66d : 30d;
+        var bottom = position.StartsWith("Bottom", StringComparison.OrdinalIgnoreCase) ? 74d : 30d;
+        panel.Margin = new Thickness(30, top, 30, bottom);
     }
 
     private static Brush BrushFrom(string value, Brush fallback)
