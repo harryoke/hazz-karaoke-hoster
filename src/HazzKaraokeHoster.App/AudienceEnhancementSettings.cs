@@ -17,16 +17,17 @@ internal sealed class AudienceEnhancementSettings
     public bool ShowNowSinging { get; set; } = true;
     public double NowSingingSeconds { get; set; } = 7;
 
-    // Test-only broadcast-style audience additions.
     public bool ShowSingerCallUp { get; set; } = true;
+    public bool AutoSingerCallUp { get; set; } = true;
     public double SingerCallUpSeconds { get; set; } = 8;
     public bool ShowQueueStatus { get; set; } = true;
     public bool ShowVenueHeader { get; set; } = false;
     public string VenueTitle { get; set; } = string.Empty;
     public string OverlayTransition { get; set; } = "Slide";
     public double AnnouncementSeconds { get; set; } = 8;
+    public string AnnouncementText { get; set; } = string.Empty;
 
-    // Every new overlay is user-editable. Colours use #AARRGGBB / #RRGGBB.
+    // Every new overlay is editable. Colours accept #RRGGBB or #AARRGGBB.
     public string SingerCallUpHeadingText { get; set; } = "NEXT SINGER";
     public string SingerCallUpPromptText { get; set; } = "Please make your way to the microphone";
     public AudienceOverlayTextStyle SingerCallUpHeadingStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 28, TextColor = "#FFFFD34D" };
@@ -34,23 +35,29 @@ internal sealed class AudienceEnhancementSettings
     public AudienceOverlayTextStyle SingerCallUpSongStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 30, TextColor = "#FFD8E2EF" };
     public AudienceOverlayTextStyle SingerCallUpPromptStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 22, TextColor = "#FFB8C7D5" };
     public string SingerCallUpBackgroundColor { get; set; } = "#E0000000";
+    public string SingerCallUpBorderColor { get; set; } = "#FFFFD34D";
 
     public string NowSingingHeadingText { get; set; } = "NOW SINGING";
     public AudienceOverlayTextStyle NowSingingHeadingStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 22, TextColor = "#FFFFD34D" };
     public AudienceOverlayTextStyle NowSingingNameStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 46, TextColor = "#FFFFFFFF" };
     public AudienceOverlayTextStyle NowSingingSongStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 25, TextColor = "#FFD8E2EF" };
     public string NowSingingBackgroundColor { get; set; } = "#C8000000";
+    public string NowSingingBorderColor { get; set; } = "#55FFFFFF";
 
     // Supported placeholders: {active}, {singerWord}, {hold}, {holdPart}, {playable}, {time}, {timePart}.
     public string QueueStatusTemplate { get; set; } = "{active} {singerWord}{holdPart}{timePart}";
+    public string QueueEmptyText { get; set; } = "Singer rotation empty";
     public AudienceOverlayTextStyle QueueStatusStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 20, TextColor = "#FFFFFFFF" };
     public string QueueStatusBackgroundColor { get; set; } = "#B5000000";
+    public string QueueStatusBorderColor { get; set; } = "#44FFFFFF";
 
     public AudienceOverlayTextStyle VenueHeaderStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 28, TextColor = "#FFFFD34D" };
     public string VenueHeaderBackgroundColor { get; set; } = "#B5000000";
+    public string VenueHeaderBorderColor { get; set; } = "#44FFFFFF";
 
     public AudienceOverlayTextStyle AnnouncementStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 54, TextColor = "#FFFFFFFF" };
     public string AnnouncementBackgroundColor { get; set; } = "#E0000000";
+    public string AnnouncementBorderColor { get; set; } = "#FFFFD34D";
 }
 
 internal static class AudienceEnhancementSettingsStore
@@ -119,11 +126,13 @@ internal static class AudienceEnhancementSettingsStore
         settings.AnnouncementSeconds = double.IsFinite(settings.AnnouncementSeconds)
             ? Math.Clamp(settings.AnnouncementSeconds, 5, 30) : 8;
 
-        settings.VenueTitle = NormalizeText(settings.VenueTitle, string.Empty, 120);
+        settings.VenueTitle = NormalizeText(settings.VenueTitle, string.Empty, 120, allowEmpty: true);
+        settings.AnnouncementText = NormalizeText(settings.AnnouncementText, string.Empty, 300, allowEmpty: true);
         settings.SingerCallUpHeadingText = NormalizeText(settings.SingerCallUpHeadingText, "NEXT SINGER", 80);
         settings.SingerCallUpPromptText = NormalizeText(settings.SingerCallUpPromptText, "Please make your way to the microphone", 160);
         settings.NowSingingHeadingText = NormalizeText(settings.NowSingingHeadingText, "NOW SINGING", 80);
         settings.QueueStatusTemplate = NormalizeText(settings.QueueStatusTemplate, "{active} {singerWord}{holdPart}{timePart}", 240);
+        settings.QueueEmptyText = NormalizeText(settings.QueueEmptyText, "Singer rotation empty", 120);
 
         settings.SingerCallUpHeadingStyle = NormalizeStyle(settings.SingerCallUpHeadingStyle, "Segoe UI", 28, "#FFFFD34D", 12, 96);
         settings.SingerCallUpNameStyle = NormalizeStyle(settings.SingerCallUpNameStyle, "Segoe UI Black", 72, "#FFFFFFFF", 16, 140);
@@ -137,10 +146,15 @@ internal static class AudienceEnhancementSettingsStore
         settings.AnnouncementStyle = NormalizeStyle(settings.AnnouncementStyle, "Segoe UI", 54, "#FFFFFFFF", 14, 120);
 
         settings.SingerCallUpBackgroundColor = NormalizeColor(settings.SingerCallUpBackgroundColor, "#E0000000");
+        settings.SingerCallUpBorderColor = NormalizeColor(settings.SingerCallUpBorderColor, "#FFFFD34D");
         settings.NowSingingBackgroundColor = NormalizeColor(settings.NowSingingBackgroundColor, "#C8000000");
+        settings.NowSingingBorderColor = NormalizeColor(settings.NowSingingBorderColor, "#55FFFFFF");
         settings.QueueStatusBackgroundColor = NormalizeColor(settings.QueueStatusBackgroundColor, "#B5000000");
+        settings.QueueStatusBorderColor = NormalizeColor(settings.QueueStatusBorderColor, "#44FFFFFF");
         settings.VenueHeaderBackgroundColor = NormalizeColor(settings.VenueHeaderBackgroundColor, "#B5000000");
+        settings.VenueHeaderBorderColor = NormalizeColor(settings.VenueHeaderBorderColor, "#44FFFFFF");
         settings.AnnouncementBackgroundColor = NormalizeColor(settings.AnnouncementBackgroundColor, "#E0000000");
+        settings.AnnouncementBorderColor = NormalizeColor(settings.AnnouncementBorderColor, "#FFFFD34D");
         return settings;
     }
 
@@ -153,10 +167,10 @@ internal static class AudienceEnhancementSettingsStore
         return style;
     }
 
-    private static string NormalizeText(string? value, string fallback, int maxLength)
+    private static string NormalizeText(string? value, string fallback, int maxLength, bool allowEmpty = false)
     {
         value = value?.Trim() ?? string.Empty;
-        if (value.Length == 0) value = fallback;
+        if (value.Length == 0 && !allowEmpty) value = fallback;
         return value.Length <= maxLength ? value : value[..maxLength];
     }
 
