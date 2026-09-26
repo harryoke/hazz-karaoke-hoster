@@ -27,6 +27,7 @@ public partial class MainWindow
     private Slider? _announcementSecondsSlider;
     private TextBlock? _announcementSecondsText;
     private DispatcherTimer? _audienceEnhancementStatusTimer;
+    private readonly DispatcherTimer _audienceEnhancementSaveTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };
 
     internal void InitializeAudienceEnhancementsTest()
     {
@@ -42,9 +43,10 @@ public partial class MainWindow
         }
 
         var settings = AudienceEnhancementSettingsStore.Load();
+        _audienceTextStyles = settings.TextStyles;
         _audienceEnhancementControlsLoading = true;
 
-        var slideRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
+        var slideRow = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
         slideRow.Children.Add(Label("Next slide"));
         _slideshowSecondsSlider = new Slider
         {
@@ -73,7 +75,7 @@ public partial class MainWindow
         slideRow.Children.Add(_slideshowTransitionCombo);
         host.Children.Add(slideRow);
 
-        var singerRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
+        var singerRow = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
         singerRow.Children.Add(Label("Coming up"));
         _comingUpCountCombo = new ComboBox
         {
@@ -110,7 +112,7 @@ public partial class MainWindow
         singerRow.Children.Add(_nowSingingSecondsText);
         host.Children.Add(singerRow);
 
-        var callUpRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
+        var callUpRow = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
         _showSingerCallUpCheck = new CheckBox
         {
             Content = "Automatic NEXT SINGER call-up",
@@ -136,11 +138,11 @@ public partial class MainWindow
         callUpRow.Children.Add(_singerCallUpSecondsSlider);
         callUpRow.Children.Add(_singerCallUpSecondsText);
         var callNextNow = new Button { Content = "CALL NEXT NOW", Padding = new Thickness(8, 3, 8, 3), Margin = new Thickness(8, 0, 2, 0) };
-        callNextNow.Click += (_, _) => ShowSingerCallUpForNextTest();
+        callNextNow.Click += CallNextSinger_Click;
         callUpRow.Children.Add(callNextNow);
         host.Children.Add(callUpRow);
 
-        var broadcastRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
+        var broadcastRow = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
         _showQueueStatusCheck = new CheckBox
         {
             Content = "Show queue status / approx time",
@@ -177,7 +179,7 @@ public partial class MainWindow
         broadcastRow.Children.Add(_overlayTransitionCombo);
         host.Children.Add(broadcastRow);
 
-        var announcementRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
+        var announcementRow = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
         announcementRow.Children.Add(Label("Audience announcement"));
         _announcementTextBox = new TextBox
         {
@@ -208,6 +210,9 @@ public partial class MainWindow
         announcementRow.Children.Add(showAnnouncement);
         announcementRow.Children.Add(clearAnnouncement);
         host.Children.Add(announcementRow);
+        var editStyles = new Button { Content = "EDIT OVERLAY TEXT / FONTS / COLOURS", Margin = new Thickness(0, 8, 0, 8), HorizontalAlignment = HorizontalAlignment.Left };
+        editStyles.Click += EditAudienceTextStyles;
+        host.Children.Add(editStyles);
 
         _slideshowSecondsSlider.ValueChanged += (_, _) => AudienceEnhancementControlChanged();
         _slideshowTransitionCombo.SelectionChanged += (_, _) => AudienceEnhancementControlChanged();
@@ -227,32 +232,35 @@ public partial class MainWindow
         _announcementSecondsSlider.ValueChanged += (_, _) => AudienceEnhancementControlChanged();
 
         AudienceBackgroundFileText.LayoutUpdated += (_, _) => UpdateAudienceSlideshowTestLabel();
-        KaraokeMedia.MediaOpened += (_, _) => ShowNowSingingForActiveSingerTest();
-        KaraokeMedia.MediaEnded += async (_, _) =>
-        {
-            _audience?.ClearNowSinging();
-            await Task.Delay(900);
-            if (!IsLoaded) return;
-            RefreshAudienceBroadcastStatusTest();
-            ShowSingerCallUpForNextTest();
-        };
-
         _audienceEnhancementStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _audienceEnhancementStatusTimer.Tick += (_, _) => RefreshAudienceBroadcastStatusTest();
         _audienceEnhancementStatusTimer.Start();
-        Closed += (_, _) => _audienceEnhancementStatusTimer?.Stop();
+        _audienceEnhancementSaveTimer.Tick += (_, _) =>
+        {
+            _audienceEnhancementSaveTimer.Stop();
+            AudienceEnhancementSettingsStore.Save(ReadAudienceEnhancementControls());
+        };
+        Closed += (_, _) =>
+        {
+            _audienceEnhancementStatusTimer?.Stop();
+            if (_audienceEnhancementSaveTimer.IsEnabled)
+            {
+                _audienceEnhancementSaveTimer.Stop();
+                AudienceEnhancementSettingsStore.Save(ReadAudienceEnhancementControls());
+            }
+        };
 
         _audienceEnhancementControlsLoading = false;
         UpdateAudienceSlideshowTestLabel();
         RefreshAudienceBroadcastStatusTest();
     }
 
-    private static TextBlock Label(string text) => new()
+    private static TextBlock Label(string text)
     {
-        Text = text,
-        VerticalAlignment = VerticalAlignment.Center,
-        Foreground = Brushes.White
-    };
+        var label = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center };
+        label.SetResourceReference(TextBlock.ForegroundProperty, "SkinInk_White");
+        return label;
+    }
 
     private AudienceEnhancementSettings ReadAudienceEnhancementControls()
     {
@@ -269,7 +277,8 @@ public partial class MainWindow
             ShowVenueHeader = _showVenueHeaderCheck?.IsChecked == true,
             VenueTitle = _venueTitleTextBox?.Text?.Trim() ?? string.Empty,
             OverlayTransition = _overlayTransitionCombo?.SelectedItem?.ToString() ?? "Slide",
-            AnnouncementSeconds = _announcementSecondsSlider?.Value ?? 8
+            AnnouncementSeconds = _announcementSecondsSlider?.Value ?? 8,
+            TextStyles = _audienceTextStyles
         };
     }
 
@@ -281,7 +290,8 @@ public partial class MainWindow
         if (_nowSingingSecondsText is not null) _nowSingingSecondsText.Text = $"{settings.NowSingingSeconds:0}s";
         if (_singerCallUpSecondsText is not null) _singerCallUpSecondsText.Text = $"{settings.SingerCallUpSeconds:0}s";
         if (_announcementSecondsText is not null) _announcementSecondsText.Text = $"{settings.AnnouncementSeconds:0}s";
-        AudienceEnhancementSettingsStore.Save(settings);
+        _audienceEnhancementSaveTimer.Stop();
+        _audienceEnhancementSaveTimer.Start();
         _audience?.ApplyEnhancementSettings(settings);
         UpdateAudienceSlideshowTestLabel();
         RefreshAudienceBroadcastStatusTest();
@@ -325,7 +335,7 @@ public partial class MainWindow
             ? string.Empty
             : string.IsNullOrWhiteSpace(_activeSingerSong.Artist)
                 ? _activeSingerSong.SongTitle
-                : $"{_activeSingerSong.SongTitle} — {_activeSingerSong.Artist}";
+                : $"{_activeSingerSong.SongTitle} \u2014 {_activeSingerSong.Artist}";
         _audience.ShowNowSinging(singer, song, TimeSpan.FromSeconds(settings.NowSingingSeconds));
     }
 
@@ -337,13 +347,13 @@ public partial class MainWindow
 
         var candidates = _queue.Where(x => !x.IsHeld && x.Songs.Count > 0).ToList();
         if (candidates.Count == 0) return;
-        var next = candidates.FirstOrDefault(x => _activeSinger is null || x.Id != _activeSinger.Id) ?? candidates[0];
+        var next = candidates[0];
         var song = next.NextSong;
         var songText = song is null
             ? string.Empty
             : string.IsNullOrWhiteSpace(song.Artist)
                 ? song.SongTitle
-                : $"{song.SongTitle} — {song.Artist}";
+                : $"{song.SongTitle} \u2014 {song.Artist}";
         _audience.SetEnhancementPlaybackActive(false);
         _audience.ShowSingerCallUp(next.SingerName, songText, TimeSpan.FromSeconds(settings.SingerCallUpSeconds));
     }
@@ -367,8 +377,8 @@ public partial class MainWindow
         {
             var singerWord = active.Count == 1 ? "singer" : "singers";
             queueStatus = $"{active.Count} {singerWord}";
-            if (held > 0) queueStatus += $" • {held} HOLD";
-            if (playable.Count > 0) queueStatus += $" • approx {FormatQueueEstimate(seconds)}";
+            if (held > 0) queueStatus += $" \u2022 {held} HOLD";
+            if (playable.Count > 0) queueStatus += $" \u2022 approx {FormatQueueEstimate(seconds)}";
         }
 
         _audience.SetEnhancementPlaybackActive(_karaokePlaying || _karaokePaused);

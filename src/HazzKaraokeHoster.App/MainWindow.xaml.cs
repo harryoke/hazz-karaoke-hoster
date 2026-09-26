@@ -1705,7 +1705,7 @@ public partial class MainWindow : Window
             // clicking a column merely sorted that incomplete 300-row subset.
             var displayLimit = text.Length >= 4 ? 20000 : text.Length == 3 ? 10000 : 5000;
             var fetchLimit = displayLimit + 1;
-            IReadOnlyList<SongRecord> rows = await _library.SearchByKindAsync(text, kind, fetchLimit, token);
+            IReadOnlyList<SongRecord> rows = await Task.Run(() => _library.SearchByKindAsync(text, kind, fetchLimit, token), token);
             token.ThrowIfCancellationRequested();
 
             var capped = rows.Count > displayLimit;
@@ -3326,6 +3326,7 @@ public partial class MainWindow : Window
 
     private async Task StartKaraokeAsync(bool restart)
     {
+        if (_callingNextSinger) { SearchStatus.Text = "Please wait for the next singer track to finish loading."; return; }
         if (restart)
         {
             _silenceScanCts?.Cancel();
@@ -3384,6 +3385,7 @@ public partial class MainWindow : Window
         KaraokeMedia.Play();
         _karaokePlaying = true;
         _karaokePaused = false;
+        ShowNowSingingForActiveSingerTest();
         if (startedSingerPerformance) await RecordActiveSingerHistoryAtPlayAsync();
         KaraokePauseButton.Content = "Ⅱ PAUSE";
         _karaokeVisualTimer.Start();
@@ -3630,7 +3632,8 @@ public partial class MainWindow : Window
             if (_pitchAudio.IsLoaded) _pitchAudio.Play(TimeSpan.Zero);
             KaraokeMedia.Play();
             if (_karaokePackage?.Kind == KaraokePackageKind.Video) _audience?.PlayVideo(TimeSpan.Zero);
-            if (startedSingerPerformance) await RecordActiveSingerHistoryAtPlayAsync();
+            ShowNowSingingForActiveSingerTest();
+        if (startedSingerPerformance) await RecordActiveSingerHistoryAtPlayAsync();
 
             var version = string.Join(" ", new[] { candidate.Manufacturer, candidate.DiscId }.Where(x => !string.IsNullOrWhiteSpace(x)));
             KaraokeNowText.Text = string.IsNullOrWhiteSpace(version)
@@ -3841,6 +3844,8 @@ public partial class MainWindow : Window
         _activeSingerSongCheckedOut = false;
         UpdateAudienceNext();
         ResumeMusicAfterKaraoke();
+        RefreshAudienceBroadcastStatusTest();
+        ShowSingerCallUpForNextTest();
     }
 
     private void KaraokeVisualTimer_Tick()

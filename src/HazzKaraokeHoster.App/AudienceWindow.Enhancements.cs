@@ -7,6 +7,21 @@ namespace HazzKaraokeHoster.App;
 
 public partial class AudienceWindow
 {
+    private string _callUpSinger = "", _callUpSong = "", _nowSinger = "", _nowSong = "", _announcementMessage = "";
+    private void ApplyEnhancementTextStyles()
+    {
+        var styles = _enhancementSettings.TextStyles;
+        styles["Call-up heading"].Apply(SingerCallUpHeadingText);
+        styles["Call-up message"].Apply(SingerCallUpMessageText);
+        styles["Call-up singer"].Apply(SingerCallUpNameText, ("singer", _callUpSinger));
+        styles["Call-up song"].Apply(SingerCallUpSongText, ("song", _callUpSong));
+        styles["Now singing heading"].Apply(NowSingingHeadingText);
+        styles["Now singing singer"].Apply(NowSingingSingerText, ("singer", _nowSinger));
+        styles["Now singing song"].Apply(NowSingingSongText, ("song", _nowSong));
+        styles["Announcement"].Apply(AnnouncementText, ("message", _announcementMessage));
+        styles["Queue status"].Apply(QueueStatusText, ("queue", _broadcastQueueStatus));
+        styles["Venue header"].Apply(VenueHeaderText, ("venue", _broadcastVenueTitle));
+    }
     private readonly DispatcherTimer _nowSingingTimer = new();
     private readonly DispatcherTimer _announcementTimer = new();
     private readonly DispatcherTimer _singerCallUpTimer = new();
@@ -16,7 +31,7 @@ public partial class AudienceWindow
     private string _broadcastVenueTitle = string.Empty;
     private AudienceEnhancementSettings _enhancementSettings = new();
 
-    private void AudienceEnhancementHost_Loaded(object sender, RoutedEventArgs e)
+    private void InitializeAudienceEnhancements()
     {
         if (_audienceEnhancementHostHooked) return;
         _audienceEnhancementHostHooked = true;
@@ -24,7 +39,6 @@ public partial class AudienceWindow
         _nowSingingTimer.Tick += (_, _) => ClearNowSinging();
         _announcementTimer.Tick += (_, _) => ClearTemporaryAnnouncement();
         _singerCallUpTimer.Tick += (_, _) => ClearSingerCallUp();
-        NextSingersStack.LayoutUpdated += (_, _) => EnforceComingUpCount();
         Closed += (_, _) =>
         {
             _nowSingingTimer.Stop();
@@ -38,8 +52,11 @@ public partial class AudienceWindow
     internal void ApplyEnhancementSettings(AudienceEnhancementSettings settings)
     {
         _enhancementSettings = settings ?? new AudienceEnhancementSettings();
+        _enhancementSettings.TextStyles = AudienceTextStyle.Normalize(_enhancementSettings.TextStyles);
         SetSlideshowEnhancementOptions(_enhancementSettings.SlideshowSeconds, _enhancementSettings.SlideshowTransition);
+        RenderNextSingers();
         EnforceComingUpCount();
+        ApplyEnhancementTextStyles();
         if (!_enhancementSettings.ShowNowSinging) ClearNowSinging();
         if (!_enhancementSettings.ShowSingerCallUp) ClearSingerCallUp();
         RefreshBroadcastBars(animate: false);
@@ -82,25 +99,27 @@ public partial class AudienceWindow
 
     private void RefreshBroadcastBars(bool animate)
     {
-        QueueStatusText.Text = _broadcastQueueStatus;
-        VenueHeaderText.Text = _broadcastVenueTitle;
+        ApplyEnhancementTextStyles();
 
-        var showQueue = !_enhancementPlaybackActive && _enhancementSettings.ShowQueueStatus
+        var allowInformation = !_enhancementPlaybackActive && !_kamikazeVisible
+            && (MusicVideoMedia.Source is null || _musicVideoShowSingers);
+        var showQueue = allowInformation && _enhancementSettings.ShowQueueStatus
             && !string.IsNullOrWhiteSpace(_broadcastQueueStatus);
-        var showVenue = !_enhancementPlaybackActive && _enhancementSettings.ShowVenueHeader
+        var showVenue = allowInformation && _enhancementSettings.ShowVenueHeader
             && !string.IsNullOrWhiteSpace(_broadcastVenueTitle);
 
         SetEnhancementPanelVisible(QueueStatusPanel, showQueue, animate);
         SetEnhancementPanelVisible(VenueHeaderPanel, showVenue, animate);
     }
 
-    internal void ShowSingerCallUp(string singerName, string songText, TimeSpan duration)
+    internal void ShowSingerCallUp(string singerName, string songText, TimeSpan duration, bool manual = false)
     {
-        if (!_enhancementSettings.ShowSingerCallUp || _enhancementPlaybackActive || string.IsNullOrWhiteSpace(singerName)) return;
+        if ((!manual && !_enhancementSettings.ShowSingerCallUp) || _enhancementPlaybackActive || _kamikazeVisible || (MusicVideoMedia.Source is not null && !_musicVideoShowSingers) || string.IsNullOrWhiteSpace(singerName)) return;
 
         ClearNowSinging();
-        SingerCallUpNameText.Text = singerName.Trim();
-        SingerCallUpSongText.Text = songText?.Trim() ?? string.Empty;
+        _callUpSinger = singerName.Trim();
+        _callUpSong = songText?.Trim() ?? string.Empty;
+        ApplyEnhancementTextStyles();
         SingerCallUpSongText.Visibility = string.IsNullOrWhiteSpace(SingerCallUpSongText.Text)
             ? Visibility.Collapsed : Visibility.Visible;
         SingerCallUpPanel.Visibility = Visibility.Visible;
@@ -125,8 +144,9 @@ public partial class AudienceWindow
         if (!_enhancementSettings.ShowNowSinging || string.IsNullOrWhiteSpace(singerName)) return;
 
         ClearSingerCallUp();
-        NowSingingSingerText.Text = singerName.Trim();
-        NowSingingSongText.Text = songText?.Trim() ?? string.Empty;
+        _nowSinger = singerName.Trim();
+        _nowSong = songText?.Trim() ?? string.Empty;
+        ApplyEnhancementTextStyles();
         NowSingingSongText.Visibility = string.IsNullOrWhiteSpace(NowSingingSongText.Text)
             ? Visibility.Collapsed : Visibility.Visible;
         NowSingingPanel.Visibility = Visibility.Visible;
@@ -151,7 +171,8 @@ public partial class AudienceWindow
         text = text?.Trim() ?? string.Empty;
         if (text.Length == 0) return;
 
-        AnnouncementText.Text = text;
+        _announcementMessage = text;
+        ApplyEnhancementTextStyles();
         AnnouncementPanel.Visibility = Visibility.Visible;
         AnimateEnhancementPanel(AnnouncementPanel);
         _announcementTimer.Stop();

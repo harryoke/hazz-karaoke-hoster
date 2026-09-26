@@ -1,24 +1,6 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.74.8** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.8 instructions](Documentation/RELEASE_v1.74.8.md).
-
-
-**v1.74.8 patch:** broad Karaoke searches no longer stop at 300 results, and Disc sorting now uses natural numeric order without dropping valid matches.
-
-**v1.74.7 patch:** Music Playlists & History now includes a safe Delete Playlist option. It removes only the selected playlist/database entries, never media files or Music History.
-
-**v1.74.6 patch:** Rotation standing now includes every non-HOLD singer, even before they have chosen a song; NEXT still marks the first singer with a song ready.
-
-**v1.74.5 patch:** the singer list now shows each ready singer's standing (1 / N) and clearly highlights the NEXT singer.
-
-**v1.74.4 patch:** queued music tracks can now be dragged directly between Deck 1 and Deck 2; NOW PLAYING remains protected.
-
-**v1.74.3 patch:** Music track lengths now populate in deck/side lists before playback and in Music search whenever the Length column is enabled. Also fixes per-mode Search Columns losing Karaoke Length after switching to Music.
-
-**v1.74.2 patch:** BPM Studio imports now read MP3 Artist/Title tags once per unique track and use them in the Music library, BPM playlists and BPM history. Re-importing repairs older BPM entries that used filename-derived metadata.
-
-**v1.74.1 patch:** restores the Search Columns customiser with per-mode visibility, width and heading-order persistence.
-Previous release: **v1.73** — optional Side List virtual-folder browsing (including imported BPM Studio folders), Music Video Fit/Stretch and selectable visual transitions. [v1.73 instructions](Documentation/RELEASE_v1.73.md).
+Current release: **v1.8** — configurable audience cards, Call Next Singer, slideshow timing/transitions and playback/display fixes. [Release notes](Documentation/RELEASE_v1.8.md) · [New audience controls](Documentation/AUDIENCE_DISPLAY_v1.8.md).
 
 Made For KJ/DJ's By A KJ/DJ
 

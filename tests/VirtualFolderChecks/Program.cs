@@ -7,7 +7,7 @@ var db = new HazzDatabase(dbPath);
 await db.InitializeAsync();
 var repo = new LibraryRepository(db);
 
-var rockSong = new SongRecord(0, "Queen", "Hammer To Fall", "", "", @"C:\Music\Queen.mp4", "MP4", 100, DateTimeOffset.UtcNow, MediaKind: "Music");
+var rockSong = new SongRecord(0, "Queen", "Hammer To Fall", "", "", @"C:\Music\Queen.mp4", "MP4", 100, DateTimeOffset.UtcNow, MediaKind: "MusicVideo");
 var jingle = new SongRecord(0, "Station", "Top Of Hour", "", "", @"C:\Jingles\Top.mp3", "MP3", 50, DateTimeOffset.UtcNow, MediaKind: "Music");
 var karaoke = new SongRecord(0, "Bon Jovi", "Livin On A Prayer", "Sunfly", "SF001", @"C:\Karaoke\Bon Jovi.zip", "ZIP", 75, DateTimeOffset.UtcNow, MediaKind: "Karaoke");
 var rockId = await repo.UpsertSongAsync(rockSong);
@@ -31,14 +31,14 @@ await repo.AddSongToVirtualFolderAsync(rock, rockId);     // Duplicate assignmen
 var folders = await repo.GetVirtualFoldersAsync();
 if (folders.Count != 3 || folders.Single(x => x.Id == rock).ParentId != eighties || folders.Single(x => x.Id == rock).TrackCount != 2)
     throw new Exception("Folder hierarchy/count failed.");
-var musicPage = await repo.BrowseVirtualFolderAsync(rock, "Music", "hammer", "Artist", false, 0, 500);
+var musicPage = await repo.BrowseVirtualFolderAsync(rock, "MusicVideo", "hammer", "Artist", false, 0, 500);
 if (musicPage.TotalCount != 1 || musicPage.Items[0].Title != "Hammer To Fall") throw new Exception("Folder browse/filter failed.");
 var karaokePage = await repo.BrowseVirtualFolderAsync(rock, "Karaoke", "", "Title", false, 0, 500);
 if (karaokePage.TotalCount != 1 || karaokePage.Items[0].Id != karaokeId) throw new Exception("Media-kind filter failed.");
 
 await repo.RenameVirtualFolderAsync(jingles, "Show Jingles");
 await repo.RemoveSongFromVirtualFolderAsync(rock, rockId);
-if ((await repo.BrowseVirtualFolderAsync(rock, "Music", "", "Artist", false, 0, 500)).TotalCount != 0)
+if ((await repo.BrowseVirtualFolderAsync(rock, "MusicVideo", "", "Artist", false, 0, 500)).TotalCount != 0)
     throw new Exception("Remove link failed.");
 await repo.EmptyVirtualFolderAsync(jingles);
 await repo.DeleteVirtualFolderAsync(eighties);

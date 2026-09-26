@@ -67,7 +67,7 @@ public partial class AudienceWindow
         }
 
         var transition = ResolveSlideshowTransition();
-        var finalOpacity = Math.Clamp(element.Opacity, 0, 1);
+        var finalOpacity = Math.Clamp((double)element.GetAnimationBaseValue(UIElement.OpacityProperty), 0, 1);
         element.BeginAnimation(UIElement.OpacityProperty, null);
         element.RenderTransform = Transform.Identity;
         element.RenderTransformOrigin = new Point(0.5, 0.5);
@@ -91,7 +91,8 @@ public partial class AudienceWindow
         var opacity = new DoubleAnimation(0, finalOpacity, duration) { EasingFunction = ease };
         opacity.Completed += (_, _) =>
         {
-            element.Opacity = finalOpacity;
+            element.BeginAnimation(UIElement.OpacityProperty, null);
+            element.RenderTransform = Transform.Identity;
             SingerBackgroundTransitionImage.Visibility = Visibility.Collapsed;
             SingerBackgroundTransitionImage.Source = null;
         };
@@ -187,6 +188,11 @@ public partial class AudienceWindow
     private void StopBackgroundSlideshow()
     {
         _slideshowTimer.Stop();
+        foreach (var element in new FrameworkElement[] { SingerBackgroundImage, SingerBackgroundGif, SingerBackgroundVideo })
+        {
+            element.BeginAnimation(UIElement.OpacityProperty, null);
+            element.RenderTransform = Transform.Identity;
+        }
         _slideshowCts?.Cancel();
         _slideshowCts?.Dispose();
         _slideshowCts = null;

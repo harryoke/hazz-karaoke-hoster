@@ -1,3 +1,7 @@
+# v1.8 update
+
+Read the [step-by-step v1.8 audience guide](AUDIENCE_DISPLAY_v1.8.md) for Call Next Singer, announcements, fonts, queue status and slideshow transitions. The base guide follows.
+
 # Hazz Karaoke Hoster v1.7 display and sync guide
 
 Made For KJ/DJ's By A KJ/DJ

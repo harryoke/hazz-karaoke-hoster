@@ -19,7 +19,7 @@
     <MSBuild Projects="..\HazzKaraokeHoster.App\HazzKaraokeHoster.App.csproj"
              Targets="Publish"
              BuildInParallel="false"
-             Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=win-x64;SelfContained=true;PublishSingleFile=false;IncludeNativeLibrariesForSelfExtract=true;EnableCompressionInSingleFile=true;PublishReadyToRun=false;DebugType=None;DebugSymbols=false;NoBuild=true;NoRestore=true;PublishDir=$(HazzReleaseDirectory)" />
+             Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=win-x64;SelfContained=true;PublishSingleFile=false;IncludeNativeLibrariesForSelfExtract=true;EnableCompressionInSingleFile=true;PublishReadyToRun=false;DebugType=None;DebugSymbols=false;NoBuild=false;NoRestore=true;PublishDir=$(HazzReleaseDirectory)" />
     <ItemGroup>
       <_HazzPublishedSymbols Include="$(HazzReleaseDirectory)**\*.pdb" />
     </ItemGroup>
@@ -34,7 +34,7 @@
     <PropertyGroup><HazzSingleDirectory>$(MSBuildProjectDirectory)\..\..\RELEASE\SingleFile\</HazzSingleDirectory></PropertyGroup>
     <MakeDir Directories="$(HazzSingleDirectory)" />
     <MSBuild Projects="..\HazzKaraokeHoster.App\HazzKaraokeHoster.App.csproj" Targets="Publish" BuildInParallel="false"
-      Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=win-x64;SelfContained=true;PublishSingleFile=true;IncludeAllContentForSelfExtract=true;IncludeNativeLibrariesForSelfExtract=true;EnableCompressionInSingleFile=true;PublishReadyToRun=false;DebugType=None;DebugSymbols=false;NoBuild=true;NoRestore=true;PublishDir=$(HazzSingleDirectory)" />
+      Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=win-x64;SelfContained=true;PublishSingleFile=true;IncludeAllContentForSelfExtract=true;IncludeNativeLibrariesForSelfExtract=true;EnableCompressionInSingleFile=true;PublishReadyToRun=false;DebugType=None;DebugSymbols=false;NoBuild=false;NoRestore=true;PublishDir=$(HazzSingleDirectory)" />
     <Error Condition="!Exists('$(HazzSingleDirectory)Hazz Karaoke Hoster.exe')" Text="The optional single EXE was not created." />
     <Message Importance="high" Text="OPTIONAL SINGLE EXE READY: $(HazzSingleDirectory)Hazz Karaoke Hoster.exe" />
   </Target>

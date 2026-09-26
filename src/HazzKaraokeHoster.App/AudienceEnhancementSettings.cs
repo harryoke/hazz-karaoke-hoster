@@ -18,6 +18,7 @@ internal sealed class AudienceEnhancementSettings
     public string VenueTitle { get; set; } = string.Empty;
     public string OverlayTransition { get; set; } = "Slide";
     public double AnnouncementSeconds { get; set; } = 8;
+    public Dictionary<string, AudienceTextStyle> TextStyles { get; set; } = AudienceTextStyle.Defaults();
 }
 
 internal static class AudienceEnhancementSettingsStore
@@ -87,6 +88,7 @@ internal static class AudienceEnhancementSettingsStore
             ? Math.Clamp(settings.AnnouncementSeconds, 5, 30) : 8;
         settings.VenueTitle = (settings.VenueTitle ?? string.Empty).Trim();
         if (settings.VenueTitle.Length > 120) settings.VenueTitle = settings.VenueTitle[..120];
+        settings.TextStyles = AudienceTextStyle.Normalize(settings.TextStyles);
         return settings;
     }
 }

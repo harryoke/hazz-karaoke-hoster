@@ -438,7 +438,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="{DynamicResource HostFont10_5}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_6EC1E4}" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="{DynamicResource SkinSurface_22303C}" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v1.74.8" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
+     <TextBlock Text="v1.8" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
     </Border>
    </StackPanel>
 
@@ -699,6 +699,7 @@
        </Grid.RowDefinitions>
        <TextBlock x:Name="KaraokeNowText" Text="No karaoke track loaded" FontSize="{DynamicResource HostFont19}" FontWeight="SemiBold" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="4,3,4,5"/>
        <WrapPanel Grid.Row="1" HorizontalAlignment="Center">
+        <Button Content="CALL NEXT SINGER" Style="{StaticResource LoadButtonStyle}" Click="CallNextSinger_Click" ToolTip="Load the next queued song and show the singer call-up; press PLAY when ready"/>
         <Button Content="LOAD NEXT SINGER" Style="{StaticResource LoadButtonStyle}" Click="LoadNextSinger_Click" ToolTip="Load the first singer's next queued song"/>
         <Button Content="LOAD FILE" Style="{StaticResource LoadButtonStyle}" Click="LoadKaraoke_Click"/>
         <Button x:Name="TvDisplay2Button" Content="TV" Style="{StaticResource LoadButtonStyle}" Click="TvDisplay2_Click" MinWidth="58" FontWeight="Bold" ToolTip="One-click singer screen: send the audience/karaoke display fullscreen to Display 2."/>

@@ -113,6 +113,7 @@ public partial class AudienceWindow : Window
     public AudienceWindow()
     {
         InitializeComponent();
+        InitializeAudienceEnhancements();
         IsVisibleChanged += (_, _) => { if (IsVisible) { Root.Width = double.NaN; Root.Height = double.NaN; } };
         AudienceMedia.BackendChanged += (_, _) => UpdateOverlayLayerVisibility();
         MusicVideoMedia.BackendChanged += (_, _) => UpdateOverlayLayerVisibility();
@@ -196,6 +197,8 @@ public partial class AudienceWindow : Window
     public void SetKaraokeActive(bool active)
     {
         _karaokeActive = active;
+        SetEnhancementPlaybackActive(active);
+        if (!active) ClearNowSinging();
         if (active) MusicVideoMedia.Pause();
         else if (_musicVideoPlaying && MusicVideoMedia.Source is not null) MusicVideoMedia.Play();
         UpdateOverlayLayerVisibility();
@@ -323,7 +326,7 @@ public partial class AudienceWindow : Window
     {
         FitSingerPanel();
         NextSingersStack.Children.Clear();
-        foreach (var item in _rotation.Take(4))
+        foreach (var item in _rotation.Take(Math.Clamp(_enhancementSettings.ComingUpCount, 1, 4)))
         {
             var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -490,6 +493,13 @@ public partial class AudienceWindow : Window
             : Visibility.Collapsed;
         ScrollerPanel.Visibility = (!musicVideoVisible || _musicVideoShowScroller) && !_karaokeActive && !_kamikazeVisible && _scrollerEnabled && ScrollerText.Inlines.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         SecondScrollerPanel.Visibility = (!musicVideoVisible || _musicVideoShowScroller) && !_karaokeActive && !_kamikazeVisible && _secondEnabled ? Visibility.Visible : Visibility.Collapsed;
+        RefreshBroadcastBars(animate: false);
+        if (_kamikazeVisible || (musicVideoVisible && !_musicVideoShowSingers)) ClearSingerCallUp();
+        if (!backgroundVisible)
+        {
+            SingerBackgroundTransitionImage.Visibility = Visibility.Collapsed;
+            SingerBackgroundTransitionImage.Source = null;
+        }
         LayoutScrollers();
         Position(_nextSingerPosition);
         FitSingerPanel();
