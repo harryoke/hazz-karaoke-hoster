@@ -17,7 +17,7 @@ public sealed class LibraryRepository(HazzDatabase database) : ILibraryRepositor
     {
         query = (query ?? string.Empty).Trim();
         if (query.Length == 0) return Array.Empty<SongRecord>();
-        limit = Math.Clamp(limit, 1, 2000);
+        limit = Math.Clamp(limit, 1, 20001);
         var fts = BuildFtsPrefixQuery(query);
         if (fts.Length == 0) return Array.Empty<SongRecord>();
 
