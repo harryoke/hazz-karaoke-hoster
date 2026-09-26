@@ -55,6 +55,7 @@ public partial class AudienceWindow
 
     internal void SetEnhancementPlaybackActive(bool active)
     {
+        if (_enhancementPlaybackActive == active) return;
         _enhancementPlaybackActive = active;
         if (active)
         {
