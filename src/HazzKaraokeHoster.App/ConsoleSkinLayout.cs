@@ -19,7 +19,7 @@ internal sealed class ConsoleSkinLayout
     private readonly Brush _background;
     private readonly FontFamily _font;
 
-    internal static string Normalize(string? name) => name is "Midnight" or "Copper" or "Daylight" ? name : "Classic";
+    internal static string Normalize(string? name) => name is not null && (name is "Midnight" or "Copper" or "Daylight" || ConsoleTextureSkins.Contains(name)) ? name : "Classic";
 
     internal ConsoleSkinLayout(Window window)
     {
@@ -78,7 +78,7 @@ internal sealed class ConsoleSkinLayout
         foreach (var splitter in _workspace.Children.OfType<GridSplitter>()) splitter.Visibility = karaokeOnly ? Visibility.Collapsed : Visibility.Visible;
         foreach (var splitter in _a.Children.OfType<GridSplitter>()) splitter.Visibility = Visibility.Visible;
         foreach (var splitter in _b.Children.OfType<GridSplitter>()) splitter.Visibility = singleDeck ? Visibility.Collapsed : Visibility.Visible;
-        if (skin != "Classic")
+        if (skin != "Classic" && !ConsoleTextureSkins.Contains(skin))
         {
             bool light = skin == "Daylight", copper = skin == "Copper";
             _window.Background = Brush(light ? "#DCE5ED" : copper ? "#211813" : "#071323");
@@ -91,6 +91,11 @@ internal sealed class ConsoleSkinLayout
             _window.Resources["KaraokeBrush"] = Brush(light ? "#634C8B" : copper ? "#6E4631" : "#454E92");
             _window.Resources["PlaylistBrush"] = Brush(light ? "#4A6077" : copper ? "#74552E" : "#24415E");
             if (light) ApplyDaylightBrushes();
+        }
+        if (ConsoleTextureSkins.Contains(skin))
+        {
+            if (ConsoleTextureSkins.IsLight(skin)) ApplyDaylightBrushes();
+            ConsoleTextureSkins.Apply(_window, skin);
         }
         if (skin == "Midnight" && !karaokeOnly)
         {

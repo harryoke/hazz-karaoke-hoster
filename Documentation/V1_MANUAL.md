@@ -1,3 +1,5 @@
+> **v2.0:** [Choosing the new metal and marble skins](RELEASE_v2.0.md).
+
 > **v1.9 additions:** [Library Health Centre, alternative versions, singer-song drag-to-deck and loudness matching — step-by-step guide](RELEASE_v1.9.md).
 
 # v1.8 update

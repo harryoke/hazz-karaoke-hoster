@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.9** — Library Health Centre, smarter alternative-version matching, singer-song drag-to-deck and improved automatic loudness matching. [What's new and step-by-step instructions](Documentation/RELEASE_v1.9.md).
+Current release: **v2.0** — nine brushed-metal and marble skins, with all v1.9 features retained. [Skin guide and release notes](Documentation/RELEASE_v2.0.md).
 
 Made For KJ/DJ's By A KJ/DJ
 

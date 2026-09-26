@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Xml.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -58,6 +58,7 @@ internal static class Check
   foreach(var name in new[]{"DeckAPlaylist","DeckBPlaylist"})
    for(int i=0;i<7;i++) Find<ListBox>(name).Items.Add(new { NumberText=(i+1).ToString(), DisplayArtist=new[]{"ABBA","Queen","The Killers"}[i%3], DisplayTitle=new[]{"Dancing Queen","Don't Stop Me Now","Mr. Brightside"}[i%3], DurationText="03:45", IsFavourite=i==0, IsNowPlaying=i==1, IsPlayedThisSession=i==2 });
   for(int i=0;i<5;i++) Find<DataGrid>("QueueList").Items.Add(new { SingerName=new[]{"Alex","Sam","Chris","Taylor","Jamie"}[i], StatusText="Ready", NextSongTitle="Example karaoke song", NextArtist="Example artist", SongCount=2, NextKey=0, NextSync=0d });
+  var originalBackground=w.Background; var originalPanel=w.Resources["PanelBrush"];
   var engine=new ConsoleSkinLayout(w);
   if(args.Contains("--render-stress"))
   {
@@ -70,7 +71,7 @@ internal static class Check
    var frame=new System.Windows.Threading.DispatcherFrame();int ticks=0;
    var timer=new System.Windows.Threading.DispatcherTimer { Interval=TimeSpan.FromMilliseconds(500) };
    timer.Tick+=(_,_)=> {
-    engine.Apply(new[]{"Classic","Midnight","Copper","Daylight"}[ticks%4],false,false);
+    engine.Apply(new[]{"Classic","AzureSteel","RubySteel","AmethystSteel","BronzeSteel","GoldSteel","SilverSteel","GraphiteSteel","RoseMarble","OnyxMarble"}[ticks%10],false,false);
     if(ticks%6==0) {
      var path=assets[(ticks/6)%assets.Length];Console.WriteLine("ASSET: "+path);
      audience.Apply(new HazzKaraokeHoster.Core.Models.AudienceOverlaySettings { BackgroundImageEnabled=true,BackgroundImagePath=path, ScrollerText="WELCOME TO KARAOKE WITH HAZZ • Want To Sing ... Just Tell Me Your Name & The Song You Would Like To Perform...",ScrollerFontFamily="Coolsville",ScrollerFontSize=42, SecondScrollerEnabled=true,SecondScrollerText="Hazz is cool....",SecondScrollerFontFamily="Alex Brush",SecondScrollerFontSize=62 });
@@ -92,7 +93,7 @@ internal static class Check
 
   Directory.CreateDirectory(args[1]);
   var records=new List<string>();
-  foreach(var skin in new[]{"Classic","Midnight","Copper","Daylight","Classic","Copper","Midnight","Daylight","Classic"})
+  foreach(var skin in new[]{"Classic","Midnight","Copper","Daylight","AzureSteel","RubySteel","AmethystSteel","BronzeSteel","GoldSteel","SilverSteel","GraphiteSteel","RoseMarble","OnyxMarble","Classic"})
   foreach(var scale in new[]{1d,1.5})
   foreach(var mode in new[]{"Normal","Single","Karaoke","Focus"})
   {
@@ -108,6 +109,7 @@ internal static class Check
    Find<Border>("DeckBPlayerControlsPanel").Visibility=single?Visibility.Collapsed:Visibility.Visible;
    Find<Border>("DeckBSideListControlsPanel").Visibility=single?Visibility.Visible:Visibility.Collapsed;
    engine.Apply(skin,karaoke,single);
+   if(skin=="Classic") Require(ReferenceEquals(w.Background,originalBackground) && ReferenceEquals(w.Resources["PanelBrush"],originalPanel), "Classic original brushes must be restored after texture skins");
    Require(all.ToHashSet().SetEquals(Walk(layout).OfType<Control>()),skin+": control instances changed");
    if(focus) Require(Grid.GetColumn(Find<Grid>("KaraokeFocusSingerHost"))==Grid.GetColumn(Find<Grid>("MusicDeckBPanel")) && Grid.GetRow(Find<Grid>("KaraokeFocusSingerHost"))==Grid.GetRow(Find<Grid>("MusicDeckBPanel")), "Focus overlaps a different skin panel");
    foreach(var key in w.Resources.Keys.OfType<string>().Where(k=>k.StartsWith("HostFont")).ToArray())

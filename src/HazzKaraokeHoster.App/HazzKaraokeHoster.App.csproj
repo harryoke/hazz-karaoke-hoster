@@ -23,6 +23,7 @@
     <Content Include="..\..\ThirdParty\**\*" Link="ThirdParty\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="XamlAnimatedGif" Version="2.3.2" />
     <Resource Include="Assets\HazzKaraokeLogo.png" />
+    <Resource Include="Assets\Skins\*.png" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HazzKaraokeHoster.Core\HazzKaraokeHoster.Core.csproj" />
