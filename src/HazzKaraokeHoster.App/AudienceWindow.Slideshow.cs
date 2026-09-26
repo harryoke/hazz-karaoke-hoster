@@ -1,4 +1,7 @@
 using System.IO;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using HazzKaraokeHoster.Core.Models;
@@ -7,7 +10,8 @@ namespace HazzKaraokeHoster.App;
 
 public partial class AudienceWindow
 {
-    private readonly DispatcherTimer _slideshowTimer = new() { Interval = TimeSpan.FromMinutes(1) };
+    private readonly DispatcherTimer _slideshowTimer = new() { Interval = TimeSpan.FromSeconds(60) };
+    private readonly Random _slideshowRandom = new();
     private CancellationTokenSource? _slideshowCts;
     private string _slideshowFolder = string.Empty;
     private string _lastSlide = string.Empty;
@@ -15,12 +19,104 @@ public partial class AudienceWindow
     private bool _slideshowHooked;
     private string _backgroundVideoPath = string.Empty;
     private string _backgroundGifPath = string.Empty;
+    private double _slideshowSeconds = 60;
+    private string _slideshowTransition = "Fade";
     private static bool IsBackgroundGif(string path) => string.Equals(Path.GetExtension(path), ".gif", StringComparison.OrdinalIgnoreCase);
 
     private double _backgroundGifSpeed = 1;
     private CancellationTokenSource? _gifLoadCts;
     private MemoryStream? _gifStream;
     private const long MaximumGifBytes = 128L * 1024 * 1024;
+
+    private void SetSlideshowEnhancementOptions(double seconds, string transition)
+    {
+        seconds = double.IsFinite(seconds) ? Math.Clamp(seconds, 20, 60) : 60;
+        transition = transition switch
+        {
+            "Cut" or "Fade" or "Slide Left" or "Slide Right" or "Zoom" or "Random" => transition,
+            _ => "Fade"
+        };
+
+        var intervalChanged = Math.Abs(_slideshowSeconds - seconds) > 0.01;
+        _slideshowSeconds = seconds;
+        _slideshowTransition = transition;
+        _slideshowTimer.Interval = TimeSpan.FromSeconds(_slideshowSeconds);
+
+        if (intervalChanged && _slideshowTimer.IsEnabled)
+        {
+            // A slider change starts a fresh interval instead of unexpectedly advancing immediately.
+            _slideshowTimer.Stop();
+            _slideshowTimer.Start();
+        }
+    }
+
+    private string ResolveSlideshowTransition()
+    {
+        if (!string.Equals(_slideshowTransition, "Random", StringComparison.OrdinalIgnoreCase))
+            return _slideshowTransition;
+        var choices = new[] { "Fade", "Slide Left", "Slide Right", "Zoom" };
+        return choices[_slideshowRandom.Next(choices.Length)];
+    }
+
+    private void AnimateSlideshowElement(FrameworkElement element)
+    {
+        if (element.Visibility != Visibility.Visible)
+        {
+            SingerBackgroundTransitionImage.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var transition = ResolveSlideshowTransition();
+        var finalOpacity = Math.Clamp(element.Opacity, 0, 1);
+        element.BeginAnimation(UIElement.OpacityProperty, null);
+        element.RenderTransform = Transform.Identity;
+        element.RenderTransformOrigin = new Point(0.5, 0.5);
+
+        if (string.Equals(transition, "Cut", StringComparison.OrdinalIgnoreCase))
+        {
+            element.Opacity = finalOpacity;
+            SingerBackgroundTransitionImage.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var duration = new Duration(TimeSpan.FromMilliseconds(750));
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var group = new TransformGroup();
+        var scale = new ScaleTransform(1, 1);
+        var translate = new TranslateTransform(0, 0);
+        group.Children.Add(scale);
+        group.Children.Add(translate);
+        element.RenderTransform = group;
+
+        var opacity = new DoubleAnimation(0, finalOpacity, duration) { EasingFunction = ease };
+        opacity.Completed += (_, _) =>
+        {
+            element.Opacity = finalOpacity;
+            SingerBackgroundTransitionImage.Visibility = Visibility.Collapsed;
+            SingerBackgroundTransitionImage.Source = null;
+        };
+        element.BeginAnimation(UIElement.OpacityProperty, opacity);
+
+        if (string.Equals(transition, "Slide Left", StringComparison.OrdinalIgnoreCase))
+        {
+            var distance = Math.Max(160, Root.ActualWidth * 0.18);
+            translate.BeginAnimation(TranslateTransform.XProperty,
+                new DoubleAnimation(distance, 0, duration) { EasingFunction = ease });
+        }
+        else if (string.Equals(transition, "Slide Right", StringComparison.OrdinalIgnoreCase))
+        {
+            var distance = Math.Max(160, Root.ActualWidth * 0.18);
+            translate.BeginAnimation(TranslateTransform.XProperty,
+                new DoubleAnimation(-distance, 0, duration) { EasingFunction = ease });
+        }
+        else if (string.Equals(transition, "Zoom", StringComparison.OrdinalIgnoreCase))
+        {
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty,
+                new DoubleAnimation(0.86, 1, duration) { EasingFunction = ease });
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty,
+                new DoubleAnimation(0.86, 1, duration) { EasingFunction = ease });
+        }
+    }
 
     private async void SetBackgroundGif(string path)
     {
@@ -44,7 +140,7 @@ public partial class AudienceWindow
             await Task.Run(() => GifPlaybackTiming.ScaleDelays(bytes, speed), cts.Token);
             if (cts.IsCancellationRequested) return;
             _gifStream = new MemoryStream(bytes, writable: false);
-            XamlAnimatedGif.AnimationBehavior.SetRepeatBehavior(SingerBackgroundGif, System.Windows.Media.Animation.RepeatBehavior.Forever);
+            XamlAnimatedGif.AnimationBehavior.SetRepeatBehavior(SingerBackgroundGif, RepeatBehavior.Forever);
             XamlAnimatedGif.AnimationBehavior.SetSourceStream(SingerBackgroundGif, _gifStream);
         }
         catch (OperationCanceledException) { }
@@ -73,16 +169,16 @@ public partial class AudienceWindow
         }
     }
 
-    private void BackgroundVideo_Ended(object sender, System.Windows.RoutedEventArgs e)
+    private void BackgroundVideo_Ended(object sender, RoutedEventArgs e)
     {
         if (_backgroundVideoPath.Length == 0) return;
         SingerBackgroundVideo.Position = TimeSpan.Zero;
         SingerBackgroundVideo.Play();
     }
 
-    private void BackgroundVideo_Failed(object sender, System.Windows.ExceptionRoutedEventArgs e)
+    private void BackgroundVideo_Failed(object sender, ExceptionRoutedEventArgs e)
     {
-        // Keep the one-minute slot, then advance; never interrupt the show with a media dialog.
+        // Keep the selected slideshow slot, then advance; never interrupt the show with a media dialog.
         SetBackgroundVideo(string.Empty);
         SetBackgroundGif(string.Empty);
         UpdateOverlayLayerVisibility();
@@ -96,12 +192,17 @@ public partial class AudienceWindow
         _slideshowCts = null;
         _slideshowFolder = string.Empty;
         _lastSlide = string.Empty;
+        SingerBackgroundTransitionImage.Visibility = Visibility.Collapsed;
+        SingerBackgroundTransitionImage.Source = null;
         SetBackgroundVideo(string.Empty);
         SetBackgroundGif(string.Empty);
     }
 
     private void ConfigureBackgroundSlideshow(AudienceOverlaySettings settings)
     {
+        var enhancements = AudienceEnhancementSettingsStore.Load();
+        SetSlideshowEnhancementOptions(enhancements.SlideshowSeconds, enhancements.SlideshowTransition);
+
         var speed = double.IsFinite(settings.BackgroundGifSpeed) ? Math.Clamp(settings.BackgroundGifSpeed, 0.25, 4) : 1;
         if (_backgroundGifSpeed != speed)
         {
@@ -186,28 +287,51 @@ public partial class AudienceWindow
                         bitmap.Freeze();
                         return (Path: path, Image: (BitmapSource?)bitmap);
                     }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or System.IO.FileFormatException or ArgumentException)
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or FileFormatException or ArgumentException)
                     { /* Skip unreadable images and try the next file. */ }
                 }
                 return (Path: string.Empty, Image: (BitmapSource?)null);
             }, token);
             if (token.IsCancellationRequested) return;
+
+            // Keep the previous still image underneath the incoming item during the animation.
+            if (SingerBackgroundImage.Source is not null && SingerBackgroundImage.Visibility == Visibility.Visible)
+            {
+                SingerBackgroundTransitionImage.Source = SingerBackgroundImage.Source;
+                SingerBackgroundTransitionImage.Stretch = SingerBackgroundImage.Stretch;
+                SingerBackgroundTransitionImage.Opacity = SingerBackgroundImage.Opacity;
+                SingerBackgroundTransitionImage.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                SingerBackgroundTransitionImage.Visibility = Visibility.Collapsed;
+                SingerBackgroundTransitionImage.Source = null;
+            }
+
             _lastSlide = slide.Path;
-            SetBackgroundVideo(IsBackgroundVideo(slide.Path) ? slide.Path : string.Empty);
-            SetBackgroundGif(IsBackgroundGif(slide.Path) ? slide.Path : string.Empty);
-            SingerBackgroundImage.Source = IsBackgroundGif(slide.Path) ? null : slide.Image;
-            // Give each successfully loaded item a full minute, including a looping video.
+            var isVideo = IsBackgroundVideo(slide.Path);
+            var isGif = IsBackgroundGif(slide.Path);
+            SetBackgroundVideo(isVideo ? slide.Path : string.Empty);
+            SetBackgroundGif(isGif ? slide.Path : string.Empty);
+            SingerBackgroundImage.Source = isGif || isVideo ? null : slide.Image;
+
             _slideshowTimer.Stop();
             _slideshowTimer.Start();
             UpdateOverlayLayerVisibility();
+
+            if (isVideo) AnimateSlideshowElement(SingerBackgroundVideo);
+            else if (isGif) AnimateSlideshowElement(SingerBackgroundGif);
+            else AnimateSlideshowElement(SingerBackgroundImage);
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            // A disconnected/deleted folder is retried at the next interval.
+            // A disconnected/deleted folder is retried at the next selected interval.
             if (!token.IsCancellationRequested)
             {
                 SingerBackgroundImage.Source = null;
+                SingerBackgroundTransitionImage.Source = null;
+                SingerBackgroundTransitionImage.Visibility = Visibility.Collapsed;
                 SetBackgroundVideo(string.Empty);
                 SetBackgroundGif(string.Empty);
                 UpdateOverlayLayerVisibility();
