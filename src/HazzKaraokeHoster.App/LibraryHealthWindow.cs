@@ -161,7 +161,7 @@ internal sealed class LibraryHealthWindow : Window
                 _status.Text = $"Scanning… {scanned:N0} / {total:N0} tracks • {_issues.Count:N0} issues found";
 
                 if (!page.HasNext) break;
-                await Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
             }
 
             _status.Text = $"Scan complete: {scanned:N0} karaoke tracks checked • {_issues.Count:N0} issues found. Select a row to repair it. No media files were changed.";
