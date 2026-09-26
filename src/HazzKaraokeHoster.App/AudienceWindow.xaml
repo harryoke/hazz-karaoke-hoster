@@ -34,13 +34,31 @@
   <!-- Persistent logo: deliberately above CD+G and video. -->
   <Image x:Name="AudienceLogoImage" Panel.ZIndex="100" Stretch="Uniform" Visibility="Collapsed" IsHitTestVisible="False" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="24"/>
 
+  <!-- Optional venue branding and live queue summary for the between-song view. -->
+  <Border x:Name="VenueHeaderPanel" Panel.ZIndex="108" Background="#B5000000" BorderBrush="#44FFFFFF" BorderThickness="1" Padding="20,8" CornerRadius="7" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="30,66,30,0" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+   <TextBlock x:Name="VenueHeaderText" TextAlignment="Center" TextWrapping="Wrap" FontSize="28" FontWeight="Bold" Foreground="#FFFFD34D"/>
+  </Border>
+  <Border x:Name="QueueStatusPanel" Panel.ZIndex="109" Background="#B5000000" BorderBrush="#44FFFFFF" BorderThickness="1" Padding="14,7" CornerRadius="7" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30,66,30,0" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+   <TextBlock x:Name="QueueStatusText" FontSize="20" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap"/>
+  </Border>
+
   <!-- Kamikaze announcement replaces the normal singer information until the next karaoke track starts. -->
   <Border x:Name="KamikazePanel" Panel.ZIndex="115" Background="#C8000000" Padding="34,24" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40" Visibility="Collapsed" MaxWidth="1120">
    <local:StrokeTextBlock x:Name="KamikazeTextBlock" Text="KAMIKAZE KARAOKE!" TextAlignment="Center" TextWrapping="Wrap" FontSize="84" FontWeight="Black" Foreground="#FFD34D"/>
   </Border>
 
+  <!-- Automatic between-song call-up card for the next singer. -->
+  <Border x:Name="SingerCallUpPanel" Panel.ZIndex="122" Background="#E0000000" BorderBrush="#FFFFD34D" BorderThickness="2" Padding="42,28" CornerRadius="14" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="60" Visibility="Collapsed" MaxWidth="1120" RenderTransformOrigin="0.5,0.5">
+   <StackPanel>
+    <TextBlock Text="NEXT SINGER" FontSize="28" FontWeight="Bold" Foreground="#FFFFD34D" HorizontalAlignment="Center"/>
+    <TextBlock x:Name="SingerCallUpNameText" FontSize="72" FontWeight="Black" Foreground="White" TextAlignment="Center" TextWrapping="Wrap" Margin="0,4,0,2"/>
+    <TextBlock x:Name="SingerCallUpSongText" FontSize="30" Foreground="#FFD8E2EF" TextAlignment="Center" TextWrapping="Wrap"/>
+    <TextBlock Text="Please make your way to the microphone" FontSize="22" Foreground="#FFB8C7D5" TextAlignment="Center" Margin="0,10,0,0"/>
+   </StackPanel>
+  </Border>
+
   <!-- Brief current-performer card when a karaoke track begins. -->
-  <Border x:Name="NowSingingPanel" Panel.ZIndex="121" Background="#C8000000" BorderBrush="#55FFFFFF" BorderThickness="1" Padding="22,14" CornerRadius="9" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30" Visibility="Collapsed" MaxWidth="900">
+  <Border x:Name="NowSingingPanel" Panel.ZIndex="121" Background="#C8000000" BorderBrush="#55FFFFFF" BorderThickness="1" Padding="22,14" CornerRadius="9" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30" Visibility="Collapsed" MaxWidth="900" RenderTransformOrigin="0.5,0.5">
    <StackPanel>
     <TextBlock Text="NOW SINGING" FontSize="22" FontWeight="Bold" Foreground="#FFFFD34D"/>
     <TextBlock x:Name="NowSingingSingerText" FontSize="46" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
@@ -49,7 +67,7 @@
   </Border>
 
   <!-- Host-triggered temporary venue announcement. -->
-  <Border x:Name="AnnouncementPanel" Panel.ZIndex="130" Background="#E0000000" BorderBrush="#FFFFD34D" BorderThickness="2" Padding="36,24" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="50" Visibility="Collapsed" MaxWidth="1120">
+  <Border x:Name="AnnouncementPanel" Panel.ZIndex="130" Background="#E0000000" BorderBrush="#FFFFD34D" BorderThickness="2" Padding="36,24" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="50" Visibility="Collapsed" MaxWidth="1120" RenderTransformOrigin="0.5,0.5">
    <TextBlock x:Name="AnnouncementText" TextAlignment="Center" TextWrapping="Wrap" FontSize="54" FontWeight="Bold" Foreground="White"/>
   </Border>
 
