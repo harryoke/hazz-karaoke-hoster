@@ -10,7 +10,6 @@ public interface ILibraryRepository
     Task<SongRecord?> FindByFilePathAsync(string filePath, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SongRecord>> FindAlternativesAsync(string artist, string title, string? excludeFilePath = null, int limit = 100, CancellationToken cancellationToken = default);
     Task<long> UpsertSongAsync(SongRecord song, CancellationToken cancellationToken = default);
-    Task RelinkSongAsync(long songId, string newFilePath, long fileSize, string? format = null, CancellationToken cancellationToken = default);
     Task SaveTrackPreferencesAsync(long songId, int keyChange, double cdgSyncSeconds, CancellationToken cancellationToken = default);
     Task SaveDurationAsync(long songId, double durationSeconds, CancellationToken cancellationToken = default);
     Task<int> DeleteSongsAsync(IEnumerable<long> songIds, CancellationToken cancellationToken = default);
