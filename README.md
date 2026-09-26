@@ -1,7 +1,9 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.74.7** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.7 instructions](Documentation/RELEASE_v1.74.7.md).
+Current release: **v1.74.8** — dedicated Music Video imports/library, previous-search reopening on focus, and an expanded music-video transition set including Random Fancy. [v1.74.8 instructions](Documentation/RELEASE_v1.74.8.md).
 
+
+**v1.74.8 patch:** broad Karaoke searches no longer stop at 300 results, and Disc sorting now uses natural numeric order without dropping valid matches.
 
 **v1.74.7 patch:** Music Playlists & History now includes a safe Delete Playlist option. It removes only the selected playlist/database entries, never media files or Music History.
 
