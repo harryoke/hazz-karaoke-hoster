@@ -123,10 +123,6 @@ public partial class MainWindow : Window
     private SingerSongEntry? _activeSingerSong;
     private bool _activeSingerSongCheckedOut;
     private SongRecord? _currentKaraokeRecord;
-    private IReadOnlyList<SongRecord> _alternativeCandidates = Array.Empty<SongRecord>();
-    private int _alternativeIndex;
-    private string _alternativeArtist = string.Empty;
-    private string _alternativeTitle = string.Empty;
     private DateTime _lastTimelineUiUtc = DateTime.MinValue;
     private double _lastPreviewHeight = 250;
     private double _deckBPlayerHeightBeforeSideList = 205;
@@ -2480,12 +2476,12 @@ public partial class MainWindow : Window
 
     private void OpenSingerSongsWindow(SingerQueueEntry singer)
     {
+        var existing = Application.Current.Windows.OfType<SingerSongsWindow>().FirstOrDefault(w => ReferenceEquals(w.Singer, singer));
+        if (existing is not null) { existing.Activate(); return; }
         var window = new SingerSongsWindow(singer, _singers, _library,
             (songId, artist, title) => ConfirmDuplicateRequestAsync(singer, songId, artist, title)) { Owner = this };
-        window.ShowDialog();
-        singer.RefreshSongSummary();
-        QueueList.Items.Refresh();
-        UpdateAudienceNext();
+        window.Closed += (_, _) => { singer.RefreshSongSummary(); QueueList.Items.Refresh(); UpdateAudienceNext(); };
+        window.Show(); // Keep the host enabled so queued songs can be dragged to its karaoke deck.
     }
 
     private void QueueList_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
@@ -3146,7 +3142,8 @@ public partial class MainWindow : Window
         var karaokeRecord = e.Data.GetData(typeof(SongRecord)) as SongRecord;
         var filePaths = e.Data.GetData(DataFormats.FileDrop) as string[];
         var supportedFile = filePaths?.FirstOrDefault(IsSupportedKaraokeDropPath);
-        e.Effects = (karaokeRecord is not null && !IsMusicDeckMedia(karaokeRecord)) || supportedFile is not null
+        var queued = e.Data.GetData(typeof(SingerSongEntry)) as SingerSongEntry;
+        e.Effects = queued is not null ? DragDropEffects.Move : (karaokeRecord is not null && !IsMusicDeckMedia(karaokeRecord)) || supportedFile is not null
             ? DragDropEffects.Copy
             : DragDropEffects.None;
         e.Handled = true;
@@ -3155,9 +3152,16 @@ public partial class MainWindow : Window
     private async void KaraokeDeck_Drop(object sender, DragEventArgs e)
     {
         e.Handled = true;
-        if (_karaokePlaying || _karaokePresentationActive)
+        if (_karaokePlaying || _karaokePaused || _karaokePresentationActive || _callingNextSinger)
         {
             UpdateMusicAutomationStatus("Fade Stop the current karaoke song before loading another track");
+            return;
+        }
+
+        if (e.Data.GetData(typeof(SingerSongEntry)) is SingerSongEntry queued)
+        {
+            var owner = _queue.FirstOrDefault(s => s.Songs.Contains(queued));
+            if (owner is not null) await LoadQueuedChoiceAsync(owner, queued);
             return;
         }
 
@@ -3188,15 +3192,8 @@ public partial class MainWindow : Window
     private static bool IsSupportedKaraokeDropPath(string? path)
         => !string.IsNullOrWhiteSpace(path) && MediaFileClassifier.Classify(path) != HazzMediaKind.Unknown;
 
-    private async Task<bool> LoadKaraokeAsync(string path, bool preserveAlternativeCycle = false)
+    private async Task<bool> LoadKaraokeAsync(string path)
     {
-        if (!preserveAlternativeCycle)
-        {
-            _alternativeCandidates = Array.Empty<SongRecord>();
-            _alternativeIndex = 0;
-            _alternativeArtist = string.Empty;
-            _alternativeTitle = string.Empty;
-        }
         KaraokeNowText.Text = "Loading " + Path.GetFileName(path) + "...";
         KaraokePackage? candidate = null;
         CdgDecoder? candidateDecoder = null;
@@ -3210,7 +3207,7 @@ public partial class MainWindow : Window
                 candidateDecoder = new CdgDecoder();
                 candidateDecoder.Load(bytes);
             }
-            ReplaceKaraokePackage(candidate, candidateDecoder, preserveAlternativeCycle);
+            ReplaceKaraokePackage(candidate, candidateDecoder);
             candidate = null;
             try
             {
@@ -3559,92 +3556,6 @@ public partial class MainWindow : Window
     {
         KaraokeMedia.Volume = KaraokePlaybackVolume;
         _pitchAudio.SetVolume(KaraokePlaybackVolume);
-    }
-
-    private async void FindAlternative_Click(object sender, RoutedEventArgs e)
-    {
-        var artist = (_activeSingerSong?.Artist ?? _currentKaraokeRecord?.Artist ?? string.Empty).Trim();
-        var title = (_activeSingerSong?.SongTitle ?? _currentKaraokeRecord?.Title ?? string.Empty).Trim();
-        var currentPath = _karaokePackage?.SourcePath ?? _activeSingerSong?.FilePath ?? _currentKaraokeRecord?.FilePath;
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            MessageBox.Show("Hazz needs an indexed Artist + Song Title to find another version. Load this track from the karaoke library/search first.",
-                "Find Alternative", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        try
-        {
-            if (_alternativeCandidates.Count == 0 ||
-                !string.Equals(_alternativeArtist, artist, StringComparison.OrdinalIgnoreCase) ||
-                !string.Equals(_alternativeTitle, title, StringComparison.OrdinalIgnoreCase))
-            {
-                _alternativeCandidates = await _library.FindAlternativesAsync(artist, title, currentPath, 200, _lifetime.Token);
-                _alternativeArtist = artist;
-                _alternativeTitle = title;
-                _alternativeIndex = 0;
-            }
-
-            if (_alternativeCandidates.Count == 0)
-            {
-                MessageBox.Show("No other indexed karaoke versions of this artist/title were found.", "Find Alternative", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            if (_alternativeIndex >= _alternativeCandidates.Count) _alternativeIndex = 0;
-            var candidate = _alternativeCandidates[_alternativeIndex++];
-            if (!File.Exists(candidate.FilePath))
-            {
-                MessageBox.Show($"The next alternative is indexed but the file is missing:\n\n{candidate.FilePath}\n\nPress FIND ALTERNATIVE again for the next version.",
-                    "Find Alternative", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            var singerKey = _keyChange;
-            var loaded = await LoadKaraokeAsync(candidate.FilePath, preserveAlternativeCycle: true);
-            if (!loaded) return;
-
-            _currentKaraokeRecord = candidate;
-            _keyChange = singerKey;
-            KeyText.Text = $"{_keyChange:+0;-0;0}";
-            _pitchAudio.SetSemitones(_keyChange);
-            _cdgTiming.Set(SavedSync(candidate.FilePath, candidate.CdgSyncSeconds));
-            if (AutoSkipSilenceCheck?.IsChecked == true)
-                await SkipSilenceAsync(autoStart: true);
-            if (_activeSingerSong is not null)
-            {
-                _activeSingerSong.SongId = candidate.Id;
-                _activeSingerSong.FilePath = candidate.FilePath;
-                _activeSingerSong.CdgSyncSeconds = candidate.CdgSyncSeconds;
-            }
-
-            _kamikazeBannerRequested = false;
-            _audience?.HideKamikazeBanner();
-            var startedSingerPerformance = CheckoutActiveSingerSongForPerformance();
-            BeginMusicFadeForKaraoke();
-            _karaokePresentationActive = true;
-            _karaokePlaying = true;
-            _karaokePaused = false;
-            KaraokePauseButton.Content = "Ⅱ PAUSE";
-            _audience?.SetKaraokeActive(true);
-            ApplyCurrentKaraokeVisualToAudience();
-            KaraokeMedia.Position = TimeSpan.Zero;
-            if (_pitchAudio.IsLoaded) _pitchAudio.Play(TimeSpan.Zero);
-            KaraokeMedia.Play();
-            if (_karaokePackage?.Kind == KaraokePackageKind.Video) _audience?.PlayVideo(TimeSpan.Zero);
-            ShowNowSingingForActiveSingerTest();
-        if (startedSingerPerformance) await RecordActiveSingerHistoryAtPlayAsync();
-
-            var version = string.Join(" ", new[] { candidate.Manufacturer, candidate.DiscId }.Where(x => !string.IsNullOrWhiteSpace(x)));
-            KaraokeNowText.Text = string.IsNullOrWhiteSpace(version)
-                ? $"{artist} — {title} (alternative {_alternativeIndex}/{_alternativeCandidates.Count})"
-                : $"{artist} — {title} — {version} (alternative {_alternativeIndex}/{_alternativeCandidates.Count})";
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            MessageBox.Show(ex.Message, "Find Alternative", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
     }
 
     private async void Kamikaze_Click(object sender, RoutedEventArgs e)

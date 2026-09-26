@@ -18,7 +18,13 @@ public sealed class MusicQueueItem : INotifyPropertyChanged
     }
 
     public long? SongId { get; init; }
-    public string FilePath { get; init; } = string.Empty;
+    private string _filePath = string.Empty;
+    public string FilePath { get => _filePath; init => _filePath = value; }
+    public void RelinkPath(string path)
+    {
+        _filePath = path; _tagReadVersion++;
+        OnPropertyChanged(nameof(FilePath)); OnPropertyChanged(nameof(DisplayTitle));
+    }
     public string Artist { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
 

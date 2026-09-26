@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster
 
-Current release: **v1.8** — configurable audience cards, Call Next Singer, slideshow timing/transitions and playback/display fixes. [Release notes](Documentation/RELEASE_v1.8.md) · [New audience controls](Documentation/AUDIENCE_DISPLAY_v1.8.md).
+Current release: **v1.9** — Library Health Centre, smarter alternative-version matching, singer-song drag-to-deck and improved automatic loudness matching. [What's new and step-by-step instructions](Documentation/RELEASE_v1.9.md).
 
 Made For KJ/DJ's By A KJ/DJ
 

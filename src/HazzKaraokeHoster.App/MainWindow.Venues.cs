@@ -17,6 +17,7 @@ public partial class MainWindow
         public UiLayoutSettings Layout { get; set; } = new();
         public SoundRoutes Routes { get; set; } = new();
         public bool Normalize { get; set; }
+        public double MaxBoostDb { get; set; } = 12;
         public double TargetDb { get; set; } = -18;
         public double Deck1Volume { get; set; } = 0.85;
         public double Deck2Volume { get; set; } = 0.85;
@@ -85,7 +86,7 @@ public partial class MainWindow
             var existing = profiles.FirstOrDefault(x => string.Equals(x.Name, title, StringComparison.OrdinalIgnoreCase));
             if (existing is not null && MessageBox.Show(window, $"Replace the saved settings for '{title}' with the current setup?", "Update Venue", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
             SaveMainLayout();
-            var profile = new VenueProfile { Id = existing?.Id ?? Guid.NewGuid(), Name = title, Layout = UiLayoutSettingsStore.Load(), Routes = JsonSerializer.Deserialize<SoundRoutes>(JsonSerializer.Serialize(_soundRoutes))!, Normalize = AudioNormalization.Enabled, TargetDb = AudioNormalization.TargetDb, Deck1Volume = DeckAVolume.Value, Deck2Volume = DeckBVolume.Value, AutoCrossfade = AutoCrossfadeCheck.IsChecked == true, CrossfadeSeconds = CrossfadeSecondsSlider.Value, DisplayIndex = DisplayCombo.SelectedIndex };
+            var profile = new VenueProfile { Id = existing?.Id ?? Guid.NewGuid(), Name = title, Layout = UiLayoutSettingsStore.Load(), Routes = JsonSerializer.Deserialize<SoundRoutes>(JsonSerializer.Serialize(_soundRoutes))!, Normalize = AudioNormalization.Enabled, MaxBoostDb = AudioNormalization.MaxBoostDb, TargetDb = AudioNormalization.TargetDb, Deck1Volume = DeckAVolume.Value, Deck2Volume = DeckBVolume.Value, AutoCrossfade = AutoCrossfadeCheck.IsChecked == true, CrossfadeSeconds = CrossfadeSecondsSlider.Value, DisplayIndex = DisplayCombo.SelectedIndex };
             profile.SingerSnapshot = existing?.SingerSnapshot;
             profile.LastAutomaticSnapshot = existing?.LastAutomaticSnapshot;
             profile.SingerRoster = existing?.SingerRoster ?? new();
@@ -109,8 +110,9 @@ public partial class MainWindow
             KaraokeMedia.Stop();
             KaraokeMedia.Source = null;
             AudioNormalization.Enabled = profile.Normalize;
+            AudioNormalization.MaxBoostDb = profile.MaxBoostDb;
             AudioNormalization.TargetDb = profile.TargetDb;
-            File.WriteAllText(NormalizationPath, JsonSerializer.Serialize(new NormalizationSettings { Enabled = profile.Normalize, TargetDb = profile.TargetDb }));
+            File.WriteAllText(NormalizationPath, JsonSerializer.Serialize(new NormalizationSettings { Enabled = profile.Normalize, TargetDb = profile.TargetDb, MaxBoostDb = profile.MaxBoostDb }));
             DeckAVolume.Value = Math.Clamp(profile.Deck1Volume, 0, 1); DeckBVolume.Value = Math.Clamp(profile.Deck2Volume, 0, 1);
             AutoCrossfadeCheck.IsChecked = profile.AutoCrossfade;
             CrossfadeSecondsSlider.Value = Math.Clamp(profile.CrossfadeSeconds, CrossfadeSecondsSlider.Minimum, CrossfadeSecondsSlider.Maximum);

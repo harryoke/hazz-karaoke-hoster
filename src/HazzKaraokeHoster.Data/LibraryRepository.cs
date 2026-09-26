@@ -91,53 +91,31 @@ FROM songs WHERE file_path=$path LIMIT 1;
         title = (title ?? string.Empty).Trim();
         if (title.Length == 0) return Array.Empty<SongRecord>();
 
-        IReadOnlyList<SongRecord> candidates;
-        try
-        {
-            candidates = await SearchByKindAsync(string.Join(' ', new[] { artist, title }.Where(x => !string.IsNullOrWhiteSpace(x))), "Karaoke", 1500, cancellationToken);
-        }
-        catch
-        {
-            candidates = Array.Empty<SongRecord>();
-        }
-
-        // FTS can be too strict for punctuation-heavy titles. Fall back to a title/artist query.
-        if (candidates.Count == 0)
-        {
-            await using var connection = new SqliteConnection(database.ConnectionString);
-            await connection.OpenAsync(cancellationToken);
-            await using var command = connection.CreateCommand();
-            command.CommandText = """
-SELECT id, artist, title, manufacturer, disc_id, file_path, format,
-       file_size, date_added, cdg_sync_seconds, preferred_key, media_kind, duration_seconds
-FROM songs
-WHERE media_kind='Karaoke'
-  AND title LIKE $title COLLATE NOCASE
-  AND ($artist='' OR artist LIKE $artist COLLATE NOCASE)
-LIMIT 1500;
+        // Retrieve by significant words in either metadata field, then rank in memory.
+        // This is run on a worker by the picker, never on the WPF dispatcher.
+        var words = AlternativeMatch.Words(title + " " + artist).Where(w => w.Length > 1).Distinct().ToArray();
+        if (words.Length == 0) return Array.Empty<SongRecord>();
+        await using var connection = new SqliteConnection(database.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+SELECT s.id,s.artist,s.title,s.manufacturer,s.disc_id,s.file_path,s.format,
+ s.file_size,s.date_added,s.cdg_sync_seconds,s.preferred_key,s.media_kind,s.duration_seconds
+FROM songs_fts f JOIN songs s ON s.id=f.rowid
+WHERE songs_fts MATCH $q AND s.media_kind='Karaoke'
+ORDER BY bm25(songs_fts) LIMIT 10000;
 """;
-            command.Parameters.AddWithValue("$title", $"%{title}%");
-            command.Parameters.AddWithValue("$artist", artist.Length == 0 ? string.Empty : $"%{artist}%");
-            var temp = new List<SongRecord>();
-            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken)) temp.Add(ReadSong(reader));
-            candidates = temp;
-        }
-
-        var artistKey = Normalize(artist);
-        var titleKey = Normalize(title);
+        command.Parameters.AddWithValue("$q", "{artist title} : (" + string.Join(" OR ", words.Select(w => "\"" + w + "\"")) + ")");
+        var candidates = new List<SongRecord>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken)) candidates.Add(ReadSong(reader));
         var result = candidates
-            .Where(s => string.Equals(s.MediaKind, "Karaoke", StringComparison.OrdinalIgnoreCase))
             .Where(s => string.IsNullOrWhiteSpace(excludeFilePath) || !PathEquals(s.FilePath, excludeFilePath))
-            .Where(s => artistKey.Length == 0 || Normalize(s.Artist) == artistKey)
-            .Where(s => IsLooseTitleMatch(titleKey, Normalize(s.Title)))
-            .GroupBy(s => Path.GetFullPath(s.FilePath), StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.First())
-            .OrderBy(s => s.Manufacturer)
-            .ThenBy(s => s.DiscId)
-            .ThenBy(s => s.FilePath)
-            .Take(Math.Clamp(limit, 1, 500))
-            .ToList();
+            .Select(s => (Song: s, Score: AlternativeMatch.Score(artist, title, s)))
+            .Where(x => x.Score > 0).OrderByDescending(x => x.Score)
+            .ThenBy(x => x.Song.Manufacturer).ThenBy(x => x.Song.DiscId)
+            .Select(x => x.Song).DistinctBy(s => s.FilePath, StringComparer.OrdinalIgnoreCase)
+            .Take(Math.Clamp(limit, 1, 500)).ToList();
         return result;
     }
 

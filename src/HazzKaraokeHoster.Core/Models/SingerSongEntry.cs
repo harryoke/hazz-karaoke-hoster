@@ -69,6 +69,13 @@ public sealed class SingerSongEntry : INotifyPropertyChanged
         }
     }
 
+    public void ReplaceRecording(SongRecord recording)
+    {
+        SongId = recording.Id; FilePath = recording.FilePath; Artist = recording.Artist;
+        SongTitle = recording.Title; DurationSeconds = recording.DurationSeconds;
+        // Keep this request's identity, key and sync; the owning rotation/list is unchanged.
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

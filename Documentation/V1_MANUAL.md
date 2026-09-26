@@ -1,3 +1,5 @@
+> **v1.9 additions:** [Library Health Centre, alternative versions, singer-song drag-to-deck and loudness matching — step-by-step guide](RELEASE_v1.9.md).
+
 # v1.8 update
 
 Read the [step-by-step v1.8 audience guide](AUDIENCE_DISPLAY_v1.8.md) for Call Next Singer, announcements, fonts, queue status and slideshow transitions. The base guide follows.

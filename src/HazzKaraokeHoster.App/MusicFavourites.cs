@@ -12,6 +12,14 @@ public sealed class MusicFavourites(string path)
         ? new(JsonSerializer.Deserialize<string[]>(File.ReadAllText(path)) ?? throw new InvalidDataException("Favourites file is empty."), StringComparer.OrdinalIgnoreCase)
         : new(StringComparer.OrdinalIgnoreCase);
     public bool Contains(string file) { lock (_gate) return Items.Contains(Path.GetFullPath(file)); }
+    public void CopyPaths(IReadOnlyDictionary<string,string> paths)
+    {
+        lock (_gate)
+        {
+            var additions = Items.Where(paths.ContainsKey).Select(p => paths[p]).ToArray();
+            if (additions.Length > 0) Set(additions, true);
+        }
+    }
     public void Set(IEnumerable<string> files, bool favourite)
     {
         lock (_gate)

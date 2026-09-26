@@ -36,6 +36,7 @@ public partial class SingerSongsWindow : Window
         Loaded += async (_, _) => await LoadHistoryAsync();
     }
 
+    public SingerQueueEntry Singer => _singer;
     public long? SingerId => _singer.SingerId;
 
     private SingerSongEntry? SelectedSong => SongGrid.SelectedItem as SingerSongEntry;
