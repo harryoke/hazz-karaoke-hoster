@@ -64,7 +64,7 @@ internal sealed class AudienceOverlayStyleEditor : Expander
         Content = root;
         root.Children.Add(new TextBlock
         {
-            Text = "All colours accept #RRGGBB or #AARRGGBB. Text, fonts, sizes, colours and positions are saved and applied live to the audience display.",
+            Text = "Text, fonts, sizes, colours and positions are saved and applied live. Use PICK for colours; the existing transparency is preserved when a new RGB colour is chosen.",
             Foreground = Brushes.LightGray,
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 0, 0, 8)
@@ -244,6 +244,7 @@ internal sealed class AudienceOverlayStyleEditor : Expander
         row.Children.Add(Caption("Text", 32));
         var color = ColorBox(style.TextColor);
         row.Children.Add(color);
+        row.Children.Add(ColorPickButton(color));
         host.Children.Add(row);
         return new StyleFields(font, size, sizeText, color);
     }
@@ -254,6 +255,7 @@ internal sealed class AudienceOverlayStyleEditor : Expander
         row.Children.Add(Caption(label, 132));
         var box = ColorBox(value);
         row.Children.Add(box);
+        row.Children.Add(ColorPickButton(box));
         host.Children.Add(row);
         return box;
     }
@@ -269,6 +271,47 @@ internal sealed class AudienceOverlayStyleEditor : Expander
         };
         box.TextChanged += (_, _) => Changed();
         return box;
+    }
+
+    private Button ColorPickButton(TextBox target)
+    {
+        var button = new Button
+        {
+            Content = "PICK",
+            Padding = new Thickness(7, 2, 7, 2),
+            Margin = new Thickness(2, 1, 3, 1),
+            ToolTip = "Choose a colour. If the current value contains transparency, its alpha value is preserved."
+        };
+        button.Click += (_, _) => PickColor(target);
+        return button;
+    }
+
+    private void PickColor(TextBox target)
+    {
+        var (alpha, red, green, blue) = ParseArgb(target.Text);
+        using var dialog = new System.Windows.Forms.ColorDialog
+        {
+            FullOpen = true,
+            Color = System.Drawing.Color.FromArgb(red, green, blue)
+        };
+        if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+        target.Text = $"#{alpha:X2}{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}";
+    }
+
+    private static (byte Alpha, byte Red, byte Green, byte Blue) ParseArgb(string? value)
+    {
+        var hex = (value ?? string.Empty).Trim().TrimStart('#');
+        try
+        {
+            if (hex.Length == 8)
+                return (Convert.ToByte(hex[..2], 16), Convert.ToByte(hex.Substring(2, 2), 16),
+                    Convert.ToByte(hex.Substring(4, 2), 16), Convert.ToByte(hex.Substring(6, 2), 16));
+            if (hex.Length == 6)
+                return (255, Convert.ToByte(hex[..2], 16), Convert.ToByte(hex.Substring(2, 2), 16),
+                    Convert.ToByte(hex.Substring(4, 2), 16));
+        }
+        catch { }
+        return (255, 255, 255, 255);
     }
 
     private static StackPanel Row() => new()
