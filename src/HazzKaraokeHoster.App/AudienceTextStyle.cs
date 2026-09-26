@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
@@ -79,5 +80,50 @@ public sealed class AudienceTextStyle
         target.FontFamily = new FontFamily(Font);
         target.FontSize = Size;
         target.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(Colour));
+        ApplyPanelAppearanceIfCanonical(target);
+    }
+
+    private void ApplyPanelAppearanceIfCanonical(TextBlock target)
+    {
+        if (target.Name is not ("SingerCallUpHeadingText" or "NowSingingHeadingText" or "AnnouncementText" or "QueueStatusText" or "VenueHeaderText"))
+            return;
+
+        var panel = FindAncestorBorder(target);
+        if (panel is null) return;
+
+        var background = (Color)ColorConverter.ConvertFromString(BackgroundColour);
+        background.A = (byte)Math.Clamp((int)Math.Round(255 * BackgroundOpacity), 0, 255);
+        panel.Background = new SolidColorBrush(background);
+        panel.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(BorderColour));
+        panel.BorderThickness = new Thickness(BorderThickness);
+        panel.CornerRadius = new CornerRadius(CornerRadius);
+
+        if (Position == "Default") return;
+        (panel.HorizontalAlignment, panel.VerticalAlignment) = Position switch
+        {
+            "Top Left" => (HorizontalAlignment.Left, VerticalAlignment.Top),
+            "Top Center" => (HorizontalAlignment.Center, VerticalAlignment.Top),
+            "Top Right" => (HorizontalAlignment.Right, VerticalAlignment.Top),
+            "Center Left" => (HorizontalAlignment.Left, VerticalAlignment.Center),
+            "Center Right" => (HorizontalAlignment.Right, VerticalAlignment.Center),
+            "Bottom Left" => (HorizontalAlignment.Left, VerticalAlignment.Bottom),
+            "Bottom Center" => (HorizontalAlignment.Center, VerticalAlignment.Bottom),
+            "Bottom Right" => (HorizontalAlignment.Right, VerticalAlignment.Bottom),
+            _ => (HorizontalAlignment.Center, VerticalAlignment.Center)
+        };
+        panel.Margin = target.Name switch
+        {
+            "SingerCallUpHeadingText" => new Thickness(60),
+            "AnnouncementText" => new Thickness(50),
+            "QueueStatusText" or "VenueHeaderText" => new Thickness(30, 66, 30, 30),
+            _ => new Thickness(30)
+        };
+    }
+
+    private static Border? FindAncestorBorder(DependencyObject child)
+    {
+        for (DependencyObject? current = child; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (current is Border border) return border;
+        return null;
     }
 }
