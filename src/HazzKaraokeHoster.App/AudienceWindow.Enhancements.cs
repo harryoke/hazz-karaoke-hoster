@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -37,12 +38,81 @@ public partial class AudienceWindow
 
     internal void ApplyEnhancementSettings(AudienceEnhancementSettings settings)
     {
-        _enhancementSettings = settings ?? new AudienceEnhancementSettings();
+        _enhancementSettings = AudienceEnhancementSettingsStore.Normalize(settings ?? new AudienceEnhancementSettings());
         SetSlideshowEnhancementOptions(_enhancementSettings.SlideshowSeconds, _enhancementSettings.SlideshowTransition);
+        ApplyEditableOverlayStyles();
         EnforceComingUpCount();
         if (!_enhancementSettings.ShowNowSinging) ClearNowSinging();
         if (!_enhancementSettings.ShowSingerCallUp) ClearSingerCallUp();
         RefreshBroadcastBars(animate: false);
+    }
+
+    private void ApplyEditableOverlayStyles()
+    {
+        if (SingerCallUpPanel.Child is StackPanel callStack && callStack.Children.Count >= 4)
+        {
+            if (callStack.Children[0] is TextBlock heading)
+            {
+                heading.Text = _enhancementSettings.SingerCallUpHeadingText;
+                heading.Visibility = string.IsNullOrWhiteSpace(heading.Text) ? Visibility.Collapsed : Visibility.Visible;
+                ApplyTextStyle(heading, _enhancementSettings.SingerCallUpHeadingStyle);
+            }
+            ApplyTextStyle(SingerCallUpNameText, _enhancementSettings.SingerCallUpNameStyle);
+            ApplyTextStyle(SingerCallUpSongText, _enhancementSettings.SingerCallUpSongStyle);
+            if (callStack.Children[3] is TextBlock prompt)
+            {
+                prompt.Text = _enhancementSettings.SingerCallUpPromptText;
+                prompt.Visibility = string.IsNullOrWhiteSpace(prompt.Text) ? Visibility.Collapsed : Visibility.Visible;
+                ApplyTextStyle(prompt, _enhancementSettings.SingerCallUpPromptStyle);
+            }
+        }
+        SingerCallUpPanel.Background = BrushFrom(_enhancementSettings.SingerCallUpBackgroundColor, Brushes.Black);
+        SingerCallUpPanel.BorderBrush = BrushFrom(_enhancementSettings.SingerCallUpBorderColor, Brushes.Gold);
+
+        if (NowSingingPanel.Child is StackPanel nowStack && nowStack.Children.Count >= 3 && nowStack.Children[0] is TextBlock nowHeading)
+        {
+            nowHeading.Text = _enhancementSettings.NowSingingHeadingText;
+            nowHeading.Visibility = string.IsNullOrWhiteSpace(nowHeading.Text) ? Visibility.Collapsed : Visibility.Visible;
+            ApplyTextStyle(nowHeading, _enhancementSettings.NowSingingHeadingStyle);
+        }
+        ApplyTextStyle(NowSingingSingerText, _enhancementSettings.NowSingingNameStyle);
+        ApplyTextStyle(NowSingingSongText, _enhancementSettings.NowSingingSongStyle);
+        NowSingingPanel.Background = BrushFrom(_enhancementSettings.NowSingingBackgroundColor, Brushes.Black);
+        NowSingingPanel.BorderBrush = BrushFrom(_enhancementSettings.NowSingingBorderColor, Brushes.White);
+
+        ApplyTextStyle(QueueStatusText, _enhancementSettings.QueueStatusStyle);
+        QueueStatusPanel.Background = BrushFrom(_enhancementSettings.QueueStatusBackgroundColor, Brushes.Black);
+        QueueStatusPanel.BorderBrush = BrushFrom(_enhancementSettings.QueueStatusBorderColor, Brushes.White);
+
+        ApplyTextStyle(VenueHeaderText, _enhancementSettings.VenueHeaderStyle);
+        VenueHeaderPanel.Background = BrushFrom(_enhancementSettings.VenueHeaderBackgroundColor, Brushes.Black);
+        VenueHeaderPanel.BorderBrush = BrushFrom(_enhancementSettings.VenueHeaderBorderColor, Brushes.White);
+
+        ApplyTextStyle(AnnouncementText, _enhancementSettings.AnnouncementStyle);
+        AnnouncementPanel.Background = BrushFrom(_enhancementSettings.AnnouncementBackgroundColor, Brushes.Black);
+        AnnouncementPanel.BorderBrush = BrushFrom(_enhancementSettings.AnnouncementBorderColor, Brushes.Gold);
+    }
+
+    private static void ApplyTextStyle(TextBlock text, AudienceOverlayTextStyle style)
+    {
+        text.FontFamily = new FontFamily(style.FontFamily);
+        text.FontSize = style.FontSize;
+        text.Foreground = BrushFrom(style.TextColor, Brushes.White);
+    }
+
+    private static Brush BrushFrom(string value, Brush fallback)
+    {
+        try
+        {
+            var converted = new BrushConverter().ConvertFromString(value) as Brush;
+            if (converted is not null)
+            {
+                if (converted.CanFreeze) converted.Freeze();
+                return converted;
+            }
+        }
+        catch { }
+        return fallback;
     }
 
     private void EnforceComingUpCount()
