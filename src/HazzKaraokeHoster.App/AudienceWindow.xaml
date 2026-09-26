@@ -4,11 +4,12 @@
  Title="Hazz Audience Display" Background="Black" Foreground="White" Width="1280" Height="720" WindowStyle="SingleBorderWindow" ResizeMode="CanResize" Topmost="False">
  <Grid x:Name="Root" Background="Black" ClipToBounds="True">
   <!-- Singer-view artwork: only visible between karaoke performances. -->
-  <Image x:Name="SingerBackgroundImage" Panel.ZIndex="0" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" IsHitTestVisible="False"/>
+  <Image x:Name="SingerBackgroundTransitionImage" Panel.ZIndex="0" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" Opacity="0" IsHitTestVisible="False"/>
+  <Image x:Name="SingerBackgroundImage" Panel.ZIndex="1" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" IsHitTestVisible="False"/>
 
-  <MediaElement x:Name="SingerBackgroundVideo" Panel.ZIndex="1" LoadedBehavior="Manual" UnloadedBehavior="Close" Stretch="Uniform" IsMuted="True" Volume="0" Visibility="Collapsed" IsHitTestVisible="False" MediaEnded="BackgroundVideo_Ended" MediaFailed="BackgroundVideo_Failed"/>
+  <MediaElement x:Name="SingerBackgroundVideo" Panel.ZIndex="2" LoadedBehavior="Manual" UnloadedBehavior="Close" Stretch="Uniform" IsMuted="True" Volume="0" Visibility="Collapsed" IsHitTestVisible="False" MediaEnded="BackgroundVideo_Ended" MediaFailed="BackgroundVideo_Failed"/>
 
-  <Image x:Name="SingerBackgroundGif" Panel.ZIndex="2" Stretch="Uniform" Visibility="Collapsed" IsHitTestVisible="False"/>
+  <Image x:Name="SingerBackgroundGif" Panel.ZIndex="3" Stretch="Uniform" Visibility="Collapsed" IsHitTestVisible="False"/>
 
   <!-- VJ layer: muted mirror of the video playing on a music deck. -->
   <local:AudienceVideoSurface x:Name="MusicVideoMedia" Panel.ZIndex="5"
@@ -18,7 +19,7 @@
   <local:AudienceVideoSurface x:Name="AudienceMedia" Panel.ZIndex="10" Visibility="Collapsed" IsHitTestVisible="False"/>
   <Image x:Name="AudienceCdgImage" Panel.ZIndex="11" Stretch="Uniform" Visibility="Collapsed" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
 
-  <Grid x:Name="AudienceOverlays" Panel.ZIndex="100" Background="{x:Null}" IsHitTestVisible="False">
+  <Grid x:Name="AudienceOverlays" Panel.ZIndex="100" Background="{x:Null}" IsHitTestVisible="False" Loaded="AudienceEnhancementHost_Loaded">
   <!-- Music-video reveal cover. This lives inside the overlay host so it also works above LibVLC's native video surface. -->
   <Border x:Name="MusicVideoTransitionOverlay" Panel.ZIndex="1" Background="Black" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
    <Border.RenderTransform>
@@ -38,11 +39,25 @@
    <local:StrokeTextBlock x:Name="KamikazeTextBlock" Text="KAMIKAZE KARAOKE!" TextAlignment="Center" TextWrapping="Wrap" FontSize="84" FontWeight="Black" Foreground="#FFD34D"/>
   </Border>
 
-  <!-- Between songs the next four singers stay above the artwork/logo. -->
+  <!-- Brief current-performer card when a karaoke track begins. -->
+  <Border x:Name="NowSingingPanel" Panel.ZIndex="121" Background="#C8000000" BorderBrush="#55FFFFFF" BorderThickness="1" Padding="22,14" CornerRadius="9" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30" Visibility="Collapsed" MaxWidth="900">
+   <StackPanel>
+    <TextBlock Text="NOW SINGING" FontSize="22" FontWeight="Bold" Foreground="#FFFFD34D"/>
+    <TextBlock x:Name="NowSingingSingerText" FontSize="46" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
+    <TextBlock x:Name="NowSingingSongText" FontSize="25" Foreground="#FFD8E2EF" TextWrapping="Wrap"/>
+   </StackPanel>
+  </Border>
+
+  <!-- Host-triggered temporary venue announcement. -->
+  <Border x:Name="AnnouncementPanel" Panel.ZIndex="130" Background="#E0000000" BorderBrush="#FFFFD34D" BorderThickness="2" Padding="36,24" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="50" Visibility="Collapsed" MaxWidth="1120">
+   <TextBlock x:Name="AnnouncementText" TextAlignment="Center" TextWrapping="Wrap" FontSize="54" FontWeight="Bold" Foreground="White"/>
+  </Border>
+
+  <!-- Between songs the configured number of upcoming singers stay above the artwork/logo. -->
   <Border x:Name="NextSingerPanel" Panel.ZIndex="110" Background="#B0000000" Padding="22,14" CornerRadius="8" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="30,30,30,74" Visibility="Collapsed" MaxWidth="1040">
    <Viewbox x:Name="SingerTextFit" Stretch="Uniform" StretchDirection="DownOnly">
    <StackPanel x:Name="SingerTextContent" Width="960">
-    <local:StrokeTextBlock x:Name="NextSingerHeadingText" Text="NEXT SINGERS" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold" Foreground="#FFD34D" Margin="0,0,0,8"/>
+    <local:StrokeTextBlock x:Name="NextSingerHeadingText" Text="COMING UP" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold" Foreground="#FFD34D" Margin="0,0,0,8"/>
     <StackPanel x:Name="NextSingersStack"/>
    </StackPanel>
    </Viewbox>
