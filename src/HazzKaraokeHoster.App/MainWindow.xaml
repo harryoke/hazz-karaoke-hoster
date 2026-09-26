@@ -1130,6 +1130,7 @@
       <Button Content="CLOSE" Style="{StaticResource StopButtonStyle}" DockPanel.Dock="Right" HorizontalAlignment="Right" Click="SearchClose_Click"/>
      </DockPanel>
      <DataGrid x:Name="SearchGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" MouseDoubleClick="SearchGrid_MouseDoubleClick"
+               Sorting="SearchGrid_Sorting"
                PreviewKeyDown="SearchGrid_PreviewKeyDown"
                PreviewMouseLeftButtonDown="SearchGrid_PreviewMouseLeftButtonDown" PreviewMouseRightButtonDown="SearchGrid_PreviewMouseRightButtonDown" PreviewMouseMove="SearchGrid_PreviewMouseMove"
                ToolTip="In KARAOKE mode, drag a result onto a singer's row.">
