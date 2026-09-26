@@ -36,6 +36,7 @@ internal sealed class AudienceEnhancementSettings
     public AudienceOverlayTextStyle SingerCallUpPromptStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 22, TextColor = "#FFB8C7D5" };
     public string SingerCallUpBackgroundColor { get; set; } = "#E0000000";
     public string SingerCallUpBorderColor { get; set; } = "#FFFFD34D";
+    public string SingerCallUpPosition { get; set; } = "Center";
 
     public string NowSingingHeadingText { get; set; } = "NOW SINGING";
     public AudienceOverlayTextStyle NowSingingHeadingStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 22, TextColor = "#FFFFD34D" };
@@ -43,6 +44,7 @@ internal sealed class AudienceEnhancementSettings
     public AudienceOverlayTextStyle NowSingingSongStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 25, TextColor = "#FFD8E2EF" };
     public string NowSingingBackgroundColor { get; set; } = "#C8000000";
     public string NowSingingBorderColor { get; set; } = "#55FFFFFF";
+    public string NowSingingPosition { get; set; } = "Top Left";
 
     // Supported placeholders: {active}, {singerWord}, {hold}, {holdPart}, {playable}, {time}, {timePart}.
     public string QueueStatusTemplate { get; set; } = "{active} {singerWord}{holdPart}{timePart}";
@@ -50,18 +52,28 @@ internal sealed class AudienceEnhancementSettings
     public AudienceOverlayTextStyle QueueStatusStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 20, TextColor = "#FFFFFFFF" };
     public string QueueStatusBackgroundColor { get; set; } = "#B5000000";
     public string QueueStatusBorderColor { get; set; } = "#44FFFFFF";
+    public string QueueStatusPosition { get; set; } = "Top Left";
 
     public AudienceOverlayTextStyle VenueHeaderStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 28, TextColor = "#FFFFD34D" };
     public string VenueHeaderBackgroundColor { get; set; } = "#B5000000";
     public string VenueHeaderBorderColor { get; set; } = "#44FFFFFF";
+    public string VenueHeaderPosition { get; set; } = "Top Center";
 
     public AudienceOverlayTextStyle AnnouncementStyle { get; set; } = new() { FontFamily = "Segoe UI", FontSize = 54, TextColor = "#FFFFFFFF" };
     public string AnnouncementBackgroundColor { get; set; } = "#E0000000";
     public string AnnouncementBorderColor { get; set; } = "#FFFFD34D";
+    public string AnnouncementPosition { get; set; } = "Center";
 }
 
 internal static class AudienceEnhancementSettingsStore
 {
+    internal static readonly string[] OverlayPositions =
+    {
+        "Top Left", "Top Center", "Top Right",
+        "Center Left", "Center", "Center Right",
+        "Bottom Left", "Bottom Center", "Bottom Right"
+    };
+
     private static readonly string SettingsFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Hazz Karaoke Hoster");
@@ -155,6 +167,12 @@ internal static class AudienceEnhancementSettingsStore
         settings.VenueHeaderBorderColor = NormalizeColor(settings.VenueHeaderBorderColor, "#44FFFFFF");
         settings.AnnouncementBackgroundColor = NormalizeColor(settings.AnnouncementBackgroundColor, "#E0000000");
         settings.AnnouncementBorderColor = NormalizeColor(settings.AnnouncementBorderColor, "#FFFFD34D");
+
+        settings.SingerCallUpPosition = NormalizePosition(settings.SingerCallUpPosition, "Center");
+        settings.NowSingingPosition = NormalizePosition(settings.NowSingingPosition, "Top Left");
+        settings.QueueStatusPosition = NormalizePosition(settings.QueueStatusPosition, "Top Left");
+        settings.VenueHeaderPosition = NormalizePosition(settings.VenueHeaderPosition, "Top Center");
+        settings.AnnouncementPosition = NormalizePosition(settings.AnnouncementPosition, "Center");
         return settings;
     }
 
@@ -188,4 +206,9 @@ internal static class AudienceEnhancementSettingsStore
             return fallback;
         }
     }
+
+    private static string NormalizePosition(string? value, string fallback)
+        => OverlayPositions.Contains(value ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            ? OverlayPositions.First(x => string.Equals(x, value, StringComparison.OrdinalIgnoreCase))
+            : fallback;
 }
