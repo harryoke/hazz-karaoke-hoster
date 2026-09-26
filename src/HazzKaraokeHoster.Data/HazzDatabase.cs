@@ -427,6 +427,12 @@ DELETE FROM virtual_folders WHERE id=$duplicate;
     {
         if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentException("Choose a backup file.", nameof(destinationPath));
         destinationPath = Path.GetFullPath(destinationPath);
+        var sourcePath = Path.GetFullPath(DatabasePath);
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (new[] { sourcePath, sourcePath + "-wal", sourcePath + "-shm", sourcePath + "-journal" }
+            .Any(path => string.Equals(path, destinationPath, comparison)))
+            throw new ArgumentException("Choose a backup file separate from the live database and its journal files.", nameof(destinationPath));
+        cancellationToken.ThrowIfCancellationRequested();
         var folder = Path.GetDirectoryName(destinationPath);
         if (!string.IsNullOrWhiteSpace(folder)) Directory.CreateDirectory(folder);
 
@@ -434,17 +440,30 @@ DELETE FROM virtual_folders WHERE id=$duplicate;
         await Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (File.Exists(destinationPath)) File.Delete(destinationPath);
-            using var source = new SqliteConnection(ConnectionString);
-            source.Open();
-            using var destination = new SqliteConnection(new SqliteConnectionStringBuilder
+            // Build beside the target so publishing is a same-filesystem rename. Never
+            // remove the last good backup before the replacement is complete and closed.
+            var temporary = destinationPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
             {
-                DataSource = destinationPath,
-                Mode = SqliteOpenMode.ReadWriteCreate,
-                Pooling = false
-            }.ToString());
-            destination.Open();
-            source.BackupDatabase(destination);
+                using (var source = new SqliteConnection(ConnectionString))
+                using (var destination = new SqliteConnection(new SqliteConnectionStringBuilder
+                {
+                    DataSource = temporary,
+                    Mode = SqliteOpenMode.ReadWriteCreate,
+                    Pooling = false
+                }.ToString()))
+                {
+                    source.Open();
+                    destination.Open();
+                    source.BackupDatabase(destination);
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                File.Move(temporary, destinationPath, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(temporary)) File.Delete(temporary);
+            }
         }, cancellationToken);
     }
 
