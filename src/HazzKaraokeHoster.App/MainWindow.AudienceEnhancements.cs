@@ -17,6 +17,7 @@ public partial class MainWindow
     private Slider? _nowSingingSecondsSlider;
     private TextBlock? _nowSingingSecondsText;
     private CheckBox? _showSingerCallUpCheck;
+    private CheckBox? _autoSingerCallUpCheck;
     private Slider? _singerCallUpSecondsSlider;
     private TextBlock? _singerCallUpSecondsText;
     private CheckBox? _showQueueStatusCheck;
@@ -26,12 +27,15 @@ public partial class MainWindow
     private TextBox? _announcementTextBox;
     private Slider? _announcementSecondsSlider;
     private TextBlock? _announcementSecondsText;
+    private AudienceOverlayStyleEditor? _audienceStyleEditor;
     private DispatcherTimer? _audienceEnhancementStatusTimer;
 
     internal void InitializeAudienceEnhancementsTest()
     {
         if (_audienceEnhancementTestInitialized) return;
         _audienceEnhancementTestInitialized = true;
+
+        ConvertLoadNextButtonToCallNextSinger();
 
         var gifRow = BackgroundGifSpeedSlider?.Parent as Panel;
         var host = gifRow?.Parent as Panel;
@@ -113,13 +117,21 @@ public partial class MainWindow
         var callUpRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
         _showSingerCallUpCheck = new CheckBox
         {
-            Content = "Automatic NEXT SINGER call-up",
+            Content = "Show NEXT SINGER call-up card",
             IsChecked = settings.ShowSingerCallUp,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 8, 0),
-            ToolTip = "After a karaoke song finishes, briefly show the next singer in a large call-up card."
+            Margin = new Thickness(0, 0, 12, 0)
         };
         callUpRow.Children.Add(_showSingerCallUpCheck);
+        _autoSingerCallUpCheck = new CheckBox
+        {
+            Content = "Auto after song",
+            IsChecked = settings.AutoSingerCallUp,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 8, 0),
+            ToolTip = "If enabled, show the next-singer card automatically when karaoke finishes. The main CALL NEXT SINGER button works independently and also loads the track."
+        };
+        callUpRow.Children.Add(_autoSingerCallUpCheck);
         callUpRow.Children.Add(Label("for"));
         _singerCallUpSecondsSlider = new Slider
         {
@@ -135,9 +147,9 @@ public partial class MainWindow
         _singerCallUpSecondsText.Width = 32;
         callUpRow.Children.Add(_singerCallUpSecondsSlider);
         callUpRow.Children.Add(_singerCallUpSecondsText);
-        var callNextNow = new Button { Content = "CALL NEXT NOW", Padding = new Thickness(8, 3, 8, 3), Margin = new Thickness(8, 0, 2, 0) };
-        callNextNow.Click += (_, _) => ShowSingerCallUpForNextTest();
-        callUpRow.Children.Add(callNextNow);
+        var previewCallUp = new Button { Content = "PREVIEW", Padding = new Thickness(8, 3, 8, 3), Margin = new Thickness(8, 0, 2, 0) };
+        previewCallUp.Click += (_, _) => ShowSingerCallUpForNextTest();
+        callUpRow.Children.Add(previewCallUp);
         host.Children.Add(callUpRow);
 
         var broadcastRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 2) };
@@ -163,7 +175,7 @@ public partial class MainWindow
             MaxLength = 120,
             Text = settings.VenueTitle,
             Margin = new Thickness(3, 0, 12, 0),
-            ToolTip = "Optional venue/event name displayed at the top of the audience screen between songs."
+            ToolTip = "Editable venue/event message shown between songs."
         };
         broadcastRow.Children.Add(_venueTitleTextBox);
         broadcastRow.Children.Add(Label("Overlay animation"));
@@ -182,8 +194,10 @@ public partial class MainWindow
         _announcementTextBox = new TextBox
         {
             Width = 280,
+            MaxLength = 300,
+            Text = settings.AnnouncementText,
             Margin = new Thickness(8, 0, 5, 0),
-            ToolTip = "Temporary message shown prominently on the audience screen."
+            ToolTip = "Temporary editable message shown prominently on the audience screen."
         };
         announcementRow.Children.Add(_announcementTextBox);
         announcementRow.Children.Add(Label("for"));
@@ -209,6 +223,10 @@ public partial class MainWindow
         announcementRow.Children.Add(clearAnnouncement);
         host.Children.Add(announcementRow);
 
+        _audienceStyleEditor = new AudienceOverlayStyleEditor(settings);
+        _audienceStyleEditor.SettingsChanged += (_, _) => AudienceEnhancementControlChanged();
+        host.Children.Add(_audienceStyleEditor);
+
         _slideshowSecondsSlider.ValueChanged += (_, _) => AudienceEnhancementControlChanged();
         _slideshowTransitionCombo.SelectionChanged += (_, _) => AudienceEnhancementControlChanged();
         _comingUpCountCombo.SelectionChanged += (_, _) => AudienceEnhancementControlChanged();
@@ -217,6 +235,8 @@ public partial class MainWindow
         _nowSingingSecondsSlider.ValueChanged += (_, _) => AudienceEnhancementControlChanged();
         _showSingerCallUpCheck.Checked += (_, _) => AudienceEnhancementControlChanged();
         _showSingerCallUpCheck.Unchecked += (_, _) => AudienceEnhancementControlChanged();
+        _autoSingerCallUpCheck.Checked += (_, _) => AudienceEnhancementControlChanged();
+        _autoSingerCallUpCheck.Unchecked += (_, _) => AudienceEnhancementControlChanged();
         _singerCallUpSecondsSlider.ValueChanged += (_, _) => AudienceEnhancementControlChanged();
         _showQueueStatusCheck.Checked += (_, _) => AudienceEnhancementControlChanged();
         _showQueueStatusCheck.Unchecked += (_, _) => AudienceEnhancementControlChanged();
@@ -224,6 +244,7 @@ public partial class MainWindow
         _showVenueHeaderCheck.Unchecked += (_, _) => AudienceEnhancementControlChanged();
         _venueTitleTextBox.TextChanged += (_, _) => AudienceEnhancementControlChanged();
         _overlayTransitionCombo.SelectionChanged += (_, _) => AudienceEnhancementControlChanged();
+        _announcementTextBox.TextChanged += (_, _) => AudienceEnhancementControlChanged();
         _announcementSecondsSlider.ValueChanged += (_, _) => AudienceEnhancementControlChanged();
 
         AudienceBackgroundFileText.LayoutUpdated += (_, _) => UpdateAudienceSlideshowTestLabel();
@@ -234,7 +255,8 @@ public partial class MainWindow
             await Task.Delay(900);
             if (!IsLoaded) return;
             RefreshAudienceBroadcastStatusTest();
-            ShowSingerCallUpForNextTest();
+            if (ReadAudienceEnhancementControls().AutoSingerCallUp)
+                ShowSingerCallUpForNextTest();
         };
 
         _audienceEnhancementStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
@@ -243,8 +265,53 @@ public partial class MainWindow
         Closed += (_, _) => _audienceEnhancementStatusTimer?.Stop();
 
         _audienceEnhancementControlsLoading = false;
-        UpdateAudienceSlideshowTestLabel();
-        RefreshAudienceBroadcastStatusTest();
+        AudienceEnhancementControlChanged();
+    }
+
+    private void ConvertLoadNextButtonToCallNextSinger()
+    {
+        var button = FindButtonByContent(this, "LOAD NEXT SINGER");
+        if (button is null) return;
+        button.Content = "CALL NEXT SINGER";
+        button.ToolTip = "Load the next singer's queued karaoke track ready to play, apply their saved key/sync, and show the editable audience call-up card.";
+        button.Click -= LoadNextSinger_Click;
+        button.Click += CallNextSingerMain_Click;
+    }
+
+    private static Button? FindButtonByContent(DependencyObject root, string content)
+    {
+        var count = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is Button button && string.Equals(button.Content?.ToString(), content, StringComparison.OrdinalIgnoreCase))
+                return button;
+            var nested = FindButtonByContent(child, content);
+            if (nested is not null) return nested;
+        }
+        return null;
+    }
+
+    private async void CallNextSingerMain_Click(object sender, RoutedEventArgs e)
+    {
+        if (_karaokePlaying || _karaokePaused || _karaokePresentationActive)
+        {
+            SearchStatus.Text = "Fade Stop the current karaoke song before calling/loading the next singer.";
+            return;
+        }
+
+        var loaded = await LoadNextSingerAsync();
+        if (!loaded || _activeSinger is null || _activeSingerSong is null) return;
+
+        var settings = ReadAudienceEnhancementControls();
+        if (_audience is not null && settings.ShowSingerCallUp)
+        {
+            _audience.ApplyEnhancementSettings(settings);
+            _audience.SetEnhancementPlaybackActive(false);
+            _audience.ShowSingerCallUp(_activeSinger.SingerName, SongDisplay(_activeSingerSong), TimeSpan.FromSeconds(settings.SingerCallUpSeconds));
+        }
+
+        SearchStatus.Text = $"{_activeSinger.SingerName} called • {_activeSingerSong.SongTitle} loaded and ready • press PLAY when the singer is at the microphone";
     }
 
     private static TextBlock Label(string text) => new()
@@ -256,21 +323,23 @@ public partial class MainWindow
 
     private AudienceEnhancementSettings ReadAudienceEnhancementControls()
     {
-        return new AudienceEnhancementSettings
-        {
-            SlideshowSeconds = _slideshowSecondsSlider?.Value ?? 60,
-            SlideshowTransition = _slideshowTransitionCombo?.SelectedItem?.ToString() ?? "Fade",
-            ComingUpCount = _comingUpCountCombo?.SelectedItem is int count ? count : 4,
-            ShowNowSinging = _showNowSingingCheck?.IsChecked == true,
-            NowSingingSeconds = _nowSingingSecondsSlider?.Value ?? 7,
-            ShowSingerCallUp = _showSingerCallUpCheck?.IsChecked == true,
-            SingerCallUpSeconds = _singerCallUpSecondsSlider?.Value ?? 8,
-            ShowQueueStatus = _showQueueStatusCheck?.IsChecked == true,
-            ShowVenueHeader = _showVenueHeaderCheck?.IsChecked == true,
-            VenueTitle = _venueTitleTextBox?.Text?.Trim() ?? string.Empty,
-            OverlayTransition = _overlayTransitionCombo?.SelectedItem?.ToString() ?? "Slide",
-            AnnouncementSeconds = _announcementSecondsSlider?.Value ?? 8
-        };
+        var settings = AudienceEnhancementSettingsStore.Load();
+        settings.SlideshowSeconds = _slideshowSecondsSlider?.Value ?? settings.SlideshowSeconds;
+        settings.SlideshowTransition = _slideshowTransitionCombo?.SelectedItem?.ToString() ?? settings.SlideshowTransition;
+        settings.ComingUpCount = _comingUpCountCombo?.SelectedItem is int count ? count : settings.ComingUpCount;
+        settings.ShowNowSinging = _showNowSingingCheck?.IsChecked == true;
+        settings.NowSingingSeconds = _nowSingingSecondsSlider?.Value ?? settings.NowSingingSeconds;
+        settings.ShowSingerCallUp = _showSingerCallUpCheck?.IsChecked == true;
+        settings.AutoSingerCallUp = _autoSingerCallUpCheck?.IsChecked == true;
+        settings.SingerCallUpSeconds = _singerCallUpSecondsSlider?.Value ?? settings.SingerCallUpSeconds;
+        settings.ShowQueueStatus = _showQueueStatusCheck?.IsChecked == true;
+        settings.ShowVenueHeader = _showVenueHeaderCheck?.IsChecked == true;
+        settings.VenueTitle = _venueTitleTextBox?.Text ?? settings.VenueTitle;
+        settings.OverlayTransition = _overlayTransitionCombo?.SelectedItem?.ToString() ?? settings.OverlayTransition;
+        settings.AnnouncementText = _announcementTextBox?.Text ?? settings.AnnouncementText;
+        settings.AnnouncementSeconds = _announcementSecondsSlider?.Value ?? settings.AnnouncementSeconds;
+        _audienceStyleEditor?.WriteTo(settings);
+        return AudienceEnhancementSettingsStore.Normalize(settings);
     }
 
     private void AudienceEnhancementControlChanged()
@@ -298,7 +367,8 @@ public partial class MainWindow
 
     private void ShowAudienceAnnouncementTest()
     {
-        var text = _announcementTextBox?.Text?.Trim() ?? string.Empty;
+        var settings = ReadAudienceEnhancementControls();
+        var text = settings.AnnouncementText.Trim();
         if (text.Length == 0)
         {
             SearchStatus.Text = "Type an audience announcement first.";
@@ -309,9 +379,9 @@ public partial class MainWindow
             SearchStatus.Text = "Open or send the Audience Display first, then show the announcement.";
             return;
         }
-        var seconds = _announcementSecondsSlider?.Value ?? 8;
-        _audience.ShowTemporaryAnnouncement(text, TimeSpan.FromSeconds(seconds));
-        SearchStatus.Text = $"Audience announcement shown for {seconds:0} seconds.";
+        _audience.ApplyEnhancementSettings(settings);
+        _audience.ShowTemporaryAnnouncement(text, TimeSpan.FromSeconds(settings.AnnouncementSeconds));
+        SearchStatus.Text = $"Audience announcement shown for {settings.AnnouncementSeconds:0} seconds.";
     }
 
     private void ShowNowSingingForActiveSingerTest()
@@ -320,13 +390,11 @@ public partial class MainWindow
         _audience.SetEnhancementPlaybackActive(true);
         var settings = ReadAudienceEnhancementControls();
         if (!settings.ShowNowSinging || _activeSinger is null) return;
-        var singer = _activeSinger.SingerName;
-        var song = _activeSingerSong is null
-            ? string.Empty
-            : string.IsNullOrWhiteSpace(_activeSingerSong.Artist)
-                ? _activeSingerSong.SongTitle
-                : $"{_activeSingerSong.SongTitle} — {_activeSingerSong.Artist}";
-        _audience.ShowNowSinging(singer, song, TimeSpan.FromSeconds(settings.NowSingingSeconds));
+        _audience.ApplyEnhancementSettings(settings);
+        _audience.ShowNowSinging(
+            _activeSinger.SingerName,
+            _activeSingerSong is null ? string.Empty : SongDisplay(_activeSingerSong),
+            TimeSpan.FromSeconds(settings.NowSingingSeconds));
     }
 
     private void ShowSingerCallUpForNextTest()
@@ -338,15 +406,16 @@ public partial class MainWindow
         var candidates = _queue.Where(x => !x.IsHeld && x.Songs.Count > 0).ToList();
         if (candidates.Count == 0) return;
         var next = candidates.FirstOrDefault(x => _activeSinger is null || x.Id != _activeSinger.Id) ?? candidates[0];
-        var song = next.NextSong;
-        var songText = song is null
-            ? string.Empty
-            : string.IsNullOrWhiteSpace(song.Artist)
-                ? song.SongTitle
-                : $"{song.SongTitle} — {song.Artist}";
+        _audience.ApplyEnhancementSettings(settings);
         _audience.SetEnhancementPlaybackActive(false);
-        _audience.ShowSingerCallUp(next.SingerName, songText, TimeSpan.FromSeconds(settings.SingerCallUpSeconds));
+        _audience.ShowSingerCallUp(
+            next.SingerName,
+            next.NextSong is null ? string.Empty : SongDisplay(next.NextSong),
+            TimeSpan.FromSeconds(settings.SingerCallUpSeconds));
     }
+
+    private static string SongDisplay(HazzKaraokeHoster.Core.Models.SingerSongEntry song)
+        => string.IsNullOrWhiteSpace(song.Artist) ? song.SongTitle : $"{song.SongTitle} — {song.Artist}";
 
     private void RefreshAudienceBroadcastStatusTest()
     {
@@ -357,20 +426,29 @@ public partial class MainWindow
         var playable = active.Where(x => x.NextSong is not null).ToList();
         var seconds = playable.Sum(x => x.NextSong?.DurationSeconds is double duration && double.IsFinite(duration) && duration > 0
             ? duration : 240d);
+        var time = FormatQueueEstimate(seconds);
 
         string queueStatus;
         if (active.Count == 0 && held == 0)
         {
-            queueStatus = "Singer rotation empty";
+            queueStatus = settings.QueueEmptyText;
         }
         else
         {
             var singerWord = active.Count == 1 ? "singer" : "singers";
-            queueStatus = $"{active.Count} {singerWord}";
-            if (held > 0) queueStatus += $" • {held} HOLD";
-            if (playable.Count > 0) queueStatus += $" • approx {FormatQueueEstimate(seconds)}";
+            var holdPart = held > 0 ? $" • {held} HOLD" : string.Empty;
+            var timePart = playable.Count > 0 ? $" • approx {time}" : string.Empty;
+            queueStatus = settings.QueueStatusTemplate
+                .Replace("{active}", active.Count.ToString(), StringComparison.OrdinalIgnoreCase)
+                .Replace("{singerWord}", singerWord, StringComparison.OrdinalIgnoreCase)
+                .Replace("{hold}", held.ToString(), StringComparison.OrdinalIgnoreCase)
+                .Replace("{holdPart}", holdPart, StringComparison.OrdinalIgnoreCase)
+                .Replace("{playable}", playable.Count.ToString(), StringComparison.OrdinalIgnoreCase)
+                .Replace("{time}", time, StringComparison.OrdinalIgnoreCase)
+                .Replace("{timePart}", timePart, StringComparison.OrdinalIgnoreCase);
         }
 
+        _audience.ApplyEnhancementSettings(settings);
         _audience.SetEnhancementPlaybackActive(_karaokePlaying || _karaokePaused);
         _audience.SetBroadcastStatus(queueStatus, settings.VenueTitle);
     }
