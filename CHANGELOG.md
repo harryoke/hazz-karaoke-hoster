@@ -1,5 +1,14 @@
 # v1.7
 
+## v1.74.8
+- Fixed broad Karaoke searches silently returning only the first 300 matches.
+- Search now loads a much larger result set based on query specificity, up to 20,000 visible matches for normal 4+ character searches.
+- If an unusually broad search still reaches the safety ceiling, the status line now clearly says that only the first matches are shown and asks the host to refine the search.
+- Clicking the Disc column now uses natural numeric ordering (for example Gnome 1, Gnome 2, Gnome 10, Gnome 100) instead of plain alphabetical ordering.
+- Disc sort is preserved when background track-length probing refreshes the search rows.
+- Specific searches continue to use the same indexed FTS search and can still find any individual indexed track.
+- Retains all v1.74.7 playlist deletion and earlier v1.74.x fixes.
+
 ## v1.74.7
 - Added a DELETE PLAYLIST option to Music Playlists & History.
 - Deletion requires confirmation showing the playlist name and track count.
