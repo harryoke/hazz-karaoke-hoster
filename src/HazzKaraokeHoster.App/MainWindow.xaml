@@ -438,7 +438,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="{DynamicResource HostFont10_5}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_6EC1E4}" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="{DynamicResource SkinSurface_22303C}" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v2.01" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
+     <TextBlock Text="v2.10" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
     </Border>
    </StackPanel>
 
@@ -771,6 +771,7 @@
           <TextBlock Text="TIME" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="{DynamicResource SkinInk_9FB0C1}" FontWeight="SemiBold"/>
           <Slider x:Name="CrossfadeSecondsSlider" Minimum="0.5" Maximum="12" TickFrequency="0.5" IsSnapToTickEnabled="True" Value="4" Width="145" ValueChanged="CrossfadeSeconds_ValueChanged" VerticalAlignment="Center" Margin="3,0"/>
           <TextBlock x:Name="CrossfadeSecondsText" Text="4.0s" Width="48" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Bold"/>
+          <Button x:Name="MusicEffectsButton" Content="MUSIC FX" Click="MusicEffects_Click" ToolTip="Flanger, reverb and echo on music decks"/>
           <Button Content="CURVE" Click="CrossfadePreset_Click" ToolTip="Choose a music crossfade curve"/>
           <Button x:Name="FadeNowButton" Content="FADE NOW" Style="{StaticResource SpecialButtonStyle}" Click="FadeNow_Click" MinWidth="92" ToolTip="Immediately start the configured crossfade from the playing music deck to the other deck."/>
           <Button x:Name="PlayMusicButton" Content="▶ PLAY MUSIC" Style="{StaticResource PlayButtonStyle}" Click="PlayMusic_Click" MinWidth="110" ToolTip="Stop karaoke if necessary and start the next music track that was scheduled before karaoke."/>

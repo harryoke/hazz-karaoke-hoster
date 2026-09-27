@@ -11,6 +11,7 @@ static class Program
     static void Check(bool pass, string name) { if (!pass) throw new Exception(name); Console.WriteLine("PASS " + name); }
     static async Task Main(string[] args)
     {
+        if (args.Contains("--music-fx")) { MusicEffectsChecks.Run(); return; }
         if (args.Contains("--v201")) { await Release201Checks.Run(); return; }
         if (args.Contains("--million")) { await MillionCheck(); return; }
         var root = Path.Combine(Path.GetTempPath(), "hazz-v19-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);

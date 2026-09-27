@@ -1,3 +1,5 @@
+Latest additions: [v2.10 music effects and exact column widths](RELEASE_v2.10.md).
+
 Latest additions: [v2.01 Singer Database Manager, crossfade presets and faster health scans](RELEASE_v2.01.md).
 
 > **v2.0:** [Choosing the new metal and marble skins](RELEASE_v2.0.md).

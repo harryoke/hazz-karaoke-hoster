@@ -115,6 +115,8 @@ public partial class MainWindow
         StandbyMusicMedia = previous;
         StandbyMusicMedia.Close();
         var ready = MediaFor(deck);
+        // Keep controls attached to their deck when the preloaded player is promoted.
+        (ready.Effects, previous.Effects) = (previous.Effects, ready.Effects);
         ready.Position = TimeSpan.Zero;
         ready.IsMuted = false;
         _cueGeneration++;

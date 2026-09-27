@@ -542,6 +542,7 @@ public partial class MainWindow : Window
             finally { _restoringOutlineSettings = false; }
         }
         var settings = UiLayoutSettingsStore.Load();
+        SingerColumnLayout.Apply(QueueList, settings.SingerColumns);
         _kamikazeFolderPath = settings.KamikazeFolderPath ?? string.Empty;
         UpdateKamikazeSourceMenu();
         _audienceTextStrokes = settings.AudienceTextStrokes ?? new();
@@ -663,6 +664,7 @@ public partial class MainWindow : Window
         var totalWidth = Math.Max(1.0, MainLeftColumn.ActualWidth + MainCenterColumn.ActualWidth + MainRightColumn.ActualWidth);
         return UiLayoutSettingsStore.Save(new UiLayoutSettings
         {
+            SingerColumns = SingerColumnLayout.Capture(QueueList),
             AudienceTextStrokes = _audienceTextStrokes,
             HostTextScale = _hostTextScale,
             UseLibVlcAudienceVideo = _useLibVlcAudienceVideo,

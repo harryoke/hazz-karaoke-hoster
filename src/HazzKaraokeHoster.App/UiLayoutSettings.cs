@@ -10,6 +10,7 @@ internal sealed class UiLayoutSettings
     public Dictionary<string, HazzKaraokeHoster.Core.Models.CdgPresentationSettings> CdgSongPresentation { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, HazzKaraokeHoster.Core.Models.TextStrokeSettings> AudienceTextStrokes { get; set; } = new();
     public string KamikazeFolderPath { get; set; } = string.Empty;
+    public Dictionary<string, SingerColumnWidth> SingerColumns { get; set; } = new();
     public string ConsoleSkin { get; set; } = "Classic";
     public double HostTextScale { get; set; } = 1;
     public bool UseLibVlcAudienceVideo { get; set; }

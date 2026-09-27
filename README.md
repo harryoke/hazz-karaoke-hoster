@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster
 
-Current release: **v2.01** — Singer Database Manager, crossfade presets and faster library health checks. [Step-by-step instructions and release notes](Documentation/RELEASE_v2.01.md).
+Current release: **v2.10** — music effects and exact singer-list column widths, with all v2.01 features retained. [Instructions and release notes](Documentation/RELEASE_v2.10.md).
 
 Made For KJ/DJ's By A KJ/DJ
 

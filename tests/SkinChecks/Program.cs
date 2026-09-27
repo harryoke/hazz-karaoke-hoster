@@ -58,6 +58,43 @@ internal static class Check
   foreach(var name in new[]{"DeckAPlaylist","DeckBPlaylist"})
    for(int i=0;i<7;i++) Find<ListBox>(name).Items.Add(new { NumberText=(i+1).ToString(), DisplayArtist=new[]{"ABBA","Queen","The Killers"}[i%3], DisplayTitle=new[]{"Dancing Queen","Don't Stop Me Now","Mr. Brightside"}[i%3], DurationText="03:45", IsFavourite=i==0, IsNowPlaying=i==1, IsPlayedThisSession=i==2 });
   for(int i=0;i<5;i++) Find<DataGrid>("QueueList").Items.Add(new { SingerName=new[]{"Alex","Sam","Chris","Taylor","Jamie"}[i], StatusText="Ready", NextSongTitle="Example karaoke song", NextArtist="Example artist", SongCount=2, NextKey=0, NextSync=0d });
+  // Restart simulation: save actual column sizing types, serialize, restore onto fresh defaults.
+  var singerGrid=Find<DataGrid>("QueueList");
+  var defaults=SingerColumnLayout.Capture(singerGrid);
+  var singerColumn=singerGrid.Columns.Single(c=>c.Header?.ToString()=="Singer");
+  var keyColumn=singerGrid.Columns.Single(c=>c.Header?.ToString()=="Key");
+  singerColumn.Width=new DataGridLength(247); keyColumn.Width=new DataGridLength(22);
+  var stored=System.Text.Json.JsonSerializer.Deserialize<Dictionary<string,SingerColumnWidth>>(System.Text.Json.JsonSerializer.Serialize(SingerColumnLayout.Capture(singerGrid)));
+  SingerColumnLayout.Apply(singerGrid,defaults); SingerColumnLayout.Apply(singerGrid,stored);
+  Require(singerColumn.Width.IsAbsolute && singerColumn.Width.Value==247 && keyColumn.Width.Value==22,"Singer column width persistence failed");
+  Require(singerGrid.Columns.Single(c=>c.Header?.ToString()=="Next Song").Width.IsStar,"Unchanged star columns must remain flexible");
+  SingerColumnLayout.Apply(singerGrid,new() { ["Singer"]=new() { Value=double.NaN },["Key"]=new() { Value=99,Unit="Invalid" } });
+  Require(singerColumn.Width.Value==247 && keyColumn.Width.Value==22,"Invalid saved widths must not overwrite valid layout");
+  SingerColumnLayout.Apply(singerGrid,defaults);
+  Console.WriteLine("PASS: singer column restart round-trip, narrow columns, flexible defaults and invalid settings.");
+  // Exercise resolved layout, not just Width.Value: startup content must not redistribute widths.
+  DataGrid MeasuredGrid(string keyText)
+  {
+   var g=new DataGrid { AutoGenerateColumns=false,Width=650,Height=180 };
+   g.Columns.Add(new DataGridTextColumn { Header="Singer",Binding=new System.Windows.Data.Binding("Name"),Width=new DataGridLength(1.05,DataGridLengthUnitType.Star) });
+   g.Columns.Add(new DataGridTextColumn { Header="Next Song",Binding=new System.Windows.Data.Binding("Song"),Width=new DataGridLength(1.45,DataGridLengthUnitType.Star) });
+   g.Columns.Add(new DataGridTextColumn { Header="Key",Binding=new System.Windows.Data.Binding("Key"),Width=DataGridLength.Auto });
+   g.Items.Add(new { Name="Simon",Song="All The Small Things",Key=keyText });
+   return g;
+  }
+  void ArrangeGrid(DataGrid g) { g.Measure(new Size(650,180));g.Arrange(new Rect(0,0,650,180));g.UpdateLayout(); }
+  var before=MeasuredGrid("0"); ArrangeGrid(before);
+  Require(before.Columns.All(c=>c.ActualWidth>0),"Measured grid must resolve actual column widths");
+  var pixels=before.Columns.Select(c=>c.ActualWidth).ToArray();
+  var exact=System.Text.Json.JsonSerializer.Deserialize<Dictionary<string,SingerColumnWidth>>(System.Text.Json.JsonSerializer.Serialize(SingerColumnLayout.Capture(before)));
+  Require(exact!.Values.All(c=>c.Unit=="Pixel"),"Resolved auto/star widths must be saved as pixels");
+  var restarted=MeasuredGrid("A much wider value loaded at startup");
+  SingerColumnLayout.Apply(restarted,exact); ArrangeGrid(restarted);
+  Require(restarted.Columns.Select((c,i)=>Math.Abs(c.ActualWidth-pixels[i])<0.01).All(x=>x),"Restart changed displayed column boundaries");
+  // Further viewport changes preserve the exact saved sizes; horizontal scrolling is preferable to resizing.
+  restarted.Width=500; restarted.Measure(new Size(500,180));restarted.Arrange(new Rect(0,0,500,180));restarted.UpdateLayout();
+  Require(restarted.Columns.Select((c,i)=>Math.Abs(c.ActualWidth-pixels[i])<0.01).All(x=>x),"Viewport change resized saved columns");
+  Console.WriteLine("PASS: measured pixel boundaries survive restart, changed content and narrower viewport.");
   var originalBackground=w.Background; var originalPanel=w.Resources["PanelBrush"];
   var engine=new ConsoleSkinLayout(w);
   if(args.Contains("--render-stress"))
