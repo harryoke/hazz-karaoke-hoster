@@ -438,7 +438,7 @@
      <TextBlock x:Name="HostModeText" Text="KARAOKE + MUSIC MODE" FontSize="{DynamicResource HostFont10_5}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_6EC1E4}" Margin="0,2,0,0"/>
     </StackPanel>
     <Border Background="{DynamicResource SkinSurface_22303C}" CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-     <TextBlock Text="v2.0" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
+     <TextBlock Text="v2.01" FontSize="{DynamicResource HostFont11}" FontWeight="Bold" Foreground="{DynamicResource SkinInk_D4DEE8}"/>
     </Border>
    </StackPanel>
 
@@ -526,6 +526,7 @@
      <MenuItem Header="Kamikaze song source"><MenuItem x:Name="KamikazeLibraryMenu" Header="Entire karaoke library (default)" IsCheckable="True" Click="KamikazeLibrary_Click"/><MenuItem x:Name="KamikazeFolderMenu" Header="Choose folder only…" IsCheckable="True" Click="KamikazeFolder_Click"/></MenuItem>
      <MenuItem Header="Rotation Settings…" Click="RotationSettings_Click"/>
      <MenuItem Header="Venue Profiles…" Click="VenueProfiles_Click"/>
+     <MenuItem Header="Singer Database Manager…" Click="SingerDatabaseManager_Click"/>
      <Separator/>
      <MenuItem Header="Pre-show Health Check…" Click="PreShowHealthCheck_Click"/><Separator/><MenuItem Header="New Show" Click="NewShow_Click"/>
      <Separator/>
@@ -770,6 +771,7 @@
           <TextBlock Text="TIME" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="{DynamicResource SkinInk_9FB0C1}" FontWeight="SemiBold"/>
           <Slider x:Name="CrossfadeSecondsSlider" Minimum="0.5" Maximum="12" TickFrequency="0.5" IsSnapToTickEnabled="True" Value="4" Width="145" ValueChanged="CrossfadeSeconds_ValueChanged" VerticalAlignment="Center" Margin="3,0"/>
           <TextBlock x:Name="CrossfadeSecondsText" Text="4.0s" Width="48" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Bold"/>
+          <Button Content="CURVE" Click="CrossfadePreset_Click" ToolTip="Choose a music crossfade curve"/>
           <Button x:Name="FadeNowButton" Content="FADE NOW" Style="{StaticResource SpecialButtonStyle}" Click="FadeNow_Click" MinWidth="92" ToolTip="Immediately start the configured crossfade from the playing music deck to the other deck."/>
           <Button x:Name="PlayMusicButton" Content="▶ PLAY MUSIC" Style="{StaticResource PlayButtonStyle}" Click="PlayMusic_Click" MinWidth="110" ToolTip="Stop karaoke if necessary and start the next music track that was scheduled before karaoke."/>
          </WrapPanel>

@@ -25,6 +25,7 @@ internal sealed class UiLayoutSettings
     public double DefaultDeck1Volume { get; set; } = 0.85;
     public double DefaultDeck2Volume { get; set; } = 0.85;
     public bool DefaultAutoCrossfade { get; set; } = true;
+    public string CrossfadePreset { get; set; } = "Linear";
     public double DefaultCrossfadeSeconds { get; set; } = 4;
     public bool MusicVideoShowLogo { get; set; } = false;
     public bool MusicVideoShowScroller { get; set; } = false;

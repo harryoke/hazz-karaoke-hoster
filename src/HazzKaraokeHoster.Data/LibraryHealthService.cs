@@ -1,4 +1,6 @@
 using System.IO.Compression;
+using System.Diagnostics;
+using System.Buffers;
 using Microsoft.Data.Sqlite;
 
 namespace HazzKaraokeHoster.Data;
@@ -9,7 +11,7 @@ public sealed record LibraryRelink(long SongId, string OldPath, string NewPath);
 public sealed class LibraryHealthService(HazzDatabase database)
 {
     private static readonly string[] Audio = [".mp3", ".wav", ".wma", ".m4a", ".aac", ".flac", ".ogg", ".aif", ".aiff"];
-    public async Task<List<LibraryHealthIssue>> ScanAsync(IProgress<string>? progress, CancellationToken token)
+    public async Task<List<LibraryHealthIssue>> ScanAsync(IProgress<string>? progress, CancellationToken token, bool verifyZipContents = false)
     {
         var issues = new List<LibraryHealthIssue>();
         var seen = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -20,10 +22,16 @@ public sealed class LibraryHealthService(HazzDatabase database)
         cmd.CommandText = "SELECT id,artist,title,file_path,file_size,media_kind FROM songs ORDER BY id";
         await using var reader = await cmd.ExecuteReaderAsync(token);
         int count = 0;
+        var reporting = Stopwatch.StartNew();
         while (await reader.ReadAsync(token))
         {
             token.ThrowIfCancellationRequested();
             var id = reader.GetInt64(0); var artist = reader.GetString(1); var title = reader.GetString(2); var path = reader.GetString(3); var size = reader.GetInt64(4);
+            if (reporting.ElapsedMilliseconds >= 250)
+            {
+                progress?.Report($"Checked {count:N0} entries; {issues.Count:N0} findings. {(verifyZipContents ? "Deep CRC scan" : "Quick structure scan")}: {path}");
+                reporting.Restart();
+            }
             void Add(string problem, string detail) => issues.Add(new(id, artist, title, path, problem, detail, size));
             if (!paths.Add(path.Replace('/', '\\'))) Add("Duplicate path", "Another database entry points to the same path (ignoring letter case).");
             var key = string.Join(' ', HazzKaraokeHoster.Core.Models.AlternativeMatch.Words(artist)) + "|" + string.Join(' ', HazzKaraokeHoster.Core.Models.AlternativeMatch.Words(title)) + "|" + reader.GetString(5);
@@ -37,20 +45,20 @@ public sealed class LibraryHealthService(HazzDatabase database)
             {
                 try
                 {
-                    var problem = InspectFile(path, reader.GetString(5), token);
+                    var problem = InspectFile(path, reader.GetString(5), token, verifyZipContents);
                     if (problem is not null) Add(problem.Value.Kind, problem.Value.Detail);
                 }
                 catch (OperationCanceledException) { throw; }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException)
                 { Add("Unreadable / broken file", ex.Message); }
             }
-            if (++count % 50 == 0) progress?.Report($"Checked {count:N0} entries; {issues.Count:N0} findings. {System.IO.Path.GetFileName(path)}");
+            count++;
         }
-        progress?.Report($"Scan complete: {count:N0} entries checked; {issues.Count:N0} findings.");
+        progress?.Report($"Scan complete: {count:N0} entries checked; {issues.Count:N0} findings. {(verifyZipContents ? "ZIP contents verified where readable." : "ZIP payload CRC not checked; use Deep ZIP verification for that.")}");
         return issues;
     }
 
-    public static (string Kind, string Detail)? InspectFile(string path, string kind, CancellationToken token)
+    public static (string Kind, string Detail)? InspectFile(string path, string kind, CancellationToken token, bool verifyZipContents = true)
     {
         var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
         if (new FileInfo(path).Length == 0) return ("Empty file", "File contains no data.");
@@ -62,7 +70,11 @@ public sealed class LibraryHealthService(HazzDatabase database)
             var names = zip.Entries.Where(e => !string.IsNullOrEmpty(e.Name)).Select(e => e.FullName).ToArray();
             var cdgs = names.Where(n => System.IO.Path.GetExtension(n).Equals(".cdg", StringComparison.OrdinalIgnoreCase)).ToArray();
             var audio = names.Where(n => Audio.Contains(System.IO.Path.GetExtension(n), StringComparer.OrdinalIgnoreCase)).ToArray();
-            var buffer = new byte[65536];
+            if (verifyZipContents)
+            {
+            var buffer = ArrayPool<byte>.Shared.Rent(65536);
+            try
+            {
             foreach (var entry in zip.Entries.Where(e => !string.IsNullOrEmpty(e.Name)))
             {
                 token.ThrowIfCancellationRequested();
@@ -75,9 +87,14 @@ public sealed class LibraryHealthService(HazzDatabase database)
                 }
                 if (bytes != entry.Length || ~crc != entry.Crc32) throw new InvalidDataException("ZIP data/checksum is damaged: " + entry.FullName);
             }
+            }
+            finally { ArrayPool<byte>.Shared.Return(buffer); }
+            }
             if (kind.Equals("Karaoke", StringComparison.OrdinalIgnoreCase) && (cdgs.Length == 0 || audio.Length == 0))
                 return ("Missing ZIP partner", "Archive needs CDG graphics and a supported audio file.");
-            if (cdgs.Any(c => !audio.Any(a => System.IO.Path.GetFileNameWithoutExtension(a).Equals(System.IO.Path.GetFileNameWithoutExtension(c), StringComparison.OrdinalIgnoreCase))))
+            token.ThrowIfCancellationRequested();
+            var audioStems = audio.Select(System.IO.Path.GetFileNameWithoutExtension).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            if (cdgs.Any(c => !audioStems.Contains(System.IO.Path.GetFileNameWithoutExtension(c))))
                 return ("ZIP partner name mismatch", "CDG and audio names do not match; verify the intended pair.");
         }
         else if (ext == ".cdg" && !Audio.Any(a => File.Exists(System.IO.Path.ChangeExtension(path, a))))

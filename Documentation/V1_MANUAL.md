@@ -1,3 +1,5 @@
+Latest additions: [v2.01 Singer Database Manager, crossfade presets and faster health scans](RELEASE_v2.01.md).
+
 > **v2.0:** [Choosing the new metal and marble skins](RELEASE_v2.0.md).
 
 > **v1.9 additions:** [Library Health Centre, alternative versions, singer-song drag-to-deck and loudness matching — step-by-step guide](RELEASE_v1.9.md).

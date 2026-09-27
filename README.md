@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster
 
-Current release: **v2.0** — nine brushed-metal and marble skins, with all v1.9 features retained. [Skin guide and release notes](Documentation/RELEASE_v2.0.md).
+Current release: **v2.01** — Singer Database Manager, crossfade presets and faster library health checks. [Step-by-step instructions and release notes](Documentation/RELEASE_v2.01.md).
 
 Made For KJ/DJ's By A KJ/DJ
 

@@ -14,7 +14,8 @@ public partial class MainWindow
         var service = new LibraryHealthService(_db);
         var panel = new DockPanel { Margin = new Thickness(12) }; window.Content = panel;
         var header = new StackPanel(); DockPanel.SetDock(header, Dock.Top); panel.Children.Add(header);
-        var status = new TextBlock { Text = "Scan checks indexed files only. No files are deleted or rewritten. ZIP checks can take time; use outside a live show.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,0,0,8) }; header.Children.Add(status);
+        var status = new TextBlock { Text = "Quick scan checks files, ZIP structure and partners without decompressing songs. For damaged content checks, enable Deep ZIP verification (much slower).", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,0,0,8) }; header.Children.Add(status);
+        var deep = new CheckBox { Content = "Deep ZIP verification — decompress and check CRC (slow; optional)", Margin = new Thickness(0,0,0,8) }; header.Children.Add(deep);
         var buttons = new WrapPanel(); header.Children.Add(buttons);
         Button Button(string text) { var b = new Button { Content = text, Padding = new Thickness(10,6,10,6), Margin = new Thickness(3) }; buttons.Children.Add(b); return b; }
         var scan = Button("SCAN LIBRARY"); var cancel = Button("CANCEL SCAN"); var preview = Button("PREVIEW RECONNECT"); var apply = Button("CONFIRM RECONNECT"); var remove = Button("REMOVE SELECTED DATABASE ENTRIES");
@@ -33,7 +34,7 @@ public partial class MainWindow
         window.Closing += (_,args) => { if (applying) args.Cancel = true; };
         List<LibraryHealthIssue> issues = new(); List<LibraryRelink> repairs = new(); CancellationTokenSource? operation = null;
         void Findings() { Columns(("Problem","Problem"),("Artist","Artist"),("Title","Title"),("Path","Path"),("Details","Detail")); grid.ItemsSource = issues; }
-        void Busy(bool busy) { scan.IsEnabled = !busy; cancel.IsEnabled = busy; preview.IsEnabled = remove.IsEnabled = !busy && issues.Count > 0; apply.IsEnabled = !busy && repairs.Count > 0; }
+        void Busy(bool busy) { deep.IsEnabled = !busy; scan.IsEnabled = !busy; cancel.IsEnabled = busy; preview.IsEnabled = remove.IsEnabled = !busy && issues.Count > 0; apply.IsEnabled = !busy && repairs.Count > 0; }
         void Invalidate() { repairs.Clear(); apply.IsEnabled = false; }
         oldRoot.TextChanged += (_,_) => Invalidate(); newRoot.TextChanged += (_,_) => Invalidate();
         window.Closed += (_,_) => { cts.Cancel(); operation?.Cancel(); };
@@ -41,8 +42,9 @@ public partial class MainWindow
         scan.Click += async (_,_) =>
         {
             operation = CancellationTokenSource.CreateLinkedTokenSource(cts.Token); var token = operation.Token;
+            var verifyZipContents = deep.IsChecked == true;
             Invalidate(); Busy(true); var progress = new Progress<string>(s => status.Text = s);
-            try { issues = await Task.Run(() => service.ScanAsync(progress, token), token); Findings(); }
+            try { issues = await Task.Run(() => service.ScanAsync(progress, token, verifyZipContents), token); Findings(); }
             catch (OperationCanceledException) { status.Text = "Scan cancelled. Nothing changed."; }
             catch (Exception ex) { status.Text = ex.Message; }
             finally { operation.Dispose(); operation = null; Busy(false); }

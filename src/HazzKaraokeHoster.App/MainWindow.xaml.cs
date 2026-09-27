@@ -562,6 +562,7 @@ public partial class MainWindow : Window
         DeckBVolume.Value = Math.Clamp(settings.DefaultDeck2Volume, 0, 1);
         AutoCrossfadeCheck.IsChecked = settings.DefaultAutoCrossfade;
         CrossfadeSecondsSlider.Value = Math.Clamp(settings.DefaultCrossfadeSeconds, 0.5, 12);
+        _crossfadePreset = CrossfadeCurve.Normalize(settings.CrossfadePreset);
         // Restore against the host monitor work area, not the whole virtual desktop.
         // This prevents a large saved host window from being restored partly off a laptop
         // simply because an audience TV extends the Windows virtual desktop.
@@ -680,6 +681,7 @@ public partial class MainWindow : Window
             DefaultDeck2Volume = DeckBVolume.Value,
             DefaultAutoCrossfade = AutoCrossfadeCheck.IsChecked == true,
             DefaultCrossfadeSeconds = CrossfadeSecondsSlider.Value,
+            CrossfadePreset = _crossfadePreset,
             LeftColumnWeight = _classicLeftWeight,
             CenterColumnWeight = _classicCenterWeight,
             RightColumnWeight = _classicRightWeight,
@@ -4323,6 +4325,7 @@ public partial class MainWindow : Window
         var index = GetScheduledIndex(to);
         if (index < 0 || !StartDeckAt(to, index, 0.0, makeActive: false)) return;
 
+        _runningCrossfadePreset = _crossfadePreset;
         _crossfadeFrom = from;
         _crossfadeTo = to;
         _crossfadeActive = true;
@@ -4335,8 +4338,9 @@ public partial class MainWindow : Window
     private void UpdateCrossfade()
     {
         var progress = TransitionProgress();
-        SetDeckFadeFactor(_crossfadeFrom, 1.0 - progress);
-        SetDeckFadeFactor(_crossfadeTo, progress);
+        var gains = CrossfadeCurve.Gains(_runningCrossfadePreset, progress);
+        SetDeckFadeFactor(_crossfadeFrom, gains.Outgoing);
+        SetDeckFadeFactor(_crossfadeTo, gains.Incoming);
         if (progress < 1.0) return;
         CompleteCrossfade();
     }

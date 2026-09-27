@@ -9,8 +9,10 @@ using NAudio.Wave;
 static class Program
 {
     static void Check(bool pass, string name) { if (!pass) throw new Exception(name); Console.WriteLine("PASS " + name); }
-    static async Task Main()
+    static async Task Main(string[] args)
     {
+        if (args.Contains("--v201")) { await Release201Checks.Run(); return; }
+        if (args.Contains("--million")) { await MillionCheck(); return; }
         var root = Path.Combine(Path.GetTempPath(), "hazz-v19-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
         try
         {
@@ -37,6 +39,7 @@ static class Program
             var bytes=File.ReadAllBytes(corrupt); var at=30+BitConverter.ToUInt16(bytes,26)+BitConverter.ToUInt16(bytes,28); bytes[at]=(byte)'z'; File.WriteAllBytes(corrupt,bytes);
             bool bad=false;try { LibraryHealthService.InspectFile(corrupt,"Karaoke",default); } catch(InvalidDataException) { bad=true; }
             Check(bad,"ZIP CRC corruption detected");
+            Check(LibraryHealthService.InspectFile(corrupt,"Karaoke",default,false)?.Kind == "Missing ZIP partner","quick scan skips corrupt payload but still detects missing partner");
             File.WriteAllText(Path.Combine(root,"orphan.cdg"),"abc"); await repo.UpsertSongAsync(Song("Test","No audio","orphan.cdg"));
             File.WriteAllText(Path.Combine(root,"orphan.mp3"),"abc"); await repo.UpsertSongAsync(Song("Test","No graphics","lonely.mp3"));File.WriteAllText(Path.Combine(root,"lonely.mp3"),"abc");
             File.WriteAllText(Path.Combine(root,"audioonly.mp3"),"abc");await repo.UpsertSongAsync(Song("Test","Music audio","audioonly.mp3","Music"));
@@ -62,6 +65,37 @@ static class Program
             AudioChecks();
         }
         finally { SqliteConnection.ClearAllPools(); Directory.Delete(root,true); }
+    }
+    static async Task MillionCheck()
+    {
+        var root=Path.Combine(Path.GetTempPath(),"hazz-million-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
+        try
+        {
+            var db=new HazzDatabase(Path.Combine(root,"million.db"));
+            await using(var c=new SqliteConnection(db.ConnectionString))
+            {
+                await c.OpenAsync();using var cmd=c.CreateCommand();cmd.CommandText="""
+CREATE TABLE songs(id INTEGER PRIMARY KEY,artist TEXT,title TEXT,file_path TEXT,file_size INTEGER,media_kind TEXT);
+WITH RECURSIVE numbers(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM numbers WHERE n<1000000)
+INSERT INTO songs SELECT n,'Test Artist','Song '||n,$root||n||'.mp3',3,'Music' FROM numbers;
+""";cmd.Parameters.AddWithValue("$root",Path.Combine(root,"missing")+Path.DirectorySeparatorChar);await cmd.ExecuteNonQueryAsync();
+            }
+            var timer=System.Diagnostics.Stopwatch.StartNew();
+            var progress=new TimingProgress(timer);
+            var issues=await new LibraryHealthService(db).ScanAsync(progress,default);
+            Check(issues.Count==1000000,"one million indexed entries checked without dropped findings");
+            Console.WriteLine($"Million-row quick scan: {timer.Elapsed.TotalSeconds:F2}s; peak working set {System.Diagnostics.Process.GetCurrentProcess().PeakWorkingSet64/1024/1024} MB");
+        }
+        finally { SqliteConnection.ClearAllPools();Directory.Delete(root,true); }
+    }
+    sealed class TimingProgress(System.Diagnostics.Stopwatch timer):IProgress<string>
+    {
+        int bucket;
+        public void Report(string text)
+        {
+            if(text.StartsWith("Checked ") && int.TryParse(text.Split(' ')[1].Replace(",",""),out var count) && count/100000>bucket)
+            { bucket=count/100000;Console.WriteLine($"{count:N0} entries at {timer.Elapsed.TotalSeconds:F2}s"); }
+        }
     }
     static void AudioChecks()
     {
