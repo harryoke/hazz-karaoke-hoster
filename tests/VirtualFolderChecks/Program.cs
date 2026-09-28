@@ -13,9 +13,14 @@ var karaoke = new SongRecord(0, "Bon Jovi", "Livin On A Prayer", "Sunfly", "SF00
 var rockId = await repo.UpsertSongAsync(rockSong);
 var jingleId = await repo.UpsertSongAsync(jingle);
 var karaokeId = await repo.UpsertSongAsync(karaoke);
+// Simulate reopening a pre-v1.74 library: legacy Music video rows migrate once
+// per database instance, before search and folder browsing use the separate kind.
+await new HazzDatabase(dbPath).InitializeAsync();
 var videoSearch = await repo.SearchByKindAsync("Queen", "MusicVideo", 100);
 if (videoSearch.Count != 1 || videoSearch[0].Id != rockId)
-    throw new Exception("Music Video search did not return the matching music-library video.");
+    throw new Exception("Music Video search did not return the migrated music video.");
+if (videoSearch[0].MediaKind != "MusicVideo" || (await repo.SearchByKindAsync("Queen", "Music", 100)).Count != 0)
+    throw new Exception("Migrated music video was not separated from the audio library.");
 if ((await repo.SearchByKindAsync("Station", "MusicVideo", 100)).Count != 0)
     throw new Exception("Music Video search included an audio-only track.");
 
@@ -86,7 +91,7 @@ using (var triggerCheck = connection.CreateCommand())
     if (Convert.ToInt32(triggerCheck.ExecuteScalar()) != 1) throw new Exception("BPM bulk import did not restore the songs search trigger.");
 }
 var repeatProgress = new List<BpmStudioImportProgress>();
-var bpmRepeat = await new BpmStudioImportService(db).ImportAsync(bpmRoot, new Progress<BpmStudioImportProgress>(p => repeatProgress.Add(p)));
+var bpmRepeat = await new BpmStudioImportService(db).ImportAsync(bpmRoot, new InlineProgress<BpmStudioImportProgress>(repeatProgress.Add));
 if (bpmRepeat.VirtualFoldersImported != 0 || bpmRepeat.VirtualFolderTrackLinksImported != 0)
     throw new Exception("Repeated BPM virtual-folder import created duplicates.");
 if (!repeatProgress.Any(p => p.Phase.Contains("Skipping unchanged BPM virtual folder", StringComparison.OrdinalIgnoreCase)))
@@ -104,3 +109,10 @@ var restoredRepeat = await new BpmStudioImportService(db).ImportAsync(bpmRoot);
 if (restoredRepeat.VirtualFoldersImported != 0 || restoredRepeat.VirtualFolderTrackLinksImported != 0)
     throw new Exception("Re-import after restoration created duplicates.");
 Console.WriteLine("PASS: virtual folders, BPM import, deleted-folder restoration and repeat-import duplicate protection.");
+
+// Progress<T> posts asynchronously without a synchronization context; assertions
+// must not race its thread-pool callbacks or enumerate a List during mutation.
+sealed class InlineProgress<T>(Action<T> report) : IProgress<T>
+{
+    public void Report(T value) => report(value);
+}

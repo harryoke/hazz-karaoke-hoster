@@ -49,3 +49,63 @@ foreach (var day in new[]{1,2,3,4}) File.WriteAllBytes(Path.Combine(retention,$"
 File.WriteAllText(Path.Combine(retention,"manual.zip"),"keep"); File.WriteAllText(Path.Combine(retention,"hazz-2026-01-01.db"),"legacy");
 CompressedBackup.Prune(retention,250);
 Check(Directory.GetFiles(retention,"hazz-*.zip").Length==2 && File.Exists(Path.Combine(retention,"manual.zip")) && File.Exists(Path.Combine(retention,"hazz-2026-01-01.db")),"budget retention preserves manual and legacy backups");
+
+
+// Database backups may replace an older snapshot, but never the active database.
+var directBackup = Path.Combine(root, "direct-backup.db");
+await db.BackupAsync(directBackup);
+File.WriteAllText(directBackup, "old backup marker");
+using (var cancelled = new CancellationTokenSource())
+{
+    cancelled.Cancel();
+    try { await db.BackupAsync(directBackup, cancelled.Token); throw new Exception("Cancelled backup succeeded"); }
+    catch (OperationCanceledException) { }
+}
+Check(File.ReadAllText(directBackup) == "old backup marker", "cancelled backup preserves previous target");
+await db.BackupAsync(directBackup);
+using (var snapshot = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = directBackup, Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString()))
+{
+    snapshot.Open();
+    using var query = snapshot.CreateCommand();
+    query.CommandText = "PRAGMA integrity_check";
+    Check((string)query.ExecuteScalar()! == "ok", "replacement database backup passes integrity check");
+    query.CommandText = "SELECT COUNT(*) FROM singers";
+    Check((long)query.ExecuteScalar()! == Count("singers"), "replacement backup retains singer data");
+}
+foreach (var protectedPath in new[] { db.DatabasePath, Path.Combine(root, ".", "test.db"), db.DatabasePath + "-wal", db.DatabasePath + "-shm", db.DatabasePath + "-journal" })
+{
+    try { await db.BackupAsync(protectedPath); throw new Exception("Live database destination accepted: " + protectedPath); }
+    catch (ArgumentException) { }
+}
+Check(Count("singers") == 1, "live database and journal destinations rejected without data loss");
+var blockedTarget = Path.Combine(root, "blocked.db");
+Directory.CreateDirectory(blockedTarget);
+File.WriteAllText(Path.Combine(blockedTarget, "keep.txt"), "keep");
+try { await db.BackupAsync(blockedTarget); throw new Exception("Directory destination accepted"); }
+catch (IOException) { }
+catch (UnauthorizedAccessException) { }
+Check(File.ReadAllText(Path.Combine(blockedTarget, "keep.txt")) == "keep" && !Directory.GetFiles(root, "*.tmp").Any(),
+    "failed publication preserves destination and cleans staging files");
+
+// Old .pending/.snapshot files must not block today's backup or be removed by it.
+var interruptedFolder = Path.Combine(root, "interrupted-backups");
+Directory.CreateDirectory(interruptedFolder);
+var dailyTarget = Path.Combine(interruptedFolder, "hazz-" + DateTime.Now.ToString("yyyy-MM-dd") + ".zip");
+File.WriteAllText(dailyTarget + ".pending", "interrupted ZIP");
+File.WriteAllText(dailyTarget + ".snapshot", "interrupted snapshot");
+await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => CompressedBackup.CreateAsync(db, interruptedFolder)));
+using (var zip = System.IO.Compression.ZipFile.OpenRead(dailyTarget))
+    Check(zip.GetEntry("hazz-hoster.db") is not null, "concurrent requests publish one complete daily backup despite stale files");
+Check(File.ReadAllText(dailyTarget + ".pending") == "interrupted ZIP" && File.ReadAllText(dailyTarget + ".snapshot") == "interrupted snapshot",
+    "backup requests only clean up their own working files");
+Check(Directory.GetFiles(interruptedFolder).Length == 3, "completed ZIP backup leaves no new working files");
+using (var cancelled = new CancellationTokenSource())
+{
+    cancelled.Cancel();
+    try { await CompressedBackup.CreateAsync(db, interruptedFolder, cancelled.Token); throw new Exception("Cancelled ZIP backup succeeded"); }
+    catch (OperationCanceledException) { }
+}
+await CompressedBackup.CreateAsync(db, Path.Combine(root, "after-cancellation"));
+Check(true, "ZIP backup remains usable after cancellation");
+SqliteConnection.ClearAllPools();
+Directory.Delete(root, recursive: true);
