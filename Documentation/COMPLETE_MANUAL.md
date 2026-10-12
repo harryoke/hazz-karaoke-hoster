@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster v1.7 display and sync guide
 
-Current release: **v1.74.1** — dedicated Music Video library/imports, instant previous-search reopening and expanded video transitions. [v1.74.1 instructions](RELEASE_v1.74.1.md).
+Current release: **v2.20** — includes a ready-to-use 1920 × 1080 Halloween audience bezel, alongside the editable bezel template. [v2.20 instructions](RELEASE_v2.20.md).
 
 Previous release: **v1.71** — fixes audience-preview rendering failures when switching skins. Start normally; no compatibility launcher is required. See [v1.71 release notes](RELEASE_v1.71.md). The v1.7 feature instructions remain applicable.
 
@@ -520,6 +520,16 @@ Choose one image, GIF or muted video, or choose a folder for a slideshow. Every 
 ### Logo
 
 Choose a transparent PNG or other supported image as a persistent audience logo. Set its position and width. It remains above CDG and video karaoke when enabled.
+
+### Event bezels and frames
+
+An audience bezel is a transparent PNG frame placed above the karaoke or music video picture. It is useful for venue branding, themed events and retro-style presentation frames. In **Display**, enable **Audience bezel / event frame** and choose one PNG. Hazz finds the largest transparent rectangle in that PNG and automatically fits the whole audience display inside it. The bezel is always the top layer.
+
+v2.20 includes a ready-to-use `Templates/Hazz_Audience_Bezel_Halloween_1920x1080.png` sample. Choose it from the extracted Hazz folder to use a Halloween frame immediately. Its centre is fully transparent, so the complete audience picture, singer information and scrollers stay inside the viewing window.
+
+For a changing frame, choose a folder containing transparent PNG bezels and set **Slide every**. Hazz cycles only PNG files so an accidental opaque photo cannot cover the singer display. The bezel stays above both the normal Windows video engine and the VLC engine.
+
+Use `Documentation/Templates/Hazz_Audience_Bezel_Template_1920x1080.psd` to create your own frame. Paint outside the pink safe-area outline, hide the guide layer, and export a transparent 1920 × 1080 PNG. The included template guide explains the steps.
 
 ## 10 Show safety and recovery
 

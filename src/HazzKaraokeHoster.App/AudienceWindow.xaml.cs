@@ -135,7 +135,7 @@ public partial class AudienceWindow : Window
             SingerBackgroundVideo.Source = null;
             SingerBackgroundVideo.Close();
         };
-        SizeChanged += (_, _) => { ResetScroller(); FitSingerPanel(); };
+        SizeChanged += (_, _) => { ResetScroller(); FitSingerPanel(); ApplyBezelViewport(); };
     }
 
     public void SendToDisplay(DisplayTarget target, bool fullScreen)
@@ -297,6 +297,7 @@ public partial class AudienceWindow : Window
             ? Math.Clamp(s.MusicVideoTransitionSeconds, 0.1, 5.0) : 0.75;
 
         ConfigureBackgroundSlideshow(s);
+        ConfigureBezel(s);
         SetCachedImage(AudienceLogoImage, s.LogoImagePath, ref _logoImagePath);
         PositionLogo(s.LogoPosition, s.LogoWidth);
 
@@ -461,6 +462,7 @@ public partial class AudienceWindow : Window
         FitSingerPanel();
         MoveNativeOverlays(_karaokeActive && AudienceMedia.Source is not null && AudienceMedia.NativeActive ? AudienceMedia
             : !_karaokeActive && MusicVideoMedia.Source is not null && MusicVideoMedia.NativeActive ? MusicVideoMedia : null);
+        ApplyBezelViewport();
         var musicVideoVisible = !_karaokeActive && MusicVideoMedia.Source is not null;
         var transparentCdg = _karaokeActive && AudienceCdgImage.Source is not null && _cdgPresentation.Enabled;
         var backgroundVisible = !musicVideoVisible && (!_karaokeActive || transparentCdg);

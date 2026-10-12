@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster v1.7 display and sync guide
 
-Current release: **v1.74.1** — dedicated Music Video library/imports, instant previous-search reopening and expanded video transitions. [v1.74.1 instructions](RELEASE_v1.74.1.md).
+Current release: **v2.20** — includes a ready-to-use 1920 × 1080 Halloween audience bezel, alongside the editable bezel template. [v2.20 instructions](RELEASE_v2.20.md).
 
 Previous release: **v1.71** — fixes audience-preview rendering failures when switching skins. Start normally; no compatibility launcher is required. See [v1.71 release notes](RELEASE_v1.71.md). The v1.7 feature instructions remain applicable.
 
@@ -388,6 +388,16 @@ All four actions leave the physical song files and main Hazz library untouched.
 
 
 Hazz Karaoke Hoster v0.90
+
+## Make your own TV frame
+
+You can put a special frame around the singer screen for a venue, party or themed night. Open **DISPLAY**, tick **Audience bezel / event frame**, and choose a transparent PNG. The song picture automatically shrinks into the clear middle of that PNG.
+
+For a ready-made choice, choose `Templates/Hazz_Audience_Bezel_Halloween_1920x1080.png`. It is the included Halloween frame. The clear middle is transparent, so the song, singer information and scrolling messages all stay inside it.
+
+Hazz automatically finds the clear middle and keeps all singer information, logos and scrolling messages inside it. For several frames, put transparent PNG files in one folder and choose **CHOOSE FOLDER**. Hazz changes them at the time you choose.
+
+There is a Photoshop template in `Documentation/Templates/Hazz_Audience_Bezel_Template_1920x1080.psd`. Open it, draw your design outside the pink guide, hide the guide, and save it as a transparent PNG.
 
 Audience Display Settings now includes SHOW DURING MUSIC VIDEOS with independent options for:
 - Permanent logo

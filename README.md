@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster
 
-Current release: **v2.10** — music effects and exact singer-list column widths, with all v2.01 features retained. [Instructions and release notes](Documentation/RELEASE_v2.10.md).
+Current release: **v2.20** — an included 1920 × 1080 Halloween audience bezel sample, alongside the editable bezel template and all v2.10 features. [Instructions and release notes](Documentation/RELEASE_v2.20.md).
 
 Made For KJ/DJ's By A KJ/DJ
 
@@ -14,7 +14,11 @@ Hazz brings a karaoke player, singer rotation and two music decks into one conso
 
 **[Download for Windows](https://github.com/harryoke/hazz-karaoke-hoster/releases/latest)** · **[Official website](https://harryoke.github.io/hazz-karaoke-hoster/)** · **[User guide](Documentation/V1_MANUAL.md)**
 
-## New in v1.7
+## New in v2.20
+
+Every v2.20 portable and optional single-EXE download includes a ready-to-use **Halloween audience bezel** in its `Templates` folder. It has a fully transparent 16:9 centre, so Hazz automatically keeps karaoke, video, singers and scrolling messages inside the viewing window while the decorative frame remains above them. [Read the bezel instructions](Documentation/RELEASE_v2.20.md).
+
+## Retained audience features
 
 Video AV Sync with saved track defaults; a complete, muted audience preview; optional CD+G background transparency with separate opacity sliders and per-song overrides. [Read the v1.7 instructions](Documentation/RELEASE_v1.7.md).
 

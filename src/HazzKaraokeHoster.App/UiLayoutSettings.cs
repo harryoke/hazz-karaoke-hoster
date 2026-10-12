@@ -63,6 +63,14 @@ internal sealed class UiLayoutSettings
     public string AudienceBackgroundStretchMode { get; set; } = "Fit";
     public string AudienceBackgroundFolderPath { get; set; } = string.Empty;
     public string AudienceBackgroundImagePath { get; set; } = string.Empty;
+    public bool AudienceBezelEnabled { get; set; } = false;
+    public string AudienceBezelFolderPath { get; set; } = string.Empty;
+    public string AudienceBezelImagePath { get; set; } = string.Empty;
+    public double AudienceBezelSlideshowSeconds { get; set; } = 30;
+    public double AudienceBezelInsetLeftPercent { get; set; } = 5;
+    public double AudienceBezelInsetTopPercent { get; set; } = 5;
+    public double AudienceBezelInsetRightPercent { get; set; } = 5;
+    public double AudienceBezelInsetBottomPercent { get; set; } = 5;
     public bool AudienceLogoEnabled { get; set; } = false;
     public string AudienceLogoImagePath { get; set; } = string.Empty;
     public string AudienceLogoPosition { get; set; } = "TopRight";

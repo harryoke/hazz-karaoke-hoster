@@ -131,6 +131,8 @@ public partial class MainWindow : Window
     private bool _autoCrossfadeBeforeSingleDeck = true;
     private string _audienceBackgroundFolderPath = string.Empty;
     private string _audienceBackgroundImagePath = string.Empty;
+    private string _audienceBezelFolderPath = string.Empty;
+    private string _audienceBezelImagePath = string.Empty;
     private string _audienceLogoImagePath = string.Empty;
     private string _audienceNextHeadingColor = "#FFFFD34D";
     private string _audienceNextPositionColor = "#FFFFD34D";
@@ -589,8 +591,12 @@ public partial class MainWindow : Window
         SelectComboItemByContent(BackgroundStretchCombo, DisplayBackgroundStretch(settings.AudienceBackgroundStretchMode), "Fit");
         _audienceBackgroundFolderPath = settings.AudienceBackgroundFolderPath ?? string.Empty;
         _audienceBackgroundImagePath = settings.AudienceBackgroundImagePath ?? string.Empty;
+        _audienceBezelFolderPath = settings.AudienceBezelFolderPath ?? string.Empty;
+        _audienceBezelImagePath = settings.AudienceBezelImagePath ?? string.Empty;
         _audienceLogoImagePath = settings.AudienceLogoImagePath ?? string.Empty;
         AudienceBackgroundEnabledCheck.IsChecked = settings.AudienceBackgroundEnabled && (!string.IsNullOrWhiteSpace(_audienceBackgroundImagePath) || !string.IsNullOrWhiteSpace(_audienceBackgroundFolderPath));
+        AudienceBezelEnabledCheck.IsChecked = settings.AudienceBezelEnabled && (!string.IsNullOrWhiteSpace(_audienceBezelImagePath) || !string.IsNullOrWhiteSpace(_audienceBezelFolderPath));
+        BezelSlideshowSecondsSlider.Value = double.IsFinite(settings.AudienceBezelSlideshowSeconds) ? Math.Clamp(settings.AudienceBezelSlideshowSeconds, 5, 600) : 30;
         MusicVideoShowLogoCheck.IsChecked = settings.MusicVideoShowLogo;
         MusicVideoShowScrollerCheck.IsChecked = settings.MusicVideoShowScroller;
         MusicVideoShowSingersCheck.IsChecked = settings.MusicVideoShowSingers;
@@ -705,6 +711,10 @@ public partial class MainWindow : Window
             AudienceBackgroundStretchMode = SelectedBackgroundStretch(),
             AudienceBackgroundFolderPath = _audienceBackgroundFolderPath,
             AudienceBackgroundImagePath = _audienceBackgroundImagePath,
+            AudienceBezelEnabled = AudienceBezelEnabledCheck.IsChecked == true,
+            AudienceBezelFolderPath = _audienceBezelFolderPath,
+            AudienceBezelImagePath = _audienceBezelImagePath,
+            AudienceBezelSlideshowSeconds = BezelSlideshowSecondsSlider.Value,
             MusicVideoShowLogo = MusicVideoShowLogoCheck.IsChecked == true,
             MusicVideoShowScroller = MusicVideoShowScrollerCheck.IsChecked == true,
             MusicVideoShowSingers = MusicVideoShowSingersCheck.IsChecked == true,
@@ -1247,6 +1257,43 @@ public partial class MainWindow : Window
         ApplyOverlaySettings();
     }
 
+    private void ChooseAudienceBezelFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFolderDialog { Title = "Choose transparent PNG bezel slideshow folder" };
+        if (dlg.ShowDialog(this) != true) return;
+        _audienceBezelFolderPath = dlg.FolderName;
+        _audienceBezelImagePath = string.Empty;
+        AudienceBezelEnabledCheck.IsChecked = true;
+        UpdateAudienceArtworkLabels();
+        ApplyOverlaySettings();
+        SaveMainLayout();
+    }
+
+    private void ChooseAudienceBezel_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFileDialog
+        {
+            Title = "Choose transparent PNG audience bezel",
+            Filter = "Transparent PNG files|*.png|All files|*.*",
+            CheckFileExists = true
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        _audienceBezelFolderPath = string.Empty;
+        _audienceBezelImagePath = dlg.FileName;
+        AudienceBezelEnabledCheck.IsChecked = true;
+        UpdateAudienceArtworkLabels();
+        ApplyOverlaySettings();
+    }
+
+    private void ClearAudienceBezel_Click(object sender, RoutedEventArgs e)
+    {
+        _audienceBezelFolderPath = string.Empty;
+        _audienceBezelImagePath = string.Empty;
+        AudienceBezelEnabledCheck.IsChecked = false;
+        UpdateAudienceArtworkLabels();
+        ApplyOverlaySettings();
+    }
+
     private void ChooseAudienceLogo_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new OpenFileDialog
@@ -1282,6 +1329,12 @@ public partial class MainWindow : Window
             AudienceLogoFileText.Text = string.IsNullOrWhiteSpace(_audienceLogoImagePath)
                 ? "No logo selected"
                 : Path.GetFileName(_audienceLogoImagePath);
+        if (AudienceBezelFileText is not null)
+            AudienceBezelFileText.Text = !string.IsNullOrWhiteSpace(_audienceBezelFolderPath)
+                ? $"PNG bezel slideshow ({BezelSlideshowSecondsSlider.Value:0}s): {_audienceBezelFolderPath}"
+                : string.IsNullOrWhiteSpace(_audienceBezelImagePath)
+                ? "No bezel selected"
+                : Path.GetFileName(_audienceBezelImagePath);
         if (LogoWidthText is not null && LogoWidthSlider is not null)
             LogoWidthText.Text = $"{LogoWidthSlider.Value:0}px";
     }
@@ -2831,6 +2884,10 @@ public partial class MainWindow : Window
             BackgroundStretchMode = SelectedBackgroundStretch(),
             BackgroundFolderPath = _audienceBackgroundFolderPath,
             BackgroundImagePath = _audienceBackgroundImagePath,
+            BezelEnabled = AudienceBezelEnabledCheck.IsChecked == true && (!string.IsNullOrWhiteSpace(_audienceBezelImagePath) || !string.IsNullOrWhiteSpace(_audienceBezelFolderPath)),
+            BezelFolderPath = _audienceBezelFolderPath,
+            BezelImagePath = _audienceBezelImagePath,
+            BezelSlideshowSeconds = BezelSlideshowSecondsSlider.Value,
             MusicVideoShowLogo = MusicVideoShowLogoCheck.IsChecked == true,
             MusicVideoShowScroller = MusicVideoShowScrollerCheck.IsChecked == true,
             MusicVideoShowSingers = MusicVideoShowSingersCheck.IsChecked == true,

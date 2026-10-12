@@ -57,6 +57,17 @@ public sealed class AudienceOverlaySettings
     public string BackgroundFolderPath { get; set; } = string.Empty;
     public string BackgroundImagePath { get; set; } = string.Empty;
 
+    // Optional transparent PNG frame above the audience content. The four insets
+    // describe the visible video/CD+G window as percentages of the display.
+    public bool BezelEnabled { get; set; } = false;
+    public string BezelFolderPath { get; set; } = string.Empty;
+    public string BezelImagePath { get; set; } = string.Empty;
+    public double BezelSlideshowSeconds { get; set; } = 30;
+    public double BezelInsetLeftPercent { get; set; } = 5;
+    public double BezelInsetTopPercent { get; set; } = 5;
+    public double BezelInsetRightPercent { get; set; } = 5;
+    public double BezelInsetBottomPercent { get; set; } = 5;
+
     // Persistent audience logo. When enabled it stays above CD+G and video output.
     public bool LogoEnabled { get; set; } = false;
     public string LogoImagePath { get; set; } = string.Empty;

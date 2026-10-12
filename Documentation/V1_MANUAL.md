@@ -1,4 +1,4 @@
-Latest additions: [v2.10 music effects and exact column widths](RELEASE_v2.10.md).
+Latest additions: [v2.20 included Halloween audience bezel sample](RELEASE_v2.20.md).
 
 Latest additions: [v2.01 Singer Database Manager, crossfade presets and faster health scans](RELEASE_v2.01.md).
 

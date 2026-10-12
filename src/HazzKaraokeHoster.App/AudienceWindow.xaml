@@ -18,6 +18,9 @@
   <!-- Karaoke content layer. -->
   <local:AudienceVideoSurface x:Name="AudienceMedia" Panel.ZIndex="10" Visibility="Collapsed" IsHitTestVisible="False"/>
   <Image x:Name="AudienceCdgImage" Panel.ZIndex="11" Stretch="Uniform" Visibility="Collapsed" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
+  <!-- The frame stays at the root, above every other audience layer. Its transparent
+       centre reveals the content viewport calculated from the PNG alpha channel. -->
+  <Image x:Name="AudienceBezelImage" Panel.ZIndex="200" Stretch="Fill" Visibility="Collapsed" IsHitTestVisible="False"/>
 
   <Grid x:Name="AudienceOverlays" Panel.ZIndex="100" Background="{x:Null}" IsHitTestVisible="False">
   <!-- Music-video reveal cover. This lives inside the overlay host so it also works above LibVLC's native video surface. -->

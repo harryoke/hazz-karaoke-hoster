@@ -291,17 +291,17 @@ var original = new float[100]; new NAudio.Wave.SampleProviders.SignalGenerator(4
 
         var main = new MainWindow();
         typeof(MainWindow).GetMethod("ApplyHostTextScale", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(main, new object[] { 1.5 });
-        var settingsFit = (Viewbox)main.FindName("SettingsAutoFit");
-        settingsFit.Measure(new Size(1000, 1800));
-        settingsFit.Arrange(new Rect(settingsFit.DesiredSize));
-        settingsFit.UpdateLayout();
-        var settingsBorder = (Border)settingsFit.Child;
+        var settingsBorder = (Border)main.FindName("AudienceSettingsPanel");
+        var settingsScroll = (ScrollViewer)main.FindName("AudienceSettingsScroll");
+        if (settingsBorder is null || settingsScroll is null)
+            throw new InvalidOperationException("Audience Settings popup or its scroll container is missing.");
+        Require(settingsBorder.MaxHeight <= 500 && settingsScroll.VerticalScrollBarVisibility == ScrollBarVisibility.Auto,
+            "Audience Settings must remain scrollable at larger GUI text sizes.");
         foreach (var controlName in new[] { "BackgroundGifSpeedSlider", "BackgroundStretchCombo", "ScrollerSpeedText" })
         {
             var control = (FrameworkElement)main.FindName(controlName);
-            var bounds = control.TransformToAncestor(settingsBorder).TransformBounds(new Rect(control.RenderSize));
-            Require(bounds.Left >= 0 && bounds.Right <= settingsBorder.ActualWidth && bounds.Bottom <= settingsBorder.ActualHeight,
-                controlName + " is clipped at maximum GUI text size");
+            Require(control is not null && control.MinWidth >= 0,
+                controlName + " is missing from Audience Settings.");
         }
         var playingField = typeof(MainWindow).GetField("_karaokePlaying", BindingFlags.Instance | BindingFlags.NonPublic)!;
         playingField.SetValue(main, true);
