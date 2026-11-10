@@ -30,15 +30,36 @@ public sealed class RealtimePitchAudioPlayer : IDisposable
         get => _reader?.CurrentTime ?? TimeSpan.Zero;
         set
         {
+            _drift.Reset();
             if (_reader is null) return;
             var target = value < TimeSpan.Zero ? TimeSpan.Zero : value;
             if (_reader.TotalTime > TimeSpan.Zero && target > _reader.TotalTime) target = _reader.TotalTime;
+            // Avoid reopening/seeking a freshly prepared video stream at 00:00.
+            // Some Media Foundation video decoders make even a redundant seek slow.
+            if (Math.Abs((_reader.CurrentTime - target).TotalMilliseconds) < 20) return;
             var resume = _output?.PlaybackState == PlaybackState.Playing;
             if (resume) _output?.Pause();
             _pitch?.Seek(() => _reader.CurrentTime = target);
             if (resume) _output?.Play();
         }
     }
+
+    // Prepare an isolated pipeline. It is only handed to the deck after completion,
+    // so background decoding never races UI controls on the current song.
+    public static Task<RealtimePitchAudioPlayer> PrepareAsync(string path, string? outputDeviceId,
+        CancellationToken cancellationToken = default)
+        => Task.Run(() =>
+        {
+            var player = new RealtimePitchAudioPlayer { OutputDeviceId = outputDeviceId };
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                player.TryLoad(path, out _);
+                cancellationToken.ThrowIfCancellationRequested();
+                return player;
+            }
+            catch { player.Dispose(); throw; }
+        }, cancellationToken);
 
     public bool TryLoad(string path, out string? error)
     {
@@ -51,13 +72,13 @@ public sealed class RealtimePitchAudioPlayer : IDisposable
             var source = _reader.ToSampleProvider();
             _pitch = new TempoSampleProvider(source);
             _volume = new VolumeSampleProvider(new NormalizingSampleProvider(_pitch)) { Volume = 0.9f };
-            if (string.IsNullOrWhiteSpace(OutputDeviceId)) _output = new WaveOutEvent { DesiredLatency = 120, NumberOfBuffers = 3 };
+            if (string.IsNullOrWhiteSpace(OutputDeviceId)) _output = new WaveOutEvent { DesiredLatency = PlaybackBufferSettings.LatencyMilliseconds, NumberOfBuffers = 4 };
             else
             {
                 using var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
                 _device = enumerator.GetDevice(OutputDeviceId);
                 if (_device.State != NAudio.CoreAudioApi.DeviceState.Active) throw new InvalidOperationException("Selected karaoke output is disconnected");
-                _output = new WasapiOut(_device, NAudio.CoreAudioApi.AudioClientShareMode.Shared, true, 120);
+                _output = new WasapiOut(_device, NAudio.CoreAudioApi.AudioClientShareMode.Shared, true, PlaybackBufferSettings.LatencyMilliseconds);
             }
             _output.Init(_volume);
             _tempo = 1;
@@ -97,20 +118,28 @@ public sealed class RealtimePitchAudioPlayer : IDisposable
         _output!.Play();
     }
 
-    public void Pause() => _output?.Pause();
+    public void Pause() { _drift.Reset(); _output?.Pause(); }
 
     public void Stop()
     {
         if (_output is null || _reader is null) return;
+        _drift.Reset();
         _output.Stop();
         _pitch?.Seek(() => _reader.CurrentTime = TimeSpan.Zero);
     }
 
-    public void SyncTo(TimeSpan hostPosition, double toleranceMilliseconds = 450)
+    private readonly KaraokeDriftFilter _drift = new();
+
+    public void SyncTo(TimeSpan hostPosition)
     {
-        if (!IsLoaded) return;
-        if (Math.Abs((Position - hostPosition).TotalMilliseconds) <= toleranceMilliseconds) return;
-        Position = hostPosition;
+        if (!IsPlaying || hostPosition < TimeSpan.FromSeconds(2))
+        {
+            _drift.Reset();
+            return;
+        }
+
+        if (_drift.NeedsCorrection((Position - hostPosition).TotalMilliseconds))
+            Position = hostPosition;
     }
 
     public void Dispose()

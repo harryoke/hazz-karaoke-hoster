@@ -1,4 +1,15 @@
-# Hazz Karaoke Hoster v1.7 display and sync guide
+# Hazz Karaoke Hoster Quick Reference
+
+Current release: **v2.30**. Earlier feature instructions below are retained for reference.
+
+## Using the v2.30 features
+
+- **Install:** Extract the complete Windows x64 ZIP into a new folder and run **Hazz Karaoke Hoster.exe**. Keep the included LiveStems folder alongside it.
+- **Browse:** Open **FOLDERS**, expand a local drive and drag a track to the karaoke deck or a music deck. Use Ctrl or Shift to select a batch for the music queues.
+- **Mix:** In two-deck mode, press Play on both decks. Move the crossfader left for Deck 1, right for Deck 2, or between them to blend. The muted track keeps running.
+- **Isolate:** Open **STEMS**, then choose Mute or Solo for Vocals, Drums, Bass or Other. Select several Solo buttons to hear those parts together. If the model is still catching up, you will hear the original. Use **Restore original** to clear the effect.
+
+[All changes since v2.20](RELEASE_v2.30.md) · [Folder browser](LOCAL_FOLDER_BROWSER.md) · [Crossfader](MANUAL_CROSSFADER.md) · [Live Stems](LIVE_STEMS.md) · [Playback stability](AUDIO_STABILITY.md)
 
 Made For KJ/DJ's By A KJ/DJ
 

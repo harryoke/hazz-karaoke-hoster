@@ -11,6 +11,9 @@ var results=new List<string>();
 try {
 var doc=XDocument.Load(args[0]);XNamespace x="http://schemas.microsoft.com/winfx/2006/xaml";
 doc.Root!.Attribute(x+"Class")?.Remove();
+doc.Root.SetAttributeValue(XNamespace.Xmlns+"local", "clr-namespace:HazzKaraokeHoster.App;assembly=Hazz Karaoke Hoster");
+foreach(var el in doc.Descendants().Where(el=>el.Name.NamespaceName=="clr-namespace:HazzKaraokeHoster.App"))
+    el.Name=XName.Get(el.Name.LocalName,"clr-namespace:HazzKaraokeHoster.App;assembly=Hazz Karaoke Hoster");
 foreach(var el in doc.Descendants().ToList()) {
 if(el.Name.LocalName=="RoutedMusicElement") el.Name=el.Name.NamespaceName.Contains("clr-namespace") ? XName.Get("MediaElement","http://schemas.microsoft.com/winfx/2006/xaml/presentation") : el.Name;
 if(el.Name.LocalName=="EventSetter"){el.Remove();continue;}
@@ -47,6 +50,35 @@ if(size.Item1==1366){var bitmap=new System.Windows.Media.Imaging.RenderTargetBit
 results.Add($"{size}: {count} buttons, "+(failures.Count==0?"PASS":string.Join(",",failures)));
 }
 w.Close();
+var host = new HazzKaraokeHoster.App.MainWindow();
+var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+var hostType = host.GetType();
+var first = new HazzKaraokeHoster.App.MusicQueueItem { FilePath = "deck1.wav", IsNowPlaying = true };
+var second = new HazzKaraokeHoster.App.MusicQueueItem { FilePath = "deck2.wav", IsNowPlaying = true };
+hostType.GetField("_deck1CurrentItem", flags)!.SetValue(host, first);
+hostType.GetField("_deck2CurrentItem", flags)!.SetValue(host, second);
+var deckA = (HazzKaraokeHoster.App.RoutedMusicElement)host.FindName("DeckAMedia");
+var deckB = (HazzKaraokeHoster.App.RoutedMusicElement)host.FindName("DeckBMedia");
+var volumeA = ((Slider)host.FindName("DeckAVolume")).Value;
+var volumeB = ((Slider)host.FindName("DeckBVolume")).Value;
+var fader = (Slider)host.FindName("VisualCrossfaderSlider");
+var auto = (CheckBox)host.FindName("AutoCrossfadeCheck");
+hostType.GetField("_crossfadeActive", flags)!.SetValue(host, true);
+foreach (var position in new[] { 0d, 0.5, 1d, 0d })
+{
+    hostType.GetMethod("SetManualCrossfader", flags)!.Invoke(host, [position]);
+    if (auto.IsChecked != false || (bool)hostType.GetField("_crossfadeActive", flags)!.GetValue(host)! ||
+        Math.Abs(deckA.Volume - volumeA * (1 - position)) > 0.001 ||
+        Math.Abs(deckB.Volume - volumeB * position) > 0.001 ||
+        Math.Abs(fader.Value - position * 100) > 0.001 || !first.IsNowPlaying || !second.IsNowPlaying)
+        throw new Exception("Manual fader must change gains without ending either track.");
+}
+var deck2 = Enum.Parse(hostType.GetNestedType("MusicDeckId", System.Reflection.BindingFlags.NonPublic)!, "Deck2");
+hostType.GetMethod("HandleMusicDeckEnded", flags)!.Invoke(host, [deck2]);
+if (!first.IsNowPlaying || second.IsNowPlaying || deckA.Volume != volumeA || deckB.Volume != 0)
+    throw new Exception("Ending a muted deck changed the playing deck or fader.");
+results.Add("Manual crossfade endpoints, midpoint, automatic takeover and independent track end: PASS");
 }catch(Exception ex){results.Add(ex.ToString());}
 File.WriteAllLines(args[1],results);
+if(results.Any(r=>!r.EndsWith("PASS")))Environment.ExitCode=1;
 }}

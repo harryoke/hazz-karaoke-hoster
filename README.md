@@ -1,6 +1,6 @@
 # Hazz Karaoke Hoster
 
-Current release: **v2.20** — an included 1920 × 1080 Halloween audience bezel sample, alongside the editable bezel template and all v2.10 features. [Instructions and release notes](Documentation/RELEASE_v2.20.md).
+Current release: **v2.30**. [Changes since v2.20](Documentation/RELEASE_v2.30.md).
 
 Made For KJ/DJ's By A KJ/DJ
 
@@ -14,7 +14,13 @@ Hazz brings a karaoke player, singer rotation and two music decks into one conso
 
 **[Download for Windows](https://github.com/harryoke/hazz-karaoke-hoster/releases/latest)** · **[Official website](https://harryoke.github.io/hazz-karaoke-hoster/)** · **[User guide](Documentation/V1_MANUAL.md)**
 
-## New in v2.20
+## New in v2.30
+
+Browse local drives and drag files onto the decks. Play both music decks and control the blend with a manual crossfader. Mute or solo multiple music stems while a track plays. The portable ZIP includes the offline Live Stems engine. Video preparation runs in the background and audio output requests more buffering.
+
+[Read the v2.30 manual update](Documentation/Hazz_Karaoke_Hoster_v2.30_Manual_Update.pdf).
+
+## Retained from v2.20
 
 Every v2.20 portable and optional single-EXE download includes a ready-to-use **Halloween audience bezel** in its `Templates` folder. It has a fully transparent 16:9 centre, so Hazz automatically keeps karaoke, video, singers and scrolling messages inside the viewing window while the decorative frame remains above them. [Read the bezel instructions](Documentation/RELEASE_v2.20.md).
 
@@ -51,8 +57,8 @@ Choose how background music gives way to karaoke: fade and stop (default), fade 
 ## Get started
 
 1. Download the **Windows portable ZIP** from the [latest release](https://github.com/harryoke/hazz-karaoke-hoster/releases/latest).
-2. Extract the entire ZIP to a folder. Keep the DLLs and `libvlc` folder alongside **Hazz Karaoke Hoster.exe**.
-3. Open the app and use **IMPORT** to add your music and karaoke folders.
+2. Extract the entire ZIP to a folder. Keep the DLLs, `libvlc`, and `LiveStems` folders alongside **Hazz Karaoke Hoster.exe**.
+3. Open **FOLDERS** to load local media directly, or use **IMPORT** to build a searchable library.
 4. Choose your outputs under **SOUND DEVICES**, and configure the audience screen under **DISPLAY**.
 5. Add a singer and a song, or add music to a deck. Check the sound and audience output before starting your show.
 
@@ -77,7 +83,7 @@ See the [playlist instructions](Documentation/MUSIC_PLAYLIST_MENU.md) and [v1.3 
 
 Use Visual Studio 2026 with the .NET desktop development workload and .NET 10 SDK.
 Open the solution, restore its packages and build the Windows app. For a ready-to-run
-copy, use the packaged Windows download above rather than GitHub's automatic source ZIP.
+copy, use the packaged Windows download above rather than GitHub's automatic source ZIP. To reproduce the complete portable folder, use `BUILD-FOLDERS.cmd` with the released `LiveStems` directory in the source root, or set `HAZZ_LIVE_STEMS_ENGINE` to that directory.
 
 ## Copyright and licence
 

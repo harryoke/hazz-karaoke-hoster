@@ -1,3 +1,9 @@
+# Hazz Karaoke Hoster changelog
+
+## v2.30
+
+Local drive browsing and drag-to-deck loading, background video preparation, improved audio buffering, manual crossfading, and on-the-fly multi-stem mute and solo. The Windows x64 ZIP bundles Live Stems. [All changes since v2.20](Documentation/RELEASE_v2.30.md).
+
 # v1.7
 
 ## v1.74.8

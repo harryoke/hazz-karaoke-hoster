@@ -13,7 +13,7 @@ public class RoutedMusicElement : MediaElement
     public RoutedMusicElement()
     {
         LoadedBehavior = MediaState.Manual; UnloadedBehavior = MediaState.Manual;
-        MediaEnded += (_, _) => { Tempo = 1; _output?.Stop(); Effects.Enabled = false; _effectsAudio?.Reset(); };
+        MediaEnded += (_, _) => { ResetStems(); Tempo = 1; _output?.Stop(); Effects.Enabled = false; _effectsAudio?.Reset(); };
     }
     public MusicEffectsState Effects { get; set; } = new();
     private MusicEffectsSampleProvider? _effectsAudio;
@@ -34,6 +34,73 @@ public class RoutedMusicElement : MediaElement
             SpeedRatio = _tempo;
         }
     }
+    private LiveStemSampleProvider? _liveStems;
+    private CancellationTokenSource? _stemJob;
+    private string? _stemError;
+    internal int StemMuted { get; private set; }
+    internal int StemSolo { get; private set; }
+    internal bool CanUseStems => _liveStems is not null && _audioSource == Source &&
+        _output?.PlaybackState is PlaybackState.Playing or PlaybackState.Paused;
+    internal string StemStatus => !CanUseStems ? "Start an audio track on this deck"
+        : _stemError ?? (_liveStems!.Mask == 15 ? "Original mix"
+        : _liveStems.Mask == 0 ? "All stems muted"
+        : _liveStems.Covered ? "Live stems active" : "Separating near playhead • original until ready");
+
+    internal void SetStemMix(int muted, int solo)
+    {
+        if (!CanUseStems || _liveStems is not { } sink) return;
+        StemMuted = muted & 15;
+        StemSolo = solo & 15;
+        sink.Mask = StemSolo != 0 ? StemSolo : 15 & ~StemMuted;
+        if (sink.Mask is 0 or 15) { _stemError = null; return; }
+        _stemError = null;
+        WarmStems();
+    }
+
+    internal void WarmStems()
+    {
+        if (!CanUseStems || _liveStems is not { } sink || _stemJob is not null || _stemError is not null) return;
+        if (_output?.PlaybackState != PlaybackState.Playing) return;
+        var path = _audioSource!.LocalPath;
+        var job = _stemJob = new CancellationTokenSource();
+        var token = job.Token;
+        _ = Task.Run(async () =>
+        {
+            string? error = null;
+            try { await LiveStemWorker.RunAsync(path, sink, token).ConfigureAwait(false); }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+            catch (Exception ex)
+            {
+                error = "Stems unavailable • playing original";
+                App.WriteDiagnostic("LIVE STEMS", ex.ToString());
+            }
+            try
+            {
+                if (!Dispatcher.HasShutdownStarted)
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        if (ReferenceEquals(_stemJob, job))
+                        {
+                            _stemJob = null;
+                            _stemError = error;
+                        }
+                    });
+            }
+            catch (OperationCanceledException) when (Dispatcher.HasShutdownStarted) { }
+            finally { job.Dispose(); }
+        });
+    }
+
+    private void ResetStems()
+    {
+        var job = _stemJob;
+        _stemJob = null;
+        job?.Cancel();
+        if (_liveStems is not null) _liveStems.Mask = 15;
+        StemMuted = StemSolo = 0;
+        _stemError = null;
+    }
+
     private Uri? _audioSource;
     private bool _muted;
     private double _volume = 0.5;
@@ -61,11 +128,15 @@ public class RoutedMusicElement : MediaElement
                 _device = string.IsNullOrWhiteSpace(OutputDeviceId) ? enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia) : enumerator.GetDevice(OutputDeviceId);
                 if (_device.State != DeviceState.Active) throw new InvalidOperationException("Selected audio device is disconnected");
                 _reader = new MediaFoundationReader(Source.LocalPath);
-                _tempoAudio = new HazzKaraokeHoster.Playback.TempoSampleProvider(_reader.ToSampleProvider());
+                ISampleProvider samples = _reader.ToSampleProvider();
+                if (MediaFileClassifier.Classify(Source.LocalPath) is HazzMediaKind.Audio or HazzMediaKind.Mp3Audio &&
+                    samples.WaveFormat.Channels is 1 or 2)
+                    samples = _liveStems = new LiveStemSampleProvider(_reader, samples);
+                _tempoAudio = new HazzKaraokeHoster.Playback.TempoSampleProvider(samples);
                 _tempoAudio.Configure(_tempo);
                 _effectsAudio = new MusicEffectsSampleProvider(new NormalizingSampleProvider(_tempoAudio), () => Effects.Options);
                 _gain = new VolumeSampleProvider(_effectsAudio);
-                _output = new WasapiOut(_device, AudioClientShareMode.Shared, true, 120);
+                _output = new WasapiOut(_device, AudioClientShareMode.Shared, true, PlaybackBufferSettings.LatencyMilliseconds);
                 _output.Init(_gain);
                 var captured = _output;
                 _output.PlaybackStopped += (_, e) => { if (e.Exception is not null) Dispatcher.BeginInvoke(() => { if (ReferenceEquals(captured, _output)) { base.Pause(); RoutingFailed?.Invoke(e.Exception); } }); };
@@ -78,15 +149,18 @@ public class RoutedMusicElement : MediaElement
             _effectsAudio?.Reset();
             SpeedRatio = _tempo;
             _output!.Play();
+            if (_liveStems?.Mask is > 0 and < 15) WarmStems();
             base.Play();
         }
         catch (Exception ex) { base.Pause(); CloseAudio(); base.IsMuted = true; RoutingFailed?.Invoke(ex); }
     }
     public new void Pause() { _output?.Pause(); base.Pause(); }
-    public new void Stop() { Effects.Enabled = false; _effectsAudio?.Reset(); _output?.Stop(); base.Stop(); if (_reader is not null) _tempoAudio?.Seek(() => _reader.CurrentTime = TimeSpan.Zero); Tempo = 1; }
+    public new void Stop() { ResetStems(); Effects.Enabled = false; _effectsAudio?.Reset(); _output?.Stop(); base.Stop(); if (_reader is not null) _tempoAudio?.Seek(() => _reader.CurrentTime = TimeSpan.Zero); Tempo = 1; }
     public new void Close() { Effects.Enabled = false; CloseAudio(); base.Close(); }
     private void CloseAudio()
     {
+        ResetStems();
+        _liveStems = null;
         var output = _output; _output = null;
         output?.Stop(); output?.Dispose(); _reader?.Dispose(); _reader = null;
         _device?.Dispose(); _device = null; _gain = null; _audioSource = null; _tempoAudio = null; _effectsAudio = null;
