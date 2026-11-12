@@ -38,14 +38,24 @@ internal static class MusicDeckQueueStateStore
         {
             try
             {
-                if (File.Exists(candidate) && JsonSerializer.Deserialize<MusicDeckQueueState>(File.ReadAllText(candidate)) is { Deck1: not null, Deck2: not null } state)
-                    return state;
+                if (!File.Exists(candidate)) continue;
+                var state = JsonSerializer.Deserialize<MusicDeckQueueState>(File.ReadAllText(candidate));
+                if (IsValid(state)) return state!;
             }
             catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
             catch (JsonException) { }
         }
         throw new IOException("Saved music queues could not be read; existing files preserved.");
     }
+
+    private static bool IsValid(MusicDeckQueueState? state)
+        => state is { Deck1: not null, Deck2: not null }
+            && state.Deck1.All(IsValidItem) && state.Deck2.All(IsValidItem);
+
+    private static bool IsValidItem(MusicDeckQueueStateItem? item)
+        => item is not null && (item.DurationSeconds is not double seconds
+            || (double.IsFinite(seconds) && seconds < TimeSpan.MaxValue.TotalSeconds));
 
     public static void Save(MusicDeckQueueState state)
     {
@@ -56,7 +66,8 @@ internal static class MusicDeckQueueStateStore
 
     internal static void SaveTo(string path, MusicDeckQueueState state)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        if (!IsValid(state)) throw new ArgumentException("Music queues contain invalid entries or durations.", nameof(state));
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
@@ -65,7 +76,7 @@ internal static class MusicDeckQueueStateStore
             else
             {
                 bool valid;
-                try { valid = JsonSerializer.Deserialize<MusicDeckQueueState>(File.ReadAllText(path)) is { Deck1: not null, Deck2: not null }; }
+                try { valid = IsValid(JsonSerializer.Deserialize<MusicDeckQueueState>(File.ReadAllText(path))); }
                 catch (JsonException) { valid = false; }
                 File.Replace(temp, path, path + (valid ? ".previous" : ".unreadable"), true);
             }

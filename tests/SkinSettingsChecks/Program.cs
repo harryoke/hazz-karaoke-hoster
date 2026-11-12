@@ -64,3 +64,52 @@ catch(System.Text.Json.JsonException) { }
 if(File.ReadAllText(favouritesPath)!="broken favourites JSON") throw new Exception("Favourites changed after failed load");
 Console.WriteLine("PASS: skin changes preserve favourite and playlist files byte-for-byte; queue recovery retains both decks; unreadable favourites are not replaced.");
 Console.WriteLine("PASS: every non-skin field preserved, including unknown fields; interrupted-write recovery; damaged file preserved; invalid files rejected. All tests used a temporary settings directory.");
+
+// Valid JSON with an incompatible property must not displace a readable recovery copy.
+var typedPath = Path.Combine(directory, "typed-settings.json");
+UiLayoutSettingsStore.SaveTo(typedPath, settings);
+UiLayoutSettingsStore.SaveTo(typedPath, settings);
+var typedBackup = File.ReadAllText(typedPath + ".previous");
+File.WriteAllText(typedPath, "{\"WindowWidth\":\"not a number\"}");
+var typedRecovery = UiLayoutSettingsStore.LoadFrom(typedPath);
+UiLayoutSettingsStore.SaveTo(typedPath, typedRecovery);
+if (File.ReadAllText(typedPath + ".previous") != typedBackup || !File.Exists(typedPath + ".unreadable"))
+    throw new Exception("Incompatible settings destroyed the readable recovery copy");
+File.WriteAllText(typedPath, "interrupted again");
+if (UiLayoutSettingsStore.LoadFrom(typedPath).AudienceNextSingerFontFamily != settings.AudienceNextSingerFontFamily)
+    throw new Exception("Second recovery lost settings");
+
+foreach (var invalidQueue in new[]
+{
+    "{\"Deck1\":[null],\"Deck2\":[]}",
+    "{\"Deck1\":[],\"Deck2\":[null]}",
+    "{\"Deck1\":[{\"FilePath\":\"song.mp3\",\"DurationSeconds\":1e300}],\"Deck2\":[]}",
+    "{\"Deck1\":[{\"FilePath\":\"song.mp3\",\"DurationSeconds\":1e999}],\"Deck2\":[]}",
+    "{\"Deck1\":null,\"Deck2\":[]}"
+})
+{
+    MusicDeckQueueStateStore.SaveTo(queuesPath, queues);
+    MusicDeckQueueStateStore.SaveTo(queuesPath, queues);
+    var queueBackup = File.ReadAllText(queuesPath + ".previous");
+    File.WriteAllText(queuesPath, invalidQueue);
+    var safeQueues = MusicDeckQueueStateStore.LoadFrom(queuesPath);
+    if (safeQueues.Deck1.Single()?.Title != "Keep A" || safeQueues.Deck2.Single()?.Title != "Keep B")
+        throw new Exception("Unsafe queue entries were accepted instead of the recovery copy");
+    MusicDeckQueueStateStore.SaveTo(queuesPath, safeQueues);
+    if (File.ReadAllText(queuesPath + ".previous") != queueBackup || File.ReadAllText(queuesPath + ".unreadable") != invalidQueue)
+        throw new Exception("Unsafe queue overwrote the readable recovery copy");
+}
+var validQueueBytes = File.ReadAllBytes(queuesPath);
+try
+{
+    MusicDeckQueueStateStore.SaveTo(queuesPath, new() { Deck1 = new() { null! } });
+    throw new Exception("Invalid in-memory queue was saved");
+}
+catch (ArgumentException) { }
+if (!File.ReadAllBytes(queuesPath).SequenceEqual(validQueueBytes)) throw new Exception("Rejected queue save changed the file");
+File.Delete(queuesPath + ".previous");
+File.WriteAllText(queuesPath, "{\"Deck1\":[null],\"Deck2\":[]}");
+try { MusicDeckQueueStateStore.LoadFrom(queuesPath); throw new Exception("Unsafe queue without recovery was accepted"); }
+catch (IOException) { }
+Console.WriteLine("PASS: incompatible settings preserve recovery; null queue entries and overflowing durations are rejected without data loss.");
+Directory.Delete(directory, recursive: true);

@@ -5,38 +5,55 @@ namespace HazzKaraokeHoster.Data;
 
 public static class CompressedBackup
 {
+    private static readonly SemaphoreSlim CreationGate = new(1, 1);
+
     public static Task CreateAsync(HazzDatabase database, string folder, CancellationToken token = default) => Task.Run(async () =>
     {
-        Directory.CreateDirectory(folder);
-        var target = Path.Combine(folder, "hazz-" + DateTime.Now.ToString("yyyy-MM-dd") + ".zip");
-        if (!File.Exists(target))
+        // Startup/manual requests can overlap. Serialize publication and pruning so
+        // one request cannot remove another request's working files or completed ZIP.
+        await CreationGate.WaitAsync(token);
+        try
         {
-            var temporary = target + ".pending";
-            var snapshot = target + ".snapshot";
-            try
+            token.ThrowIfCancellationRequested();
+            Directory.CreateDirectory(folder);
+            var target = Path.Combine(folder, "hazz-" + DateTime.Now.ToString("yyyy-MM-dd") + ".zip");
+            if (!File.Exists(target))
             {
-                await database.BackupAsync(snapshot, token);
-                using (var zip = ZipFile.Open(temporary, ZipArchiveMode.Create))
+                // A crashed process may leave its work behind; never reuse those files.
+                var workingPath = target + "." + Guid.NewGuid().ToString("N");
+                var temporary = workingPath + ".pending";
+                var snapshot = workingPath + ".snapshot";
+                try
                 {
-                    zip.CreateEntryFromFile(snapshot, "hazz-hoster.db", CompressionLevel.Optimal);
-                    foreach (var file in Directory.GetFiles(Path.GetDirectoryName(database.DatabasePath)!, "*.json"))
+                    await database.BackupAsync(snapshot, token);
+                    using (var zip = ZipFile.Open(temporary, ZipArchiveMode.Create))
                     {
-                        token.ThrowIfCancellationRequested();
-                        zip.CreateEntryFromFile(file, "settings/" + Path.GetFileName(file), CompressionLevel.Optimal);
+                        zip.CreateEntryFromFile(snapshot, "hazz-hoster.db", CompressionLevel.Optimal);
+                        foreach (var file in Directory.GetFiles(Path.GetDirectoryName(Path.GetFullPath(database.DatabasePath))!, "*.json"))
+                        {
+                            token.ThrowIfCancellationRequested();
+                            zip.CreateEntryFromFile(file, "settings/" + Path.GetFileName(file), CompressionLevel.Optimal);
+                        }
                     }
+                    // Read the completed archive before publishing it or retiring older backups.
+                    using (var zip = ZipFile.OpenRead(temporary))
+                        foreach (var entry in zip.Entries) { token.ThrowIfCancellationRequested(); using var stream = entry.Open(); stream.CopyTo(Stream.Null); }
+                    token.ThrowIfCancellationRequested();
+                    File.Move(temporary, target);
                 }
-                // Read the completed archive before publishing it or retiring older backups.
-                using (var zip = ZipFile.OpenRead(temporary))
-                    foreach (var entry in zip.Entries) { token.ThrowIfCancellationRequested(); using var stream = entry.Open(); stream.CopyTo(Stream.Null); }
-                File.Move(temporary, target);
+                finally
+                {
+                    if (File.Exists(temporary)) File.Delete(temporary);
+                    if (File.Exists(snapshot)) File.Delete(snapshot);
+                }
             }
-            finally
-            {
-                if (File.Exists(temporary)) File.Delete(temporary);
-                if (File.Exists(snapshot)) File.Delete(snapshot);
-            }
+            token.ThrowIfCancellationRequested();
+            Prune(folder);
         }
-        Prune(folder);
+        finally
+        {
+            CreationGate.Release();
+        }
     }, token);
 
     public static void Prune(string folder, long budget = 1024L * 1024 * 1024)
